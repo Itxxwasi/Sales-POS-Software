@@ -1,0 +1,135 @@
+<div id="customer-payments-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Customer Payments</h1>
+        <p class="dashboard-subtitle">Record customer payments</p>
+    </div>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Entry</h5>
+                </div>
+                <div class="card-body">
+                    <form id="customerPaymentForm">
+                        <input type="hidden" id="customerPaymentId" value="">
+                        <div class="mb-3">
+                            <label for="customerPaymentType" class="form-label">Received</label>
+                            <select class="form-select" id="customerPaymentType">
+                                <option value="Received">Received</option>
+                                <option value="Pay">Pay</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentDate" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="customerPaymentDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentBranch" class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select" id="customerPaymentBranch" required>
+                                <option value="">Shop</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentCustomerId" class="form-label">Customer <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select class="form-select" id="customerPaymentCustomerId" required>
+                                    <option value="">Select Customer</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" id="addCustomerPaymentBtn"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="btn btn-outline-warning" id="refreshCustomerPaymentBtn"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentPreBalance" class="form-label">Pre_Balance</label>
+                            <input type="number" class="form-control" id="customerPaymentPreBalance" step="0.01" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentAmount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="customerPaymentAmount" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discount %</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="customerPaymentDiscPercent" step="0.01" placeholder="%">
+                                <span class="input-group-text">Rs</span>
+                                <input type="number" class="form-control" id="customerPaymentDiscRs" step="0.01" placeholder="Rs">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentBalance" class="form-label">Balance</label>
+                            <input type="number" class="form-control" id="customerPaymentBalance" step="0.01" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentPayMode" class="form-label">Pay Mode</label>
+                            <select class="form-select" id="customerPaymentPayMode">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank">Bank</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentCashInHand" class="form-label">Cash In Hand</label>
+                            <input type="number" class="form-control bg-dark text-success" id="customerPaymentCashInHand" value="0" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerPaymentRemarks" class="form-label">Remarks</label>
+                            <input type="text" class="form-control" id="customerPaymentRemarks">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Save</button>
+                            <button type="button" class="btn btn-primary" id="printCustomerPaymentBtn"><i class="fas fa-print me-1"></i>Print</button>
+                            <button type="button" class="btn btn-danger" id="clearCustomerPaymentBtn"><i class="fas fa-times me-1"></i>Clear</button>
+                            <button type="button" class="btn btn-info" id="ledgerCustomerPaymentBtn"><i class="fas fa-book me-1"></i>Ledger</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Payments List</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">From</label>
+                            <input type="date" class="form-control" id="customerPaymentFromDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To</label>
+                            <input type="date" class="form-control" id="customerPaymentToDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <select class="form-select" id="customerPaymentFilter">
+                                <option value="A-3">A-3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="customerPaymentSearch" placeholder="Search..">
+                    </div>
+                    <button type="button" class="btn btn-primary mb-3" id="searchCustomerPaymentsBtn"><i class="fas fa-search me-1"></i>Search</button>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th><th>Dated</th><th>Customer_Name</th><th>Type</th><th>Pre_Balance</th>
+                                    <th>Amount</th><th>Discount</th><th>Balance</th><th>Payment_Mode</th><th>Bank_Name</th><th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerPaymentsTableBody">
+                                <tr><td colspan="11" class="text-center text-muted">No payments found</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light"><td colspan="5" class="text-end fw-bold">Total</td><td id="customerPaymentsTotal">0.00</td><td colspan="5"></td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

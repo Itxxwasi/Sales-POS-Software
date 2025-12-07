@@ -1,0 +1,268 @@
+<div id="purchase-entry-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Purchase Entry</h1>
+        <p class="dashboard-subtitle">Record purchase invoices</p>
+    </div>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Purchase Invoice</h5>
+                </div>
+                <div class="card-body">
+                    <form id="purchaseForm">
+                        <input type="hidden" id="purchaseId" value="">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="purchaseInvoiceNo" class="form-label">Invoice.No</label>
+                                <input type="text" class="form-control" id="purchaseInvoiceNo">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="purchaseDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="purchaseSupplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="purchaseSupplierId" value="Haris SB WareHouse" readonly>
+                                    <button type="button" class="btn btn-outline-primary" id="addPurchaseSupplierBtn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning" id="refreshPurchaseSupplierBtn">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-4">
+                                <label for="purchaseRefNo" class="form-label">Ref No</label>
+                                <input type="text" class="form-control" id="purchaseRefNo">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="purchaseBiltyNo" class="form-label">Bilty No</label>
+                                <input type="text" class="form-control" id="purchaseBiltyNo">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="purchaseRemarks" class="form-label">Remarks</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="purchaseRemarks">
+                                    <button type="button" class="btn btn-outline-primary">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-12">
+                                <span class="badge bg-success" id="purchaseStatus">Un-Posted</span>
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <h6 class="mb-3">Item Details</h6>
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label for="purchaseItemCode" class="form-label">Code</label>
+                                <input type="text" class="form-control" id="purchaseItemCode">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="purchaseItemName" class="form-label">Name</label>
+                                <select class="form-select" id="purchaseItemName">
+                                    <option value="">Select Item</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemPack" class="form-label">Pack</label>
+                                <input type="number" class="form-control" id="purchaseItemPack" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemStore" class="form-label">Store</label>
+                                <select class="form-select" id="purchaseItemStore">
+                                    <option value="">Shop</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemCostPrice" class="form-label">Cost Price</label>
+                                <input type="number" class="form-control" id="purchaseItemCostPrice" step="0.01">
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-2">
+                                <label for="purchaseItemTotal" class="form-label">Total</label>
+                                <input type="number" class="form-control" id="purchaseItemTotal" step="0.01" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemDiscPercent" class="form-label">Dis %</label>
+                                <input type="number" class="form-control" id="purchaseItemDiscPercent" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemDiscRs" class="form-label">Dis Rs</label>
+                                <input type="number" class="form-control" id="purchaseItemDiscRs" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemStock" class="form-label">Stock</label>
+                                <input type="number" class="form-control" id="purchaseItemStock" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemTaxPercent" class="form-label">Tax %</label>
+                                <input type="number" class="form-control" id="purchaseItemTaxPercent" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemNetTotal" class="form-label">NetTotal</label>
+                                <input type="number" class="form-control" id="purchaseItemNetTotal" step="0.01" readonly>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-2">
+                                <label for="purchaseItemRs" class="form-label">Rs</label>
+                                <input type="number" class="form-control" id="purchaseItemRs" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseItemSalePrice" class="form-label">Sale Price</label>
+                                <input type="number" class="form-control" id="purchaseItemSalePrice" step="0.01">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-primary w-100" id="addPurchaseItemBtn">
+                                    <i class="fas fa-plus me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-3">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sr.No</th>
+                                                <th>Code</th>
+                                                <th>Name</th>
+                                                <th>Pack</th>
+                                                <th>Pcs Price</th>
+                                                <th>Sub Total</th>
+                                                <th>Tax %</th>
+                                                <th>Tax Rs</th>
+                                                <th>Total</th>
+                                                <th>Dis %</th>
+                                                <th>Dis Rs</th>
+                                                <th>Net Total</th>
+                                                <th>Store</th>
+                                                <th>Pcs Sale Price</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="purchaseItemsTableBody">
+                                            <tr>
+                                                <td colspan="15" class="text-center text-muted">No items added yet</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="purchaseTotal" class="form-label">Total</label>
+                        <input type="number" class="form-control" id="purchaseTotal" step="0.01" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseDiscPercent" class="form-label">Dis%</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="purchaseDiscPercent" step="0.01">
+                            <span class="input-group-text">Rs 0.000</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseTaxPercent" class="form-label">Tax %</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="purchaseTaxPercent" step="0.01">
+                            <span class="input-group-text">Rs 0.000</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseMisc" class="form-label">Misc</label>
+                        <input type="number" class="form-control" id="purchaseMisc" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseFreight" class="form-label">Freight</label>
+                        <input type="number" class="form-control" id="purchaseFreight" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseNetTotal" class="form-label">Net Total</label>
+                        <input type="number" class="form-control" id="purchaseNetTotal" step="0.01" value="0.000" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchasePaid" class="form-label">Paid</label>
+                        <input type="number" class="form-control" id="purchasePaid" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseInvBalance" class="form-label">Inv Balance</label>
+                        <input type="number" class="form-control" id="purchaseInvBalance" step="0.01" value="0.000" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchasePreBalance" class="form-label">Pre Balance</label>
+                        <input type="number" class="form-control" id="purchasePreBalance" step="0.01" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchaseNewBalance" class="form-label">New Balance</label>
+                        <input type="number" class="form-control" id="purchaseNewBalance" step="0.01" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="purchasePayMode" class="form-label">Pay Mode</label>
+                        <select class="form-select" id="purchasePayMode">
+                            <option value="Credit">Credit</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <a href="#" class="text-danger" id="searchPurchaseInvoiceLink">Search Invoice (Alt+X)</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <button type="button" class="btn btn-danger me-2" id="holdPurchaseBtn">
+                                <i class="fas fa-pause me-1"></i>Hold Inv
+                            </button>
+                            <button type="button" class="btn btn-success me-2" id="savePurchaseBtn">
+                                <i class="fas fa-save me-1"></i>Save
+                            </button>
+                            <button type="button" class="btn btn-danger me-2" id="unpostedListBtn">
+                                <i class="fas fa-list me-1"></i>Unposted List
+                            </button>
+                            <button type="button" class="btn btn-info" id="listPurchaseBtn">
+                                <i class="fas fa-list me-1"></i>List
+                            </button>
+                        </div>
+                        <div>
+                            <label class="me-2">Apply Discount</label>
+                            <input type="number" class="form-control d-inline-block" style="width: 100px;" id="applyPurchaseDiscount">
+                            <select class="form-select d-inline-block" style="width: 80px;">
+                                <option value="%">%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

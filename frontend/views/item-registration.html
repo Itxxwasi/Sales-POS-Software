@@ -1,0 +1,509 @@
+<div id="item-registration-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Item Registration</h1>
+        <p class="dashboard-subtitle">Register and manage inventory items</p>
+    </div>
+
+    <form id="itemRegistrationForm">
+        <input type="hidden" id="itemId" value="">
+        <div class="row g-3">
+            <!-- LEFT: MAIN ITEM DETAILS -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- ID + SEARCH (ONE ROW) -->
+                        <div class="row g-3 mb-3 align-items-end">
+                            <div class="col-md-3">
+                                <label for="itemIdField" class="form-label">ID</label>
+                                <input type="text" class="form-control" id="itemIdField" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="searchByBarcode" class="form-label text-danger fw-bold">Search By Barcode</label>
+                                <input type="text" class="form-control" id="searchByBarcode" placeholder="Enter barcode">
+                            </div>
+                            <div class="col-md-5">
+                                <label for="searchByName" class="form-label text-danger fw-bold">Search By Name</label>
+                                <select class="form-select" id="searchByName">
+                                    <option value="">Select Item</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ITEM NAME FULL ROW -->
+                        <div class="row g-3 mb-2">
+                            <div class="col-12">
+                                <label for="itemName" class="form-label">Item Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="itemName" required>
+                            </div>
+                        </div>
+
+                        <!-- ITEM CODE + GIVEN PCS BAR CODE -->
+                        <div class="row g-3 mb-2">
+                            <div class="col-md-3">
+                                <label for="itemCode" class="form-label">Item Code <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="itemCode" required style="background-color:#f5f7fb;">
+                                    <button type="button" class="btn btn-outline-secondary" id="generateItemCodeBtn" title="Generate Code">
+                                        <i class="fas fa-magic"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="givenPcsBarCode" class="form-label">Given Pcs Bar Code</label>
+                                <input type="text" class="form-control" id="givenPcsBarCode">
+                            </div>
+                        </div>
+
+                        <!-- PRICES -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label for="costPrice" class="form-label">Cost Price</label>
+                                <input type="number" class="form-control" id="costPrice" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="salePrice" class="form-label">Sale Price</label>
+                                <input type="number" class="form-control" id="salePrice" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="retailPrice" class="form-label">Retial Price</label>
+                                <input type="number" class="form-control" id="retailPrice" step="0.01" min="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="incentive" class="form-label">Incentive</label>
+                                <input type="number" class="form-control" id="incentive" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <!-- STORE STOCK TABLE -->
+                        <div class="mt-2">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm mb-1">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th style="width:60px;">ID</th>
+                                            <th>Store</th>
+                                            <th style="width:140px;">Stock In Hand</th>
+                                            <th style="width:140px;">Opening</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="storeStockTableBody">
+                                        <tr>
+                                            <td>1</td>
+                                            <td>
+                                                <select class="form-select form-select-sm" name="storeId" disabled tabindex="-1">
+                                                    <option value="">Select Store</option>
+                                                </select>
+                                            </td>
+                                            <td><input type="number" class="form-control form-control-sm" name="stockInHand" value="0" readonly style="background-color:#f5f7fb;"></td>
+                                            <td><input type="number" class="form-control form-control-sm" name="opening" value="0"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-1" id="addStoreRowBtn" style="display:none;">
+                                <i class="fas fa-plus me-1"></i>Add Store
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: MASTER DATA & ACTIONS -->
+            <div class="col-lg-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Masters & Actions</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <!-- Company / Category / Class / SubClass / Supplier -->
+                        <div class="mb-2">
+                            <label for="companyId" class="form-label">Company (Alt+A)</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" id="companyId">
+                                    <option value="">Select Company</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary" id="itemAddCompanyBtn" title="Add Company">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="categoryId" class="form-label">Category (Alt+C)</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" id="categoryId">
+                                    <option value="">Select Category</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary" id="itemAddCategoryBtn" title="Add Category">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="classId" class="form-label">Class (Alt+D)</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" id="classId">
+                                    <option value="">Select Class</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary" id="itemAddClassBtn" title="Add Class">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="subclassId" class="form-label">SubClass (Alt+F)</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" id="subclassId">
+                                    <option value="">Select SubClass</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary" id="itemAddSubClassBtn" title="Add SubClass">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="supplierId" class="form-label">Supplier (Alt+H)</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" id="supplierId">
+                                    <option value="">Select Supplier</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-primary" id="itemAddSupplierBtn" title="Add Supplier">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Spacer to push actions to bottom -->
+                        <div class="flex-grow-1"></div>
+
+                        <!-- ACTION BUTTONS + ACTIVE (ONE ROW) -->
+                        <div class="mt-3 d-flex align-items-center justify-content-between">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-success" id="saveItemBtn">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-danger" id="clearItemFormBtn">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </button>
+                                <button type="button" class="btn btn-info" id="listItemsBtn">
+                                    <i class="fas fa-list me-1"></i>List
+                                </button>
+                            </div>
+                            <div class="form-check ms-3 mb-0">
+                                <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                <label class="form-check-label" for="isActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- ITEM LIST MODAL (opens when clicking List button) -->
+    <div class="modal fade" id="itemListModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-list me-2"></i>Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center mb-2 gap-2">
+                        <input type="text" class="form-control" id="itemListSearchInput" placeholder="Search.." style="flex:1;">
+                        <span class="text-muted small">SEARCH : <strong>ctrl</strong></span>
+                        <span class="text-muted small">SELECT ITEM : <strong>alt+b</strong></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm w-100" id="itemsListTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:100px"></th>
+                                    <th>Barcode</th>
+                                    <th>ItemName</th>
+                                    <th class="text-end">Cost Price</th>
+                                    <th class="text-end">Sale Price</th>
+                                    <th class="text-end">Stock</th>
+                                    <th>Company</th>
+                                    <th>Category</th>
+                                    <th>Class</th>
+                                    <th>SubClass</th>
+                                    <th>Supplier</th>
+                                    <th class="text-end" style="width:120px">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsListTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK ADD MODALS -->
+    <div class="modal fade" id="itemCompanyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Company Registration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-auto">
+                            <label class="form-label">Code</label>
+                            <input type="text" class="form-control form-control-sm" id="companyCodeDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="itemCompanyNameInput">
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="companyActive" checked>
+                                <label class="form-check-label" for="companyActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-auto mt-4">
+                            <button type="button" class="btn btn-success btn-sm" id="itemSaveCompanyBtn">Save</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="companyModalId" value="">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="companyModalSearch" placeholder="Search">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Active</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="companyModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemCategoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Category Registration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-auto">
+                            <label class="form-label">Code</label>
+                            <input type="text" class="form-control form-control-sm" id="categoryCodeDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="itemCategoryNameInput">
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="categoryActive" checked>
+                                <label class="form-check-label" for="categoryActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-auto mt-4">
+                            <button type="button" class="btn btn-success btn-sm" id="itemSaveCategoryBtn">Save</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="categoryModalId" value="">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="categoryModalSearch" placeholder="Search">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Active</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemClassModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Class Registration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-auto">
+                            <label class="form-label">Code</label>
+                            <input type="text" class="form-control form-control-sm" id="classCodeDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Class</label>
+                            <input type="text" class="form-control form-control-sm" id="itemClassNameInput">
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="classActive" checked>
+                                <label class="form-check-label" for="classActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-auto mt-4">
+                            <button type="button" class="btn btn-success btn-sm" id="itemSaveClassBtn">Save</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="classModalId" value="">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="classModalSearch" placeholder="Search">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Active</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="classModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemSubClassModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">SubClass Registration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-auto">
+                            <label class="form-label">Code</label>
+                            <input type="text" class="form-control form-control-sm" id="subclassCodeDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="itemSubClassNameInput">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Class</label>
+                            <select class="form-select form-select-sm" id="itemSubClassClassSelect">
+                                <option value="">Select Class</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="subclassActive" checked>
+                                <label class="form-check-label" for="subclassActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-auto mt-4">
+                            <button type="button" class="btn btn-success btn-sm" id="itemSaveSubClassBtn">Save</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="subclassModalId" value="">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="subclassModalSearch" placeholder="Search">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Class</th>
+                                    <th>Active</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subclassModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemSupplierModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Supplier Registration</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-auto">
+                            <label class="form-label">Code</label>
+                            <input type="text" class="form-control form-control-sm" id="supplierCodeDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="itemSupplierNameInput">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control form-control-sm" id="itemSupplierEmailInput">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control form-control-sm" id="itemSupplierPhoneInput">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control form-control-sm" id="itemSupplierAddressInput">
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="supplierActive" checked>
+                                <label class="form-check-label" for="supplierActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-success btn-sm" id="itemSaveSupplierBtn">Save</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="supplierModalId" value="">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="supplierModalSearch" placeholder="Search">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Active</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplierModalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

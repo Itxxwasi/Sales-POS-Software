@@ -1,0 +1,141 @@
+<div id="supplier-payments-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Supplier Payments</h1>
+        <p class="dashboard-subtitle">Record supplier payments</p>
+    </div>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Entry</h5>
+                </div>
+                <div class="card-body">
+                    <form id="supplierPaymentForm">
+                        <input type="hidden" id="supplierPaymentId" value="">
+                        <div class="mb-3">
+                            <label for="supplierPaymentType" class="form-label">Pay</label>
+                            <select class="form-select" id="supplierPaymentType">
+                                <option value="Pay">Pay</option>
+                                <option value="Received">Received</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentDate" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="supplierPaymentDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentBranch" class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supplierPaymentBranch" required>
+                                <option value="">Shop</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentSupplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <select class="form-select" id="supplierPaymentSupplierId" required>
+                                    <option value="">Select Supplier</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" id="addSupplierPaymentBtn"><i class="fas fa-plus"></i></button>
+                                <button type="button" class="btn btn-outline-warning" id="refreshSupplierPaymentBtn"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentPreBalance" class="form-label">Pre_Balance</label>
+                            <input type="number" class="form-control" id="supplierPaymentPreBalance" step="0.01" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentAmount" class="form-label">Amount <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="supplierPaymentAmount" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discount %</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="supplierPaymentDiscPercent" step="0.01" placeholder="%">
+                                <span class="input-group-text">Rs</span>
+                                <input type="number" class="form-control" id="supplierPaymentDiscRs" step="0.01" placeholder="Rs">
+                                <input type="number" class="form-control" id="supplierPaymentDiscRs2" step="0.01" placeholder="Rs">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentBalance" class="form-label">Balance</label>
+                            <input type="number" class="form-control" id="supplierPaymentBalance" step="0.01" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentPayMode" class="form-label">Pay Mode</label>
+                            <select class="form-select" id="supplierPaymentPayMode">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank">Bank</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentCash" class="form-label">Cash</label>
+                            <select class="form-select" id="supplierPaymentCash">
+                                <option value="">Cash in Hand (Shop)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentCashInHand" class="form-label">Cash In Hand</label>
+                            <input type="number" class="form-control bg-dark text-success" id="supplierPaymentCashInHand" value="110506229" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supplierPaymentRemarks" class="form-label">Remarks</label>
+                            <input type="text" class="form-control" id="supplierPaymentRemarks">
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>Save</button>
+                            <button type="button" class="btn btn-primary" id="printSupplierPaymentBtn"><i class="fas fa-print me-1"></i>Print</button>
+                            <button type="button" class="btn btn-danger" id="clearSupplierPaymentBtn"><i class="fas fa-times me-1"></i>Clear</button>
+                            <button type="button" class="btn btn-info" id="ledgerSupplierPaymentBtn"><i class="fas fa-book me-1"></i>Ledger</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Payments List</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">From</label>
+                            <input type="date" class="form-control" id="supplierPaymentFromDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To</label>
+                            <input type="date" class="form-control" id="supplierPaymentToDate">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <select class="form-select" id="supplierPaymentFilter">
+                                <option value="A-3">A-3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="supplierPaymentSearch" placeholder="Search...">
+                    </div>
+                    <button type="button" class="btn btn-primary mb-3" id="searchSupplierPaymentsBtn"><i class="fas fa-search me-1"></i>Search</button>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th><th>Dated</th><th>Supplier_Name</th><th>Type</th><th>Pre_Balance</th>
+                                    <th>Amount</th><th>Discount</th><th>Balance</th><th>Payment_Mode</th><th>Bank_Name</th><th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplierPaymentsTableBody">
+                                <tr><td colspan="11" class="text-center text-muted">No payments found</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light"><td colspan="5" class="text-end fw-bold">Total</td><td id="supplierPaymentsTotal">0.00</td><td colspan="5"></td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

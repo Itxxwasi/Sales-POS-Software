@@ -1,0 +1,113 @@
+<div id="purchase-return-entry-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Purchase Return Entry</h1>
+        <p class="dashboard-subtitle">Process purchase returns</p>
+    </div>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Return Invoice</h5>
+                </div>
+                <div class="card-body">
+                    <form id="purchaseReturnForm">
+                        <input type="hidden" id="purchaseReturnId" value="">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="purchaseReturnInvoiceNo" class="form-label">Invoice.No</label>
+                                <input type="text" class="form-control" id="purchaseReturnInvoiceNo">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="purchaseReturnDate" class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="purchaseReturnDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="purchaseReturnSupplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="purchaseReturnSupplierId" value="Haris SB WareHouse" readonly>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <label for="purchaseReturnRemarks" class="form-label">Remarks</label>
+                                <input type="text" class="form-control" id="purchaseReturnRemarks">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="purchaseReturnRefNo" class="form-label">Ref No</label>
+                                <input type="text" class="form-control" id="purchaseReturnRefNo">
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <h6 class="mb-3">Item Details</h6>
+                        <div class="row g-3">
+                            <div class="col-md-2"><label for="prItemCode" class="form-label">Code</label><input type="text" class="form-control" id="prItemCode"></div>
+                            <div class="col-md-4"><label for="prItemName" class="form-label">Name</label><select class="form-select" id="prItemName"><option value="">Select Item</option></select></div>
+                            <div class="col-md-2"><label for="prItemPack" class="form-label">Pack</label><input type="number" class="form-control" id="prItemPack" step="0.01"></div>
+                            <div class="col-md-2"><label for="prItemStore" class="form-label">Store</label><select class="form-select" id="prItemStore"><option value="">Shop</option></select></div>
+                            <div class="col-md-2"><label for="prItemCostPrice" class="form-label">Cost Price</label><input type="number" class="form-control" id="prItemCostPrice" step="0.01"></div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-2"><label for="prItemTotal" class="form-label">Total</label><input type="number" class="form-control" id="prItemTotal" step="0.01" readonly></div>
+                            <div class="col-md-2"><label for="prItemDiscPercent" class="form-label">Dis %</label><input type="number" class="form-control" id="prItemDiscPercent" step="0.01"></div>
+                            <div class="col-md-2"><label for="prItemDiscRs" class="form-label">Dis Rs</label><input type="number" class="form-control" id="prItemDiscRs" step="0.01"></div>
+                            <div class="col-md-2"><label for="prItemTaxPercent" class="form-label">Tax %</label><input type="number" class="form-control" id="prItemTaxPercent" step="0.01"></div>
+                            <div class="col-md-2"><label for="prItemNetTotal" class="form-label">NetTotal</label><input type="number" class="form-control" id="prItemNetTotal" step="0.01" readonly></div>
+                            <div class="col-md-2"><label for="prItemStock" class="form-label">Stock</label><input type="number" class="form-control" id="prItemStock" readonly></div>
+                        </div>
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-2"><label for="prItemRs" class="form-label">Rs</label><input type="number" class="form-control" id="prItemRs" step="0.01"></div>
+                            <div class="col-md-2"><label for="prItemTotalFinal" class="form-label">Total</label><input type="number" class="form-control" id="prItemTotalFinal" step="0.01" readonly></div>
+                            <div class="col-md-8">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-info" id="listPrItemsBtn"><i class="fas fa-list me-1"></i>List</button>
+                                    <button type="button" class="btn btn-primary" id="addPrItemBtn"><i class="fas fa-plus me-1"></i>Add</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-3">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sr.No</th><th>Code</th><th>Name</th><th>Pack</th><th>Price</th><th>Sub Total</th>
+                                                <th>Tax %</th><th>Tax Rs</th><th>Total</th><th>Dis %</th><th>Dis Rs</th><th>Net Total</th><th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="purchaseReturnItemsTableBody">
+                                            <tr><td colspan="13" class="text-center text-muted">No items added yet</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-light"><h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5></div>
+                <div class="card-body">
+                    <div class="mb-3"><label for="prTotal" class="form-label">Total</label><input type="number" class="form-control" id="prTotal" step="0.01" readonly></div>
+                    <div class="mb-3"><label for="prDiscPercent" class="form-label">Dis%</label><div class="input-group"><input type="number" class="form-control" id="prDiscPercent" step="0.01"><span class="input-group-text">Rs 0</span></div></div>
+                    <div class="mb-3"><label for="prTaxPercent" class="form-label">Tax %</label><div class="input-group"><input type="number" class="form-control" id="prTaxPercent" step="0.01"><span class="input-group-text">Rs 0</span></div></div>
+                    <div class="mb-3"><label for="prMisc" class="form-label">Misc</label><input type="number" class="form-control" id="prMisc" step="0.01"></div>
+                    <div class="mb-3"><label for="prFreight" class="form-label">Freight</label><input type="number" class="form-control" id="prFreight" step="0.01"></div>
+                    <div class="mb-3"><label for="prNetTotal" class="form-label">Net Total</label><input type="number" class="form-control" id="prNetTotal" step="0.01" value="0.00" readonly></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <button type="button" class="btn btn-danger me-2" id="savePurchaseReturnBtn"><i class="fas fa-save me-1"></i>Save</button>
+                    <button type="button" class="btn btn-success" id="listPurchaseReturnBtn"><i class="fas fa-list me-1"></i>List</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

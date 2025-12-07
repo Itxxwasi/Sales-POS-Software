@@ -1,0 +1,6263 @@
+// ========================================
+// IMPORTS AND CONFIGURATION
+// ========================================
+/*
+this code is a complete sales management system for a pharmacy made by wasi
+has multi-branch support, role-based access control, and comprehensive reporting.
+designed and developed by wasi and bilal shah.
+copyright © 2025 wasi and bilal shah. all rights reserved.
+don't sell this code without permission.
+don't use this code for commercial purposes without permission.
+don't use this code for illegal purposes without permission.
+don't use this code for any purpose without permission.
+don't use this code for any purpose without permission.
+contact us at mrwasi.dev@gmail.com for any questions or support.
+anywhare i see  this code i will sue you for copyright infringement.and will take legal action.
+code based on the following technologies:
+- html5
+- css3
+- javascript
+- nodejs
+- express
+- mongoose
+- cors
+- morgan
+- dotenv
+- path
+- fileurl
+- bcryptjs
+- jsonwebtoken
+- mongoose
+- cors
+- morgan
+
+never use any other technologies without permission.
+mission of this code is to help the pharmacy business to manage their sales and inventory.
+soon i will add more features to this code.
+happy coding and good luck.
+goo
+follow me on github and twitter.
+follow me on instagram and facebook.
+follow me on youtube and tiktok.
+follow me on linkedin and github.
+follow me on twitter and facebook.
+follow me on instagram and youtube.
+follow me on tiktok and linkedin.
+follow me on github and twitter.
+ official website: https://mrwasi.dev
+ official email: mrwasi.dev@gmail.com
+ official phone: +923192173398
+ official address: pwd housing society, islamabad, pakistan
+ official city: islamabad
+ official state: pakistan
+ official zip: 45600
+ official country: pakistan
+
+*/
+// Importing the necessary modules made by wasi
+import express from 'express';
+// removed dynamic logo upload dependencies
+import mongoose from 'mongoose';
+import cors from 'cors';
+import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+import { env, paths } from './config/env.js';
+import { corsOptions } from './config/cors.js';
+import { connectDB, checkDatabaseConnection } from './config/db.js';
+import { sanitizeInput, rateLimit } from './middlewares/util.js';
+import { authenticate, isAdmin, hasPermission } from './middlewares/auth.js';
+import { authenticateApiKey } from './middlewares/apiKey.js';
+import { Branch, Category, Group, User, Sale, DepartmentSale, Settings, Supplier, Payment, CategoryPayment, ApiKey, Department, SubDepartment, Employee, EmployeeDepartment, EmployeeDesignation, IncomeStatementReport, Item, Company, Class, SubClass, Customer, WholeSale, SaleReturn, Purchase, PurchaseReturn, CustomerPayment, SupplierPayment, Voucher, Account, DamageStock, StockAudit, Transporter } from './models/index.js';
+
+// ========================================
+// SERVER INITIALIZATION AND CONFIGURATION
+// ========================================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Env is loaded via ./config/env.js
+
+const app = express();
+const port = env.PORT;
+const mongoUri = env.MONGO_URI;
+
+// ========================================
+// MIDDLEWARE CONFIGURATION
+// ========================================
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser()); // Parse cookies for httpOnly JWT tokens
+app.use(morgan('dev'));
+/*
+// DEBUG: Log ALL incoming API requests to see what's happening
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    console.log('🔍 REQUEST RECEIVED:', req.method, req.path, '| Query:', JSON.stringify(req.query), '| Original:', req.originalUrl);
+    console.log('🔍 Authorization header:', req.header('Authorization') ? 'Present' : 'Missing');
+  }
+  next();
+});
+*/ // Commented out by wasi to avoid logging all requests to the console
+// ========================================
+// RATE LIMITING MIDDLEWARE (imported from middlewares/util.js)
+
+// Apply rate limiting to sensitive auth endpoints only
+app.use('/api/auth/login', rateLimit(10, 15 * 60 * 1000));
+app.use('/api/auth/signup', rateLimit(10, 15 * 60 * 1000));
+
+// ========================================
+// INPUT SANITIZATION MIDDLEWARE (imported from middlewares/util.js)
+app.use(sanitizeInput);
+
+
+// ========================================
+// DATABASE CONNECTION
+// ========================================
+
+// DATABASE CONNECTION (via modular config)
+connectDB(mongoUri);
+
+// MongoDB connection event handlers
+// MongoDB connection event handlers moved to config/db.js
+
+// ========================================
+// DATABASE SCHEMAS AND MODELS
+// ========================================
+
+// Branch Schema - Pharmacy locations
+const BranchSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    address: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    email: { type: String, default: '' }
+  },
+  { timestamps: true }
+);
+
+// Category Schema - Product categories
+const CategorySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, unique: true },
+    description: { type: String, default: '' },
+    color: { type: String, default: 'primary' }
+  },
+  { timestamps: true }
+);
+
+// Group Schema - User permission groups
+const GroupSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, unique: true },
+    description: { type: String, default: '' },
+    permissions: [{ type: String }],
+    isDefault: { type: Boolean, default: false }
+  },
+  { timestamps: true }
+);
+
+// User Schema - System users
+const UserSchema = new mongoose.Schema(
+  {
+    username: { type: String, required: true, unique: true },
+    fullName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
+    branches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Branch' }],
+    isActive: { type: Boolean, default: true },
+    lastLogin: { type: Date }
+  },
+  { timestamps: true }
+);
+
+// Sale Schema - Sales transactions
+const SaleSchema = new mongoose.Schema(
+  {
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    date: { type: Date, required: true },
+    items: [
+      {
+        sku: String,
+        name: String,
+        quantity: Number,
+        unitPrice: Number,
+        cost: Number
+      }
+    ],
+    total: { type: Number, required: true },
+    costTotal: { type: Number, required: true },
+    profit: { type: Number, required: true },
+    category: { type: String, required: true },
+    notes: { type: String, default: '' }
+  },
+  { timestamps: true }
+);
+
+// Department Sale Schema - Department/Sub-Department Sales transactions
+const DepartmentSaleSchema = new mongoose.Schema(
+  {
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
+    subDepartmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubDepartment', required: true },
+    date: { type: Date, required: true },
+    grossSale: { type: Number, required: true },
+    discountAmount: { type: Number, default: 0 },
+    discountPercent: { type: Number, default: 0 },
+    saleValue: { type: Number, required: true },
+    returnAmount: { type: Number, default: 0 },
+    gst: { type: Number, default: 0 },
+    cost: { type: Number, default: 0 },
+    netSale: { type: Number, required: true },
+    subDepartmentTotal: { type: Number, required: true },
+    notes: { type: String, default: '' }
+  },
+  { timestamps: true }
+);
+
+// Settings Schema - System configuration
+const SettingsSchema = new mongoose.Schema(
+  {
+    companyName: { type: String, default: 'D.Watson Group of Pharmacy' },
+    currency: { type: String, default: '' },
+    dateFormat: { type: String, default: 'DD/MM/YYYY' },
+    itemsPerPage: { type: Number, default: 10 },
+    defaultCostPercent: { type: Number, default: 70 }
+  },
+  { timestamps: true }
+);
+
+// Supplier Schema - Payment suppliers
+const SupplierSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, unique: true },
+    description: { type: String, default: '' },
+    contact: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    email: { type: String, default: '' },
+    address: { type: String, default: '' }
+  },
+  { timestamps: true }
+);
+
+// Payment Schema - Payment entries (Voucher-based) - Supplier Vouchers ONLY
+const PaymentSchema = new mongoose.Schema(
+  {
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
+    voucherNumber: { type: String, unique: true, required: true },
+    date: { type: Date, required: true },
+    amount: { type: Number, required: true },
+    description: { type: String, default: '' },
+    paymentMethod: { type: String, default: 'Cash' }, // Cash, Bank Transfer, Check, Online Payment
+    supplier: { type: String, required: true },
+    notes: { type: String, default: '' },
+    status: { type: String, default: 'Pending', enum: ['Pending', 'Approved', 'Rejected'] }
+  },
+  { timestamps: true }
+);
+
+// Category Payment Schema - Category Vouchers (SEPARATE MODEL)
+const CategoryPaymentSchema = new mongoose.Schema(
+  {
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    voucherNumber: { type: String, unique: true, required: true },
+    date: { type: Date, required: true },
+    amount: { type: Number, required: true },
+    description: { type: String, default: '' },
+    paymentMethod: { type: String, default: 'Cash' },
+    category: { type: String, required: true },
+    notes: { type: String, default: '' },
+    status: { type: String, default: 'Pending', enum: ['Pending', 'Approved', 'Rejected'] }
+  },
+  { timestamps: true }
+);
+
+// API Key Schema - For external API access
+const ApiKeySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    description: { type: String, default: '' },
+    apiKey: { type: String, required: true, unique: true },
+    apiSecret: { type: String, required: true },
+    isActive: { type: Boolean, default: true },
+    lastUsed: { type: Date },
+    usageCount: { type: Number, default: 0 },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    expiresAt: { type: Date } // Optional expiration date
+  },
+  { timestamps: true }
+);
+
+// Index for faster lookups
+ApiKeySchema.index({ isActive: 1 });
+
+// Department Schema - Main departments (branch-specific)
+const DepartmentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    description: { type: String, default: '' },
+    isActive: { type: Boolean, default: true },
+    sequence: { type: Number, default: 0 } // Custom sequence for branch-wise ordering
+  },
+  { timestamps: true }
+);
+
+// SubDepartment Schema - Sub-departments under departments (branch-specific)
+const SubDepartmentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
+    branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    description: { type: String, default: '' },
+    isActive: { type: Boolean, default: true },
+    sequence: { type: Number, default: 0 } // Custom sequence for branch-wise ordering
+  },
+  { timestamps: true }
+);
+
+// Indexes for departments and sub-departments
+DepartmentSchema.index({ branchId: 1, name: 1 }, { unique: true });
+SubDepartmentSchema.index({ departmentId: 1, branchId: 1, name: 1 }, { unique: true });
+
+// Model Creation
+// Models are imported from server/models/index.js
+
+// ========================================
+// AUTHENTICATION CONFIGURATION
+// ========================================
+// Validate environment variables
+// JWT secret validation handled in middlewares/auth.js
+
+
+// ========================================
+// DATABASE CONNECTION CHECK MIDDLEWARE
+// ========================================
+
+// Check if database is connected
+// Database connection check imported from config/db.js
+
+// ========================================
+// AUTHENTICATION MIDDLEWARE
+// ========================================
+
+// Main Authentication Middleware
+// Authentication middleware imported from middlewares/auth.js
+
+// Admin Permission Middleware
+// isAdmin imported from middlewares/auth.js
+
+// Permission Check Middleware - Check if user has specific permission
+// Supports hierarchical permissions: if user has parent permission, they get access to sub-permissions
+// hasPermission imported from middlewares/auth.js
+
+// ========================================
+// API KEY AUTHENTICATION MIDDLEWARE
+// ========================================
+
+// API Key Authentication Middleware - For external API access
+// API Key auth imported from middlewares/apiKey.js
+
+// ========================================
+// UTILITY ENDPOINTS
+// ========================================
+
+// Promote user to admin endpoint
+app.post('/api/admin/promote-user', async (req, res) => {
+  try {
+    const { username, adminPassword } = req.body;
+    
+    // Verify admin password
+    const expectedPassword = process.env.ADMIN_PASSWORD;
+    if (!expectedPassword) {
+      return res.status(503).json({ error: 'Admin password not configured on server' });
+    }
+    if (adminPassword !== expectedPassword) {
+      return res.status(403).json({ error: 'Invalid admin password' });
+    }
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Find the user
+    const user = await User.findOne({ username }).populate('groupId');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Find or create Admin group
+    let adminGroup = await Group.findOne({ name: 'Admin' });
+    if (!adminGroup) {
+        adminGroup = await Group.create({
+          name: 'Admin',
+          description: 'System administrators with full access',
+          permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers'],
+          isDefault: true
+        });
+    }
+    
+    // Update user to Admin group
+    user.groupId = adminGroup._id;
+    await user.save();
+    
+    // Populate the updated user
+    await user.populate('groupId', 'name permissions');
+    
+    res.json({
+      message: `User ${username} has been promoted to admin`,
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        groupId: user.groupId,
+        permissions: user.groupId.permissions
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error promoting user to admin:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user by username endpoint
+app.get('/api/users/username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ username }).populate('groupId', 'name permissions');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      id: user._id,
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      groupId: user.groupId,
+      permissions: user.groupId.permissions,
+      isActive: user.isActive
+    });
+    
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const healthData = { 
+    ok: true, 
+    environment: process.env.NODE_ENV || 'development',
+    port: port,
+    timestamp: new Date().toISOString(),
+    mongodb: {
+      connected: mongoose.connection.readyState === 1,
+      state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState],
+      host: mongoose.connection.host || 'unknown',
+      port: mongoose.connection.port || 'unknown'
+    },
+    uptime: process.uptime(),
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+    },
+    rateLimit: {
+      activeConnections: rateLimitMap.size
+    }
+  };
+  
+  
+  // Set appropriate status code based on database connection
+  const statusCode = mongoose.connection.readyState === 1 ? 200 : 503;
+  res.status(statusCode).json(healthData);
+});
+
+// ========================================
+// AUTHENTICATION ROUTES
+// ========================================
+
+// User Login
+app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    const user = await User.findOne({ username }).populate('groupId');
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    if (!user.isActive) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+    
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: '7d' });
+    
+    // Return user data and token in response body for Bearer token authentication
+    res.json({
+      ok: true,
+      token: token,
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        groupId: user.groupId,
+        branches: user.branches,
+        permissions: user.groupId.permissions
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// User Logout
+app.post('/api/auth/logout', authenticate, (req, res) => {
+  // Token is stored in localStorage on frontend, cleared by frontend
+  // Backend just confirms logout
+  res.json({ message: 'Logged out successfully' });
+});
+
+// User Registration
+app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
+  try {
+    const { username, fullName, email, password, confirmPassword } = req.body;
+    
+    
+    // Validation
+    if (!username || !fullName || !email || !password || !confirmPassword) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({ error: 'Database connection error' });
+    }
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [
+        { username: username },
+        { email: email }
+      ]
+    });
+    
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return res.status(409).json({ error: 'Username already exists' });
+      }
+      if (existingUser.email === email) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+    }
+    
+    // Get Admin group for new users (full rights)
+    let adminGroup = await Group.findOne({ name: 'Admin' });
+    if (!adminGroup) {
+      // If Admin group doesn't exist, create it with full permissions
+      adminGroup = await Group.create({
+        name: 'Admin',
+        description: 'System administrators with full access',
+        permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers'],
+        isDefault: true
+      });
+    }
+    
+    // Get all branches for new user (or empty array if no branches exist)
+    const allBranches = await Branch.find();
+    
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Create new user with admin privileges
+    const newUser = new User({
+      username: username.trim(),
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      password: hashedPassword,
+      groupId: adminGroup._id, // Assign admin group for full rights
+      branches: allBranches.map(b => b._id), // Assign all branches by default
+      isActive: true
+    });
+    
+    await newUser.save();
+    
+    // Populate group information for response
+    await newUser.populate('groupId', 'name permissions');
+    
+    // Generate JWT token
+    const token = jwt.sign({ id: newUser._id }, env.JWT_SECRET, { expiresIn: '7d' });
+    
+    res.status(201).json({
+      message: 'User registered successfully',
+      ok: true,
+      token: token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        groupId: newUser.groupId,
+        branches: newUser.branches,
+        permissions: newUser.groupId.permissions
+      }
+    });
+    
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
+// Get Current User Info
+app.get('/api/auth/me', authenticate, async (req, res) => {
+  try {
+    // Fetch the user again to ensure we have the latest data
+    const user = await User.findById(req.user._id).populate('groupId');
+    
+    res.json({
+      id: user._id,
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      groupId: user.groupId,
+      branches: user.branches,
+      permissions: user.groupId.permissions
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ========================================
+// SETTINGS API ROUTES
+// ========================================
+
+// Get System Settings
+app.get('/api/settings', authenticate, async (req, res) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = await Settings.create({});
+    }
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update System Settings
+app.put('/api/settings', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const update = {
+      companyName: req.body.companyName ?? 'D.Watson Group of Pharmacy',
+      currency: req.body.currency ?? '',
+      dateFormat: req.body.dateFormat ?? 'DD/MM/YYYY',
+      itemsPerPage: Number(req.body.itemsPerPage ?? 10),
+      defaultCostPercent: req.body.defaultCostPercent !== undefined ? Number(req.body.defaultCostPercent) : undefined,
+      theme: req.body.theme ?? 'light'
+    };
+    
+    // Remove undefined to avoid overwriting with undefined
+    Object.keys(update).forEach((k) => update[k] === undefined && delete update[k]);
+    
+    const settings = await Settings.findOneAndUpdate({}, update, { new: true, upsert: true });
+    res.json(settings);
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+// ========================================
+// DATA RESTORE API ROUTE
+// ========================================
+
+// Restore Data from Backup
+app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const backup = req.body;
+    
+    // Validate backup structure
+    if (!backup || typeof backup !== 'object') {
+      return res.status(400).json({ error: 'Invalid backup data format' });
+    }
+    
+    // Optional: Validate timestamp exists
+    if (!backup.timestamp) {
+      console.warn('⚠️ Backup file missing timestamp');
+    }
+    
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Step 1: Clear existing data (in reverse dependency order to avoid foreign key issues)
+      console.log('🗑️ Clearing existing data...');
+      
+      await DepartmentSale.deleteMany({}).session(session);
+      await Sale.deleteMany({}).session(session);
+      await Payment.deleteMany({}).session(session);
+      await CategoryPayment.deleteMany({}).session(session);
+      await User.deleteMany({}).session(session);
+      await SubDepartment.deleteMany({}).session(session);
+      await Department.deleteMany({}).session(session);
+      await Category.deleteMany({}).session(session);
+      await Supplier.deleteMany({}).session(session);
+      await Branch.deleteMany({}).session(session);
+      await Group.deleteMany({}).session(session);
+      await Settings.deleteMany({}).session(session);
+      // Note: Not deleting ApiKeys to preserve API access
+      
+      // Step 2: Restore data (in dependency order)
+      console.log('📥 Restoring backup data...');
+      
+      // Restore Settings
+      if (backup.settingsData) {
+        if (Array.isArray(backup.settingsData) && backup.settingsData.length > 0) {
+          await Settings.insertMany([backup.settingsData[0]], { session });
+        } else if (typeof backup.settingsData === 'object') {
+          await Settings.insertMany([backup.settingsData], { session });
+        }
+      }
+      
+      // Restore Groups (needed before Users)
+      if (backup.groupsData && Array.isArray(backup.groupsData)) {
+        const groups = backup.groupsData.map(g => ({
+          name: g.name,
+          description: g.description || '',
+          permissions: g.permissions || [],
+          isDefault: g.isDefault || false
+        }));
+        await Group.insertMany(groups, { session });
+      }
+      
+      // Restore Branches (needed before Departments and Users)
+      if (backup.branchesData && Array.isArray(backup.branchesData)) {
+        const branches = backup.branchesData.map(b => ({
+          name: b.name,
+          address: b.address || '',
+          phone: b.phone || '',
+          email: b.email || ''
+        }));
+        await Branch.insertMany(branches, { session });
+      }
+
+      if (backup.departmentsData && Array.isArray(backup.departmentsData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        const departments = [];
+        for (const d of backup.departmentsData) {
+          const bname = d.branchId?.name || d.branch?.name || d.branchName || '';
+          const bid = branchMap.get(bname);
+          if (!bid) continue;
+          departments.push({
+            name: d.name,
+            branchId: bid,
+            description: d.description || '',
+            isActive: d.isActive !== undefined ? d.isActive : true,
+            sequence: d.sequence !== undefined ? d.sequence : 0
+          });
+        }
+        if (departments.length > 0) {
+          await Department.insertMany(departments, { session });
+        }
+      }
+
+      if (backup.subDepartmentsData && Array.isArray(backup.subDepartmentsData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const allDepartments = await Department.find({}).session(session);
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        const deptMap = new Map();
+        allDepartments.forEach(d => deptMap.set(`${d.branchId.toString()}|${d.name}`, d._id));
+        const subDepartments = [];
+        for (const sd of backup.subDepartmentsData) {
+          const bname = sd.branchId?.name || sd.branch?.name || sd.branchName || '';
+          const dname = sd.departmentId?.name || sd.department?.name || sd.departmentName || '';
+          const bid = branchMap.get(bname);
+          if (!bid) continue;
+          const did = deptMap.get(`${bid.toString()}|${dname}`);
+          if (!did) continue;
+          subDepartments.push({
+            name: sd.name,
+            departmentId: did,
+            branchId: bid,
+            description: sd.description || '',
+            isActive: sd.isActive !== undefined ? sd.isActive : true,
+            sequence: sd.sequence !== undefined ? sd.sequence : 0
+          });
+        }
+        if (subDepartments.length > 0) {
+          await SubDepartment.insertMany(subDepartments, { session });
+        }
+      }
+      
+      // Restore Categories (needed before Sales)
+      if (backup.categoriesData && Array.isArray(backup.categoriesData)) {
+        const categories = backup.categoriesData.map(c => ({
+          name: c.name,
+          description: c.description || '',
+          color: c.color || 'primary'
+        }));
+        await Category.insertMany(categories, { session });
+      }
+      if (backup.categoryPaymentsData && Array.isArray(backup.categoryPaymentsData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const allCategories = await Category.find({}).session(session);
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        const categoryMap = new Map();
+        allCategories.forEach(c => categoryMap.set(c.name, c._id));
+        const docs = [];
+        for (const p of backup.categoryPaymentsData) {
+          const bname = p.branchId?.name || p.branch?.name || p.branch || '';
+          const cname = p.categoryId?.name || p.category?.name || p.category || '';
+          const bid = branchMap.get(bname);
+          const cid = categoryMap.get(cname);
+          if (!bid || !cid) continue;
+          docs.push({
+            branchId: bid,
+            categoryId: cid,
+            voucherNumber: p.voucherNumber,
+            date: new Date(p.date),
+            amount: p.amount || 0,
+            description: p.description || '',
+            paymentMethod: p.paymentMethod || 'Cash',
+            category: cname,
+            notes: p.notes || '',
+            status: p.status || 'Pending'
+          });
+        }
+        if (docs.length > 0) {
+          await CategoryPayment.insertMany(docs, { session });
+        }
+      }
+      
+      // Restore Suppliers (needed before Payments)
+      if (backup.suppliersData && Array.isArray(backup.suppliersData)) {
+        const suppliers = backup.suppliersData.map(s => ({
+          name: s.name,
+          description: s.description || '',
+          contact: s.contact || '',
+          phone: s.phone || '',
+          email: s.email || '',
+          address: s.address || ''
+        }));
+        await Supplier.insertMany(suppliers, { session });
+      }
+      if (backup.paymentsData && Array.isArray(backup.paymentsData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const allSuppliers = await Supplier.find({}).session(session);
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        const supplierMap = new Map();
+        allSuppliers.forEach(s => supplierMap.set(s.name, s._id));
+        const docs = [];
+        for (const p of backup.paymentsData) {
+          const bname = p.branchId?.name || p.branch?.name || p.branch || '';
+          const sname = p.supplierId?.name || p.supplier?.name || p.supplier || '';
+          const bid = branchMap.get(bname);
+          const sid = supplierMap.get(sname);
+          if (!bid || !sid) continue;
+          docs.push({
+            branchId: bid,
+            supplierId: sid,
+            voucherNumber: p.voucherNumber,
+            date: new Date(p.date),
+            amount: p.amount || 0,
+            description: p.description || '',
+            paymentMethod: p.paymentMethod || 'Cash',
+            supplier: sname,
+            notes: p.notes || '',
+            status: p.status || 'Pending'
+          });
+        }
+        if (docs.length > 0) {
+          await Payment.insertMany(docs, { session });
+        }
+      }
+      
+      // Restore Users (needs Groups and Branches to exist)
+      if (backup.usersData && Array.isArray(backup.usersData)) {
+        // First, get current Groups and Branches to map old IDs to new IDs
+        const allGroups = await Group.find({}).session(session);
+        const allBranches = await Branch.find({}).session(session);
+        
+        const groupMap = new Map();
+        allGroups.forEach(g => groupMap.set(g.name, g._id));
+        
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        
+        const users = [];
+        for (const u of backup.usersData) {
+          // Find matching group by name
+          const group = allGroups.find(g => g.name === (u.groupId?.name || u.group?.name || ''));
+          if (!group) {
+            console.warn(`⚠️ Group not found for user ${u.username}, skipping`);
+            continue;
+          }
+          
+          // Map branch names to IDs
+          const branchIds = [];
+          if (u.branches && Array.isArray(u.branches)) {
+            for (const branchRef of u.branches) {
+              const branchName = branchRef.name || branchRef;
+              const branch = allBranches.find(b => b.name === branchName);
+              if (branch) branchIds.push(branch._id);
+            }
+          }
+          
+          // Use existing password hash if available, otherwise hash a default
+          let passwordHash = u.password;
+          if (!passwordHash || passwordHash.length < 20) {
+            // If password looks unhashed or invalid, hash a default
+            passwordHash = await bcrypt.hash('password123', 10);
+          }
+          
+          users.push({
+            username: u.username,
+            fullName: u.fullName,
+            email: u.email,
+            password: passwordHash,
+            groupId: group._id,
+            branches: branchIds,
+            isActive: u.isActive !== undefined ? u.isActive : true,
+            lastLogin: u.lastLogin || null
+          });
+        }
+        
+        if (users.length > 0) {
+          await User.insertMany(users, { session });
+        }
+      }
+      
+      // Restore Sales (needs Branches and Categories)
+      if (backup.salesData && Array.isArray(backup.salesData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const allCategories = await Category.find({}).session(session);
+        
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        
+        const categoryMap = new Map();
+        allCategories.forEach(c => categoryMap.set(c.name, c._id));
+        
+        const sales = [];
+        for (const s of backup.salesData) {
+          const branchName = s.branchId?.name || s.branch?.name || '';
+          const categoryName = s.categoryId?.name || s.category || '';
+          
+          const branch = allBranches.find(b => b.name === branchName);
+          const category = allCategories.find(c => c.name === categoryName);
+          
+          if (!branch || !category) {
+            console.warn(`⚠️ Branch or Category not found for sale, skipping`);
+            continue;
+          }
+          
+          sales.push({
+            branchId: branch._id,
+            categoryId: category._id,
+            date: new Date(s.date),
+            items: s.items || [],
+            total: s.total || 0,
+            costTotal: s.costTotal || 0,
+            profit: s.profit || 0,
+            category: categoryName,
+            notes: s.notes || ''
+          });
+        }
+        
+        if (sales.length > 0) {
+          await Sale.insertMany(sales, { session });
+        }
+      }
+
+      if (backup.departmentSalesData && Array.isArray(backup.departmentSalesData)) {
+        const allBranches = await Branch.find({}).session(session);
+        const allDepartments = await Department.find({}).session(session);
+        const allSubDepartments = await SubDepartment.find({}).session(session);
+        const branchMap = new Map();
+        allBranches.forEach(b => branchMap.set(b.name, b._id));
+        const deptKey = new Map();
+        allDepartments.forEach(d => deptKey.set(`${d.branchId.toString()}|${d.name}`, d._id));
+        const subKey = new Map();
+        allSubDepartments.forEach(sd => subKey.set(`${sd.branchId.toString()}|${sd.departmentId.toString()}|${sd.name}`, sd._id));
+        const depSales = [];
+        for (const ds of backup.departmentSalesData) {
+          const bname = ds.branchId?.name || ds.branch?.name || ds.branchName || '';
+          const dname = ds.departmentId?.name || ds.department?.name || ds.departmentName || '';
+          const sdname = ds.subDepartmentId?.name || ds.subDepartment?.name || ds.subDepartmentName || '';
+          const bid = branchMap.get(bname);
+          if (!bid) continue;
+          const did = deptKey.get(`${bid.toString()}|${dname}`);
+          if (!did) continue;
+          const sdid = subKey.get(`${bid.toString()}|${did.toString()}|${sdname}`);
+          if (!sdid) continue;
+          depSales.push({
+            branchId: bid,
+            departmentId: did,
+            subDepartmentId: sdid,
+            date: new Date(ds.date),
+            grossSale: ds.grossSale || 0,
+            discountAmount: ds.discountAmount || 0,
+            discountPercent: ds.discountPercent || 0,
+            saleValue: ds.saleValue || 0,
+            returnAmount: ds.returnAmount || 0,
+            gst: ds.gst || 0,
+            netSale: ds.netSale || 0,
+            subDepartmentTotal: ds.subDepartmentTotal || 0,
+            notes: ds.notes || ''
+          });
+        }
+        if (depSales.length > 0) {
+          await DepartmentSale.insertMany(depSales, { session });
+        }
+      }
+      
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+      
+      console.log('✅ Data restored successfully');
+      
+      res.json({
+        success: true,
+        message: 'Data restored successfully',
+        restored: {
+          settings: backup.settingsData ? 1 : 0,
+          groups: backup.groupsData?.length || 0,
+          branches: backup.branchesData?.length || 0,
+          categories: backup.categoriesData?.length || 0,
+          suppliers: backup.suppliersData?.length || 0,
+          users: backup.usersData?.length || 0,
+          sales: backup.salesData?.length || 0,
+          payments: backup.paymentsData?.length || 0,
+          categoryPayments: backup.categoryPaymentsData?.length || 0,
+          departments: backup.departmentsData?.length || 0,
+          subDepartments: backup.subDepartmentsData?.length || 0,
+          departmentSales: backup.departmentSalesData?.length || 0
+        },
+        timestamp: backup.timestamp || 'Unknown'
+      });
+      
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error restoring data:', error);
+    res.status(500).json({ 
+      error: 'Failed to restore data',
+      message: error.message 
+    });
+  }
+});
+
+// ========================================
+// BRANCHES API ROUTES
+// ========================================
+
+// Get All Branches
+app.get('/api/branches', authenticate, checkDatabaseConnection, async (req, res) => {
+  try {
+    // If user is not admin, only return assigned branches
+    const filter = {};
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter._id = { $in: req.user.branches };
+    }
+    
+    const branches = await Branch.find(filter).sort({ createdAt: -1 });
+    res.json(branches);
+  } catch (error) {
+    console.error('Error fetching branches:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Branch
+app.post('/api/branches', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    // Enforce unique name (case-insensitive)
+    const exists = await Branch.findOne({ name: { $regex: `^${name}$`, $options: 'i' } });
+    if (exists) return res.status(409).json({ error: 'Branch with this name already exists' });
+    const branch = await Branch.create({ ...req.body, name });
+    res.status(201).json(branch);
+  } catch (error) {
+    console.error('Error creating branch:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Branch
+app.put('/api/branches/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const payload = { ...req.body };
+
+    // Normalize name if provided
+    if (payload.name !== undefined && payload.name !== null) {
+      payload.name = String(payload.name).trim();
+
+      // Fetch current branch to compare names
+      const current = await Branch.findById(id);
+      if (!current) {
+        return res.status(404).json({ error: 'Branch not found' });
+      }
+
+      // Simple case-insensitive comparison
+      const currentName = String(current.name || '').toLowerCase().trim();
+      const newName = payload.name.toLowerCase().trim();
+      const nameChanged = currentName !== newName;
+
+
+      // Only enforce uniqueness if the name is actually changing
+      if (nameChanged) {
+        const exists = await Branch.findOne({
+          _id: { $ne: id },
+          name: { $regex: `^${payload.name}$`, $options: 'i' }
+        });
+        if (exists) {
+          return res.status(409).json({ error: 'Branch with this name already exists' });
+        }
+      }
+    }
+    
+    const updated = await Branch.findByIdAndUpdate(id, payload, { new: true });
+    if (!updated) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating branch:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Branch
+app.delete('/api/branches/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const branch = await Branch.findByIdAndDelete(req.params.id);
+    if (!branch) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+    // Also delete all sales associated with this branch
+    await Sale.deleteMany({ branchId: req.params.id });
+    // Remove branch from all users
+    await User.updateMany(
+      { branches: req.params.id },
+      { $pull: { branches: req.params.id } }
+    );
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting branch:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// CATEGORIES API ROUTES
+// ========================================
+
+// Get All Categories
+app.get('/api/categories', authenticate, async (req, res) => {
+  try {
+    console.log('✅ GET /api/categories route hit');
+    const categories = await Category.find().sort({ sequence: 1, createdAt: 1 });
+    console.log(`✅ Returning ${categories.length} categories`);
+    res.json(categories);
+  } catch (error) {
+    console.error('❌ Error fetching categories:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Category by ID
+app.get('/api/categories/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid Category ID format' });
+    }
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.json(category);
+  } catch (error) {
+    console.error('❌ Error fetching category by ID:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Single Category by ID
+app.get('/api/categories/:id', authenticate, async (req, res) => {
+  try {
+    console.log('✅ GET /api/categories/:id route hit', req.params.id);
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    console.log('✅ Category loaded', { id: category._id?.toString(), sequence: category.sequence });
+    res.json(category);
+  } catch (error) {
+    console.error('❌ Error fetching category by id:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Create New Category
+app.post('/api/categories', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, color } = req.body;
+    
+    // Check if category with same name already exists
+    const existingCategory = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    });
+    
+    if (existingCategory) {
+      return res.status(400).json({ 
+        error: `A category with the name "${name}" already exists. Please choose a different name.` 
+      });
+    }
+    
+    let payload = { ...req.body };
+    const hasSeq = Object.prototype.hasOwnProperty.call(payload, 'sequence');
+    if (!hasSeq || payload.sequence === '' || payload.sequence === null || payload.sequence === undefined) {
+      const maxSeqDoc = await Category.findOne().sort({ sequence: -1 }).select('sequence');
+      const nextSeq = maxSeqDoc && maxSeqDoc.sequence !== undefined ? maxSeqDoc.sequence + 1 : 0;
+      payload.sequence = nextSeq;
+    } else {
+      const n = Number(payload.sequence);
+      payload.sequence = Number.isNaN(n) ? payload.sequence : n;
+    }
+    console.log('🟦 Creating category payload', { name: payload.name, sequence: payload.sequence });
+    const category = await Category.create(payload);
+    console.log('🟩 Created category', { id: category._id?.toString(), sequence: category.sequence });
+    res.status(201).json(category);
+  } catch (error) {
+    console.error('Error creating category:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Category
+app.put('/api/categories/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, color } = req.body;
+    console.log('🟨 Update category request', { id: req.params.id, sequence: req.body?.sequence });
+    
+    // Check if another category with the same name exists (excluding current category)
+    const existingCategory = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+      _id: { $ne: req.params.id } 
+    });
+    
+    if (existingCategory) {
+      return res.status(400).json({ 
+        error: `A category with the name "${name}" already exists. Please choose a different name.` 
+      });
+    }
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (color !== undefined) updateData.color = color;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'sequence')) {
+      const s = req.body.sequence;
+      if (s !== '' && s !== null && s !== undefined) {
+        const n = Number(s);
+        if (!Number.isNaN(n)) updateData.sequence = n;
+      }
+    }
+
+    const updated = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!updated) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    console.log('🟩 Updated category', { id: updated._id?.toString(), sequence: updated.sequence });
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating category:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Category
+app.delete('/api/categories/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting category:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// DEPARTMENTS API ROUTES
+// ========================================
+
+// Get All Departments (optionally filtered by branch)
+app.get('/api/departments', authenticate, async (req, res) => {
+  try {
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again later.',
+        status: 'database_unavailable'
+      });
+    }
+
+    console.log('✅ GET /api/departments route hit - Query:', req.query);
+    const { branchId } = req.query;
+    const query = {};
+    
+    if (branchId && branchId !== 'undefined' && branchId.trim() !== '') {
+      // Validate and convert branchId to ObjectId
+      if (!mongoose.Types.ObjectId.isValid(branchId)) {
+        console.error('❌ Invalid branchId format:', branchId);
+        return res.status(400).json({ error: 'Invalid branch ID format' });
+      }
+      query.branchId = new mongoose.Types.ObjectId(branchId);
+      console.log('🔍 Filtering departments by branchId:', branchId);
+    }
+    
+    console.log('🔍 Department query:', JSON.stringify(query, null, 2));
+    const departments = await Department.find(query).populate('branchId', 'name').sort({ sequence: 1, name: 1 });
+    console.log(`✅ Found ${departments.length} departments`);
+    
+    if (departments.length === 0 && branchId) {
+      console.warn(`⚠️ No departments found for branchId: ${branchId}`);
+    }
+    
+    res.json(departments);
+  } catch (error) {
+    console.error('❌ Error fetching departments:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to fetch departments from database'
+    });
+  }
+});
+
+// Get Departments by Branch ID
+app.get('/api/branches/:branchId/departments', authenticate, async (req, res) => {
+  try {
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again later.',
+        status: 'database_unavailable'
+      });
+    }
+
+    const { branchId } = req.params;
+    console.log('✅ GET /api/branches/:branchId/departments - branchId:', branchId);
+    
+    // Validate branchId format
+    if (!mongoose.Types.ObjectId.isValid(branchId)) {
+      console.error('❌ Invalid branchId format:', branchId);
+      return res.status(400).json({ error: 'Invalid branch ID format' });
+    }
+    
+    const departments = await Department.find({ branchId: new mongoose.Types.ObjectId(branchId) })
+      .populate('branchId', 'name')
+      .sort({ sequence: 1, name: 1 });
+    
+    console.log(`✅ Found ${departments.length} departments for branchId: ${branchId}`);
+    
+    if (departments.length === 0) {
+      console.warn(`⚠️ No departments found for branchId: ${branchId}`);
+    }
+    
+    res.json(departments);
+  } catch (error) {
+    console.error('❌ Error fetching departments by branch:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to fetch departments from database'
+    });
+  }
+});
+
+// Get Single Department with Sub-Departments
+app.get('/api/departments/:id', authenticate, async (req, res) => {
+  try {
+    const department = await Department.findById(req.params.id).populate('branchId', 'name');
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+    const subDepartments = await SubDepartment.find({ departmentId: req.params.id }).sort({ sequence: 1, name: 1 });
+    const deptObj = department.toObject();
+    // Ensure showInIncomeStatement field is included (defaults to true if not set)
+    if (deptObj.showInIncomeStatement === undefined) {
+      deptObj.showInIncomeStatement = true;
+    }
+    console.log('📋 GET /api/departments/:id - Returning department:', {
+      id: deptObj._id,
+      name: deptObj.name,
+      showInIncomeStatement: deptObj.showInIncomeStatement
+    });
+    res.json({ ...deptObj, subDepartments });
+  } catch (error) {
+    console.error('Error fetching department:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Department
+app.post('/api/departments', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, branchId, description } = req.body;
+    
+    if (!branchId) {
+      return res.status(400).json({ error: 'Branch ID is required' });
+    }
+    
+    // Check if branch exists
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+    
+    // Check if department with same name already exists in this branch
+    const existingDepartment = await Department.findOne({ 
+      branchId,
+      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    });
+    
+    if (existingDepartment) {
+      return res.status(400).json({ 
+        error: `A department with the name "${name}" already exists in this branch. Please choose a different name.` 
+      });
+    }
+    
+    // Get max sequence for this branch to set default
+    const maxSequence = await Department.findOne({ branchId }).sort({ sequence: -1 }).select('sequence');
+    const defaultSequence = maxSequence && maxSequence.sequence !== undefined ? maxSequence.sequence + 1 : 0;
+    
+    const department = await Department.create({ 
+      name, 
+      branchId, 
+      description: description || '',
+      sequence: req.body.sequence !== undefined ? req.body.sequence : defaultSequence,
+      marginDedPercent: req.body.marginDedPercent !== undefined ? req.body.marginDedPercent : 0,
+      showInIncomeStatement: req.body.showInIncomeStatement !== undefined ? req.body.showInIncomeStatement : true
+    });
+    
+    await department.populate('branchId', 'name');
+    res.status(201).json(department);
+  } catch (error) {
+    console.error('Error creating department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Department
+app.put('/api/departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, branchId, description } = req.body;
+    
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+    
+    const currentBranchId = branchId || department.branchId;
+    
+    // Check if another department with the same name exists in the same branch (excluding current department)
+    if (name) {
+      const existingDepartment = await Department.findOne({ 
+        branchId: currentBranchId,
+        name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+        _id: { $ne: req.params.id } 
+      });
+      
+      if (existingDepartment) {
+        return res.status(400).json({ 
+          error: `A department with the name "${name}" already exists in this branch. Please choose a different name.` 
+        });
+      }
+    }
+    
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (branchId) updateData.branchId = branchId;
+    if (description !== undefined) updateData.description = description;
+    if (req.body.sequence !== undefined) updateData.sequence = req.body.sequence;
+    if (req.body.marginDedPercent !== undefined) updateData.marginDedPercent = req.body.marginDedPercent;
+    if (req.body.showInIncomeStatement !== undefined) updateData.showInIncomeStatement = req.body.showInIncomeStatement;
+    
+    const updatedDepartment = await Department.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('branchId', 'name');
+    
+    res.json(updatedDepartment);
+  } catch (error) {
+    console.error('Error updating department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Department
+app.delete('/api/departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    // Check if department has sub-departments
+    const subDepartmentCount = await SubDepartment.countDocuments({ departmentId: req.params.id });
+    if (subDepartmentCount > 0) {
+      return res.status(400).json({ 
+        error: `Cannot delete department. It has ${subDepartmentCount} sub-department(s). Please delete sub-departments first.` 
+      });
+    }
+    
+    const department = await Department.findByIdAndDelete(req.params.id);
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SUB-DEPARTMENTS API ROUTES
+// ========================================
+
+// Get All Sub-Departments (optionally filtered by department or branch)
+app.get('/api/sub-departments', authenticate, async (req, res) => {
+  try {
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again later.',
+        status: 'database_unavailable'
+      });
+    }
+
+    const { departmentId, branchId } = req.query;
+    console.log('✅ GET /api/sub-departments - Query:', req.query);
+    const query = {};
+    
+    if (departmentId && departmentId !== 'undefined' && departmentId.trim() !== '') {
+      if (!mongoose.Types.ObjectId.isValid(departmentId)) {
+        console.error('❌ Invalid departmentId format:', departmentId);
+        return res.status(400).json({ error: 'Invalid department ID format' });
+      }
+      query.departmentId = new mongoose.Types.ObjectId(departmentId);
+    }
+    
+    if (branchId && branchId !== 'undefined' && branchId.trim() !== '') {
+      if (!mongoose.Types.ObjectId.isValid(branchId)) {
+        console.error('❌ Invalid branchId format:', branchId);
+        return res.status(400).json({ error: 'Invalid branch ID format' });
+      }
+      query.branchId = new mongoose.Types.ObjectId(branchId);
+    }
+    
+    console.log('🔍 Sub-department query:', JSON.stringify(query, null, 2));
+    const subDepartments = await SubDepartment.find(query)
+      .populate('departmentId', 'name')
+      .populate('branchId', 'name')
+      .sort({ sequence: 1, name: 1 });
+    
+    console.log(`✅ Found ${subDepartments.length} sub-departments`);
+    
+    if (subDepartments.length === 0 && (departmentId || branchId)) {
+      console.warn(`⚠️ No sub-departments found for filters:`, query);
+    }
+    
+    res.json(subDepartments);
+  } catch (error) {
+    console.error('❌ Error fetching sub-departments:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to fetch sub-departments from database'
+    });
+  }
+});
+
+// Get Single Sub-Department by ID (must come before department-specific route)
+app.get('/api/sub-departments/:id', authenticate, async (req, res) => {
+  try {
+    const subDepartment = await SubDepartment.findById(req.params.id)
+      .populate('departmentId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!subDepartment) {
+      return res.status(404).json({ error: 'Sub-department not found' });
+    }
+    
+    res.json(subDepartment);
+  } catch (error) {
+    console.error('Error fetching sub-department:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Sub-Departments by Department ID
+app.get('/api/departments/:departmentId/sub-departments', authenticate, async (req, res) => {
+  try {
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        error: 'Database connection not available. Please try again later.',
+        status: 'database_unavailable'
+      });
+    }
+
+    const { departmentId } = req.params;
+    console.log('✅ GET /api/departments/:departmentId/sub-departments - departmentId:', departmentId);
+    
+    // Validate departmentId format
+    if (!mongoose.Types.ObjectId.isValid(departmentId)) {
+      console.error('❌ Invalid departmentId format:', departmentId);
+      return res.status(400).json({ error: 'Invalid department ID format' });
+    }
+    
+    const subDepartments = await SubDepartment.find({ departmentId: new mongoose.Types.ObjectId(departmentId) })
+      .populate('branchId', 'name')
+      .sort({ sequence: 1, name: 1 });
+    
+    console.log(`✅ Found ${subDepartments.length} sub-departments for departmentId: ${departmentId}`);
+    
+    if (subDepartments.length === 0) {
+      console.warn(`⚠️ No sub-departments found for departmentId: ${departmentId}`);
+    }
+    
+    res.json(subDepartments);
+  } catch (error) {
+    console.error('❌ Error fetching sub-departments:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to fetch sub-departments from database'
+    });
+  }
+});
+
+// Create New Sub-Department
+app.post('/api/sub-departments', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, departmentId, branchId, description } = req.body;
+    
+    if (!departmentId) {
+      return res.status(400).json({ error: 'Department ID is required' });
+    }
+    
+    if (!branchId) {
+      return res.status(400).json({ error: 'Branch ID is required' });
+    }
+    
+    // Check if department exists
+    const department = await Department.findById(departmentId);
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+    
+    // Verify branch matches department's branch
+    if (department.branchId.toString() !== branchId) {
+      return res.status(400).json({ 
+        error: 'Branch ID must match the department\'s branch' 
+      });
+    }
+    
+    // Check if sub-department with same name already exists in this department and branch
+    const existingSubDepartment = await SubDepartment.findOne({ 
+      departmentId,
+      branchId,
+      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    });
+    
+    if (existingSubDepartment) {
+      return res.status(400).json({ 
+        error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.` 
+      });
+    }
+    
+    // Get max sequence for this department to set default
+    const maxSequence = await SubDepartment.findOne({ departmentId, branchId }).sort({ sequence: -1 }).select('sequence');
+    const defaultSequence = maxSequence && maxSequence.sequence !== undefined ? maxSequence.sequence + 1 : 0;
+    
+    const subDepartment = await SubDepartment.create({ 
+      name, 
+      departmentId,
+      branchId,
+      description: description || '',
+      sequence: req.body.sequence !== undefined ? req.body.sequence : defaultSequence
+    });
+    
+    await subDepartment.populate('departmentId', 'name');
+    await subDepartment.populate('branchId', 'name');
+    res.status(201).json(subDepartment);
+  } catch (error) {
+    console.error('Error creating sub-department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Sub-Department
+app.put('/api/sub-departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, departmentId, branchId, description } = req.body;
+    
+    const subDepartment = await SubDepartment.findById(req.params.id);
+    if (!subDepartment) {
+      return res.status(404).json({ error: 'Sub-department not found' });
+    }
+    
+    const currentDepartmentId = departmentId || subDepartment.departmentId;
+    const currentBranchId = branchId || subDepartment.branchId;
+    
+    // If department is being changed, verify branch matches
+    if (departmentId) {
+      const department = await Department.findById(departmentId);
+      if (!department) {
+        return res.status(404).json({ error: 'Department not found' });
+      }
+      if (department.branchId.toString() !== currentBranchId) {
+        return res.status(400).json({ 
+          error: 'Branch ID must match the department\'s branch' 
+        });
+      }
+    }
+    
+    // Check if another sub-department with the same name exists in the same department and branch (excluding current sub-department)
+    if (name) {
+      const existingSubDepartment = await SubDepartment.findOne({ 
+        departmentId: currentDepartmentId,
+        branchId: currentBranchId,
+        name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+        _id: { $ne: req.params.id } 
+      });
+      
+      if (existingSubDepartment) {
+        return res.status(400).json({ 
+          error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.` 
+        });
+      }
+    }
+    
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (departmentId) updateData.departmentId = departmentId;
+    if (branchId) updateData.branchId = branchId;
+    if (description !== undefined) updateData.description = description;
+    if (req.body.sequence !== undefined) updateData.sequence = req.body.sequence;
+    
+    const updatedSubDepartment = await SubDepartment.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    )
+    .populate('departmentId', 'name')
+    .populate('branchId', 'name');
+    
+    res.json(updatedSubDepartment);
+  } catch (error) {
+    console.error('Error updating sub-department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Sub-Department
+app.delete('/api/sub-departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const subDepartment = await SubDepartment.findByIdAndDelete(req.params.id);
+    if (!subDepartment) {
+      return res.status(404).json({ error: 'Sub-department not found' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting sub-department:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Department Sequences (Bulk)
+app.put('/api/departments/sequences', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { sequences } = req.body; // Array of { id, sequence }
+    
+    if (!Array.isArray(sequences)) {
+      return res.status(400).json({ error: 'Sequences must be an array' });
+    }
+    
+    const updatePromises = sequences.map(({ id, sequence }) => 
+      Department.findByIdAndUpdate(id, { sequence }, { new: true })
+    );
+    
+    await Promise.all(updatePromises);
+    res.json({ ok: true, message: 'Sequences updated successfully' });
+  } catch (error) {
+    console.error('Error updating department sequences:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Sub-Department Sequences (Bulk)
+app.put('/api/sub-departments/sequences', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { sequences } = req.body; // Array of { id, sequence }
+    
+    if (!Array.isArray(sequences)) {
+      return res.status(400).json({ error: 'Sequences must be an array' });
+    }
+    
+    const updatePromises = sequences.map(({ id, sequence }) => 
+      SubDepartment.findByIdAndUpdate(id, { sequence }, { new: true })
+    );
+    
+    await Promise.all(updatePromises);
+    res.json({ ok: true, message: 'Sequences updated successfully' });
+  } catch (error) {
+    console.error('Error updating sub-department sequences:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SUPPLIERS API ROUTES
+// ========================================
+
+// Get All Suppliers
+app.get('/api/suppliers', authenticate, async (req, res) => {
+  try {
+    console.log('✅ /api/suppliers route hit');
+    // Ensure Content-Type is set to JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    
+    const suppliers = await Supplier.find().sort({ createdAt: -1 });
+    console.log(`✅ Returning ${suppliers.length} suppliers`);
+    res.status(200).json(suppliers);
+  } catch (error) {
+    console.error('❌ Error fetching suppliers:', error.message);
+    // Always return JSON, even on error
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Supplier
+app.post('/api/suppliers', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, contact, phone, email, address } = req.body;
+    
+    // Check if supplier with same name already exists
+    const existingSupplier = await Supplier.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    });
+    
+    if (existingSupplier) {
+      return res.status(400).json({ 
+        error: `A supplier with the name "${name}" already exists. Please choose a different name.` 
+      });
+    }
+    
+    const supplier = await Supplier.create(req.body);
+    res.status(201).json(supplier);
+  } catch (error) {
+    console.error('Error creating supplier:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Supplier
+app.put('/api/suppliers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, contact, phone, email, address } = req.body;
+    
+    // Check if another supplier with the same name exists (excluding current supplier)
+    const existingSupplier = await Supplier.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+      _id: { $ne: req.params.id } 
+    });
+    
+    if (existingSupplier) {
+      return res.status(400).json({ 
+        error: `A supplier with the name "${name}" already exists. Please choose a different name.` 
+      });
+    }
+    
+    const updated = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating supplier:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Supplier
+app.delete('/api/suppliers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const supplier = await Supplier.findByIdAndDelete(req.params.id);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting supplier:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// GROUPS API ROUTES
+// ========================================
+
+// Get All Groups
+app.get('/api/groups', authenticate, isAdmin, async (req, res) => {
+  try {
+    const groups = await Group.find().sort({ createdAt: -1 });
+    res.json(groups);
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Group
+app.post('/api/groups', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, permissions } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+    
+    // Check if group with same name already exists
+    const existingGroup = await Group.findOne({ name });
+    if (existingGroup) {
+      return res.status(400).json({ error: 'Group with this name already exists' });
+    }
+    
+    const group = new Group({ name, description, permissions });
+    await group.save();
+    
+    res.status(201).json(group);
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Group
+app.put('/api/groups/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, permissions } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+    
+    // Check if group with same name already exists (excluding current group)
+    const existingGroup = await Group.findOne({ 
+      name, 
+      _id: { $ne: req.params.id } 
+    });
+    
+    if (existingGroup) {
+      return res.status(400).json({ error: 'Group with this name already exists' });
+    }
+    
+    // Find the current group to check if it's the Admin group
+    const currentGroup = await Group.findById(req.params.id);
+    
+    // If updating the Admin group, ensure 'admin' permission is always included
+    if (currentGroup && (currentGroup.name.toLowerCase() === 'admin' || name.toLowerCase() === 'admin')) {
+      if (!permissions.includes('admin')) {
+        permissions.push('admin');
+      }
+    }
+    
+    const group = await Group.findByIdAndUpdate(
+      req.params.id,
+      { name, description, permissions },
+      { new: true }
+    );
+    
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    res.json(group);
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Group
+app.delete('/api/groups/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const group = await Group.findByIdAndDelete(req.params.id);
+    
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    // Update all users with this group to have no group
+    await User.updateMany(
+      { groupId: req.params.id },
+      { $unset: { groupId: 1 } }
+    );
+    
+    res.json({ message: 'Group deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// USERS API ROUTES
+// ========================================
+
+// Get All Users
+app.get('/api/users', authenticate, isAdmin, async (req, res) => {
+  try {
+    const users = await User.find()
+      .populate('groupId', 'name permissions')
+      .sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New User
+app.post('/api/users', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { username, fullName, email, password, groupId, branches } = req.body;
+    
+    if (!username || !fullName || !email || !password || !groupId) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    // Check if user with same username or email already exists
+    const existingUser = await User.findOne({
+      $or: [
+        { username },
+        { email }
+      ]
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this username or email already exists' });
+    }
+    
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    const user = new User({
+      username,
+      fullName,
+      email,
+      password: hashedPassword,
+      groupId,
+      branches
+    });
+    
+    await user.save();
+    
+    // Populate group for response
+    await user.populate('groupId', 'name permissions');
+    
+    res.status(201).json(user);
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update User
+app.put('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { username, fullName, email, password, groupId, branches, isActive } = req.body;
+    
+    if (!username || !fullName || !email || !groupId) {
+      return res.status(400).json({ error: 'Username, full name, email, and group are required' });
+    }
+    
+    // Check if user with same username or email already exists (excluding current user)
+    const existingUser = await User.findOne({
+      $or: [
+        { username },
+        { email }
+      ],
+      _id: { $ne: req.params.id }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this username or email already exists' });
+    }
+    
+    const updateData = {
+      username,
+      fullName,
+      email,
+      groupId,
+      branches,
+      isActive
+    };
+    
+    // Only update password if provided
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate('groupId', 'name permissions');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete User
+app.delete('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    // Prevent users from deleting themselves
+    if (req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
+    
+    const user = await User.findByIdAndDelete(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// EMPLOYEES API ROUTES
+// ========================================
+
+// Get All Employees
+app.get('/api/employees', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const employees = await Employee.find()
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('designationId', 'name')
+      .sort({ createdAt: -1 });
+    res.json(employees);
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Employee by ID
+app.get('/api/employees/:id', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id)
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('designationId', 'name');
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    res.json(employee);
+  } catch (error) {
+    console.error('Error fetching employee:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Employee
+app.post('/api/employees', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const employeeData = req.body;
+    
+    if (!employeeData.code || !employeeData.name) {
+      return res.status(400).json({ error: 'Code and name are required' });
+    }
+    
+    // Check if employee with same code already exists
+    const existingEmployee = await Employee.findOne({ code: employeeData.code });
+    if (existingEmployee) {
+      return res.status(400).json({ error: 'Employee with this code already exists' });
+    }
+    
+    // Convert date strings to Date objects
+    if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
+    if (employeeData.joiningDate) employeeData.joiningDate = new Date(employeeData.joiningDate);
+    if (employeeData.issueDate) employeeData.issueDate = new Date(employeeData.issueDate);
+    if (employeeData.expiryDate) employeeData.expiryDate = new Date(employeeData.expiryDate);
+    if (employeeData.incrDate) employeeData.incrDate = new Date(employeeData.incrDate);
+    
+    const employee = new Employee(employeeData);
+    await employee.save();
+    
+    await employee.populate('branchId', 'name');
+    await employee.populate('departmentId', 'name');
+    await employee.populate('designationId', 'name');
+    
+    res.status(201).json(employee);
+  } catch (error) {
+    console.error('Error creating employee:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Employee
+app.put('/api/employees/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const employeeData = req.body;
+    
+    if (!employeeData.code || !employeeData.name) {
+      return res.status(400).json({ error: 'Code and name are required' });
+    }
+    
+    // Check if employee with same code already exists (excluding current employee)
+    const existingEmployee = await Employee.findOne({
+      code: employeeData.code,
+      _id: { $ne: req.params.id }
+    });
+    if (existingEmployee) {
+      return res.status(400).json({ error: 'Employee with this code already exists' });
+    }
+    
+    // Convert date strings to Date objects
+    if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
+    if (employeeData.joiningDate) employeeData.joiningDate = new Date(employeeData.joiningDate);
+    if (employeeData.issueDate) employeeData.issueDate = new Date(employeeData.issueDate);
+    if (employeeData.expiryDate) employeeData.expiryDate = new Date(employeeData.expiryDate);
+    if (employeeData.incrDate) employeeData.incrDate = new Date(employeeData.incrDate);
+    
+    const employee = await Employee.findByIdAndUpdate(
+      req.params.id,
+      employeeData,
+      { new: true, runValidators: true }
+    )
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('designationId', 'name');
+    
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    
+    res.json(employee);
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Employee
+app.delete('/api/employees/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const employee = await Employee.findByIdAndDelete(req.params.id);
+    
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    
+    res.json({ message: 'Employee deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// EMPLOYEE DEPARTMENTS API ROUTES
+// ========================================
+
+// Get All Employee Departments
+app.get('/api/employee-departments', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const departments = await EmployeeDepartment.find()
+      .sort({ name: 1 });
+    res.json(departments);
+  } catch (error) {
+    console.error('Error fetching employee departments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Employee Department by ID
+app.get('/api/employee-departments/:id', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const department = await EmployeeDepartment.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({ error: 'Employee department not found' });
+    }
+    res.json(department);
+  } catch (error) {
+    console.error('Error fetching employee department:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Employee Department
+app.post('/api/employee-departments', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, isActive } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Department name is required' });
+    }
+    
+    // Check if department with same name already exists
+    const existingDepartment = await EmployeeDepartment.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    });
+    if (existingDepartment) {
+      return res.status(400).json({ error: 'Department with this name already exists' });
+    }
+    
+    const department = new EmployeeDepartment({
+      name: name.trim(),
+      description: description || '',
+      isActive: isActive !== undefined ? isActive : true
+    });
+    
+    await department.save();
+    res.status(201).json(department);
+  } catch (error) {
+    console.error('Error creating employee department:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Employee Department
+app.put('/api/employee-departments/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, isActive } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Department name is required' });
+    }
+    
+    // Check if department with same name already exists (excluding current)
+    const existingDepartment = await EmployeeDepartment.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      _id: { $ne: req.params.id }
+    });
+    if (existingDepartment) {
+      return res.status(400).json({ error: 'Department with this name already exists' });
+    }
+    
+    const department = await EmployeeDepartment.findByIdAndUpdate(
+      req.params.id,
+      {
+        name: name.trim(),
+        description: description || '',
+        isActive: isActive !== undefined ? isActive : true
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!department) {
+      return res.status(404).json({ error: 'Employee department not found' });
+    }
+    
+    res.json(department);
+  } catch (error) {
+    console.error('Error updating employee department:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Employee Department
+app.delete('/api/employee-departments/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const department = await EmployeeDepartment.findByIdAndDelete(req.params.id);
+    
+    if (!department) {
+      return res.status(404).json({ error: 'Employee department not found' });
+    }
+    
+    res.json({ message: 'Employee department deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting employee department:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// EMPLOYEE DESIGNATIONS API ROUTES
+// ========================================
+
+// Get All Employee Designations
+app.get('/api/employee-designations', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const designations = await EmployeeDesignation.find()
+      .sort({ name: 1 });
+    res.json(designations);
+  } catch (error) {
+    console.error('Error fetching employee designations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Employee Designation by ID
+app.get('/api/employee-designations/:id', authenticate, hasPermission('employees'), async (req, res) => {
+  try {
+    const designation = await EmployeeDesignation.findById(req.params.id);
+    if (!designation) {
+      return res.status(404).json({ error: 'Employee designation not found' });
+    }
+    res.json(designation);
+  } catch (error) {
+    console.error('Error fetching employee designation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Employee Designation
+app.post('/api/employee-designations', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, isActive } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Designation name is required' });
+    }
+    
+    // Check if designation with same name already exists
+    const existingDesignation = await EmployeeDesignation.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    });
+    if (existingDesignation) {
+      return res.status(400).json({ error: 'Designation with this name already exists' });
+    }
+    
+    const designation = new EmployeeDesignation({
+      name: name.trim(),
+      description: description || '',
+      isActive: isActive !== undefined ? isActive : true
+    });
+    
+    await designation.save();
+    res.status(201).json(designation);
+  } catch (error) {
+    console.error('Error creating employee designation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Employee Designation
+app.put('/api/employee-designations/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, isActive } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Designation name is required' });
+    }
+    
+    // Check if designation with same name already exists (excluding current)
+    const existingDesignation = await EmployeeDesignation.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      _id: { $ne: req.params.id }
+    });
+    if (existingDesignation) {
+      return res.status(400).json({ error: 'Designation with this name already exists' });
+    }
+    
+    const designation = await EmployeeDesignation.findByIdAndUpdate(
+      req.params.id,
+      {
+        name: name.trim(),
+        description: description || '',
+        isActive: isActive !== undefined ? isActive : true
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!designation) {
+      return res.status(404).json({ error: 'Employee designation not found' });
+    }
+    
+    res.json(designation);
+  } catch (error) {
+    console.error('Error updating employee designation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Employee Designation
+app.delete('/api/employee-designations/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const designation = await EmployeeDesignation.findByIdAndDelete(req.params.id);
+    
+    if (!designation) {
+      return res.status(404).json({ error: 'Employee designation not found' });
+    }
+    
+    res.json({ message: 'Employee designation deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting employee designation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SALES API ROUTES
+// ========================================
+
+// Get All Sales
+app.get('/api/sales', authenticate, async (req, res) => {
+  try {
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
+      filter.categoryId = req.query.categoryId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    // If user is not admin, filter by user's assigned branches
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const sales = await Sale.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    res.json(sales);
+  } catch (error) {
+    console.error('Error fetching sales:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Sale
+app.post('/api/sales', authenticate, checkDatabaseConnection, async (req, res) => {
+  try {
+    // Copy request data
+    const data = { ...req.body };
+
+    // If category string missing, fetch from Category model
+    if (!data.category && data.categoryId) {
+      try {
+        const cat = await Category.findById(data.categoryId);
+        data.category = cat ? cat.name : 'Unknown';
+      } catch (err) {
+        // Category not found, using 'Unknown'
+        data.category = 'Unknown';
+      }
+    }
+
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && data.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const saleBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(saleBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // Create sale using fixed data
+    const sale = await Sale.create(data);
+
+    // Populate branch & category references before sending response
+    const populatedSale = await Sale.findById(sale._id)
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+
+    res.status(201).json(populatedSale);
+  } catch (error) {
+    console.error('Error creating sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Sale
+app.put('/api/sales/:id', authenticate, hasPermission('sales-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(updateBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    const updated = await Sale.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Sale
+app.delete('/api/sales/:id', authenticate, hasPermission('sales-delete'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Check if user has access to this sale's branch
+    const sale = await Sale.findById(req.params.id);
+    if (!sale) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+    
+    // Check if user has access to this sale's branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const saleBranchId = sale.branchId?._id ? sale.branchId._id.toString() : sale.branchId?.toString() || sale.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(saleBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    const deleted = await Sale.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// DEPARTMENT SALES API ROUTES
+// ========================================
+
+// Get All Department Sales
+app.get('/api/department-sales', authenticate, async (req, res) => {
+  try {
+    console.log('✅ GET /api/department-sales - Query:', req.query);
+    const filter = {};
+    
+    // If user is not admin, filter by user's assigned branches
+    let userAllowedBranches = null;
+    if (!req.user.groupId.permissions.includes('admin')) {
+      userAllowedBranches = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      console.log('🔒 Non-admin user, allowed branches:', userAllowedBranches);
+    }
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      // If user is not admin, validate that the requested branch is in their allowed branches
+      if (userAllowedBranches && !userAllowedBranches.includes(req.query.branchId)) {
+        console.log('❌ User requested branch not in allowed branches');
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+      filter.branchId = req.query.branchId;
+    } else if (userAllowedBranches) {
+      // If no branchId provided but user is not admin, filter by user's assigned branches
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    if (req.query.departmentId && req.query.departmentId !== 'undefined' && req.query.departmentId.trim() !== '') {
+      filter.departmentId = req.query.departmentId;
+    }
+    
+    if (req.query.subDepartmentId && req.query.subDepartmentId !== 'undefined' && req.query.subDepartmentId.trim() !== '') {
+      filter.subDepartmentId = req.query.subDepartmentId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+        console.log('📅 Date filter from:', req.query.from, '->', filter.date.$gte);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+        console.log('📅 Date filter to:', req.query.to, '->', filter.date.$lte);
+      }
+    }
+    
+    console.log('🔍 Final filter:', JSON.stringify(filter, null, 2));
+    
+    const departmentSales = await DepartmentSale.find(filter)
+      .populate('branchId', 'name')
+      .populate({
+        path: 'departmentId',
+        select: 'name sequence',
+        model: 'Department'
+      })
+      .populate({
+        path: 'subDepartmentId',
+        select: 'name sequence',
+        model: 'SubDepartment'
+      });
+    
+    // Sort by department sequence, then sub-department sequence, then date
+    departmentSales.sort((a, b) => {
+      const deptSeqA = a.departmentId?.sequence ?? 0;
+      const deptSeqB = b.departmentId?.sequence ?? 0;
+      if (deptSeqA !== deptSeqB) {
+        return deptSeqA - deptSeqB;
+      }
+      const subDeptSeqA = a.subDepartmentId?.sequence ?? 0;
+      const subDeptSeqB = b.subDepartmentId?.sequence ?? 0;
+      if (subDeptSeqA !== subDeptSeqB) {
+        return subDeptSeqA - subDeptSeqB;
+      }
+      return new Date(b.date) - new Date(a.date);
+    });
+    
+    console.log(`✅ Found ${departmentSales.length} department sales`);
+    res.json(departmentSales);
+  } catch (error) {
+    console.error('❌ Error fetching department sales:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New Department Sale
+app.post('/api/department-sales', authenticate, checkDatabaseConnection, async (req, res) => {
+  try {
+    console.log('📝 POST /api/department-sales - Request received');
+    console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Copy request data
+    const data = { ...req.body };
+
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && data.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const saleBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(saleBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // Validate required fields
+    if (!data.branchId || !data.departmentId || !data.subDepartmentId || !data.date) {
+      return res.status(400).json({ error: 'Missing required fields: branchId, departmentId, subDepartmentId, and date are required.' });
+    }
+
+    if (data.grossSale === undefined || data.grossSale === null) {
+      return res.status(400).json({ error: 'Gross Sale is required.' });
+    }
+
+    // Create department sale
+    const departmentSale = await DepartmentSale.create(data);
+
+    // Populate references before sending response
+    const populatedSale = await DepartmentSale.findById(departmentSale._id)
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('subDepartmentId', 'name');
+
+    res.status(201).json(populatedSale);
+  } catch (error) {
+    console.error('Error creating department sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get Single Department Sale
+app.get('/api/department-sales/:id', authenticate, async (req, res) => {
+  try {
+    const departmentSale = await DepartmentSale.findById(req.params.id)
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('subDepartmentId', 'name');
+    
+    if (!departmentSale) {
+      return res.status(404).json({ error: 'Department sale not found' });
+    }
+    
+    // Check if user has access to this sale's branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      const saleBranchId = departmentSale.branchId?._id ? departmentSale.branchId._id.toString() : departmentSale.branchId?.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(saleBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+    
+    res.json(departmentSale);
+  } catch (error) {
+    console.error('Error fetching department sale:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Department Sale
+app.put('/api/department-sales/:id', authenticate, hasPermission('sales-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(updateBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    const updated = await DepartmentSale.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name')
+      .populate('departmentId', 'name')
+      .populate('subDepartmentId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Department sale not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating department sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Department Sale
+app.delete('/api/department-sales/:id', authenticate, hasPermission('sales-delete'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Check if user has access to this sale's branch
+    const departmentSale = await DepartmentSale.findById(req.params.id);
+    if (!departmentSale) {
+      return res.status(404).json({ error: 'Department sale not found' });
+    }
+    
+    // Check if user has access to this sale's branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const saleBranchId = departmentSale.branchId?._id ? departmentSale.branchId._id.toString() : departmentSale.branchId?.toString() || departmentSale.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(saleBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    const deleted = await DepartmentSale.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting department sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// MONTHLY INCOME STATEMENT REPORT ROUTE
+// ========================================
+app.get('/api/reports/income-statement', authenticate, async (req, res) => {
+  console.log('✅ Income statement report route hit:', req.method, req.path);
+  try {
+    const now = new Date();
+    const from = req.query.from ? new Date(req.query.from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = req.query.to ? new Date(req.query.to) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Set time to start/end of day for proper date range
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+    
+    console.log('📅 Date range:', { from: from.toISOString(), to: to.toISOString() });
+    console.log('📋 Query params:', req.query);
+    
+    // Build match filter
+    const match = { date: { $gte: from, $lte: to } };
+    
+    // Handle branchId filter
+    if (req.query.branchId && req.query.branchId.trim() !== '') {
+      const branchId = req.query.branchId.trim();
+      // Check user access
+      const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
+      if (!req.user.groupId.permissions.includes('admin') && !userBranchIds.includes(branchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+      // Convert to ObjectId if valid
+      if (mongoose.Types.ObjectId.isValid(branchId)) {
+        match.branchId = new mongoose.Types.ObjectId(branchId);
+      } else {
+        match.branchId = branchId;
+      }
+      console.log('🏢 Branch filter:', branchId);
+    } else if (!req.user.groupId.permissions.includes('admin')) {
+      // If no branchId specified and user is not admin, filter by user's branches
+      const userBranchObjectIds = req.user.branches.map(b => {
+        const bid = b._id ? b._id : b;
+        return mongoose.Types.ObjectId.isValid(bid) ? new mongoose.Types.ObjectId(bid) : bid;
+      });
+      match.branchId = { $in: userBranchObjectIds };
+      console.log('🏢 Branch filter (user branches):', req.user.branches.map(b => b._id || b));
+    }
+    
+    // Handle departmentId filter (Section)
+    if (req.query.departmentId && req.query.departmentId.trim() !== '') {
+      const deptId = req.query.departmentId.trim();
+      // Convert to ObjectId if valid
+      if (mongoose.Types.ObjectId.isValid(deptId)) {
+        match.departmentId = new mongoose.Types.ObjectId(deptId);
+      } else {
+        match.departmentId = deptId;
+      }
+      console.log('📁 Department filter:', match.departmentId);
+    }
+    
+    // Get branch info if branchId is specified
+    let branch = null;
+    let branchObjectId = null;
+    if (req.query.branchId && req.query.branchId.trim() !== '') {
+      branchObjectId = mongoose.Types.ObjectId.isValid(req.query.branchId.trim()) 
+        ? new mongoose.Types.ObjectId(req.query.branchId.trim()) 
+        : req.query.branchId.trim();
+      branch = await Branch.findById(branchObjectId).select('name').lean();
+    } else if (!req.user.groupId.permissions.includes('admin') && req.user.branches.length > 0) {
+      // Use first branch if no branch selected and user is not admin
+      branchObjectId = req.user.branches[0]._id || req.user.branches[0];
+      if (mongoose.Types.ObjectId.isValid(branchObjectId)) {
+        branchObjectId = new mongoose.Types.ObjectId(branchObjectId);
+      }
+      branch = await Branch.findById(branchObjectId).select('name').lean();
+    }
+    
+    // STEP 1: Load ALL departments and sub-departments for the branch (regardless of sales data)
+    if (!branchObjectId) {
+      return res.json({ 
+        items: [], 
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+        branch: null,
+        meta: { from, to, branchId: null, departmentId: null } 
+      });
+    }
+    
+    console.log('📁 STEP 1: Loading departments and sub-departments for branch:', branchObjectId.toString());
+    
+    // Get all departments for this branch (only those that should show in income statement)
+    // Include departments where showInIncomeStatement is true OR where the field doesn't exist (backward compatibility)
+    let departmentFilter = { 
+      branchId: branchObjectId, 
+      $or: [
+        { showInIncomeStatement: true },
+        { showInIncomeStatement: { $exists: false } }
+      ]
+    };
+    if (req.query.departmentId && req.query.departmentId.trim() !== '') {
+      const deptId = req.query.departmentId.trim();
+      if (mongoose.Types.ObjectId.isValid(deptId)) {
+        departmentFilter._id = new mongoose.Types.ObjectId(deptId);
+      } else {
+        departmentFilter._id = deptId;
+      }
+    }
+    
+    const departments = await Department.find(departmentFilter)
+      .select('name _id showInIncomeStatement sequence marginDedPercent')
+      .sort({ sequence: 1, name: 1 })
+      .lean();
+    console.log('✅ Found', departments.length, 'departments with showInIncomeStatement: true or undefined');
+    console.log('📋 Department names:', departments.map(d => d.name).join(', '));
+    
+    // Check total departments for this branch (for debugging)
+    const totalDeptsForBranch = await Department.countDocuments({ branchId: branchObjectId });
+    console.log('📊 Total departments for branch:', totalDeptsForBranch, '| Showing in income statement:', departments.length);
+    
+    // Get all sub-departments for this branch
+    // IMPORTANT: Only get sub-departments whose parent departments have showInIncomeStatement: true or undefined
+    let subDeptFilter = { branchId: branchObjectId };
+    if (departments.length > 0) {
+      const deptIds = departments.map(d => d._id);
+      subDeptFilter.departmentId = { $in: deptIds };
+      console.log('📋 Filtering sub-departments by department IDs:', deptIds.length, 'departments');
+    } else {
+      // If no departments with showInIncomeStatement: true, check if all are explicitly set to false
+      const allDeptsForBranch = await Department.find({ branchId: branchObjectId }).select('name showInIncomeStatement').lean();
+      const explicitlyHidden = allDeptsForBranch.filter(d => d.showInIncomeStatement === false);
+      console.log('⚠️ No departments with showInIncomeStatement: true found for this branch');
+      console.log('📊 Total departments:', allDeptsForBranch.length, '| Explicitly hidden:', explicitlyHidden.length);
+      if (explicitlyHidden.length === allDeptsForBranch.length && allDeptsForBranch.length > 0) {
+        console.log('⚠️ All departments are set to showInIncomeStatement: false');
+      }
+      return res.json({ 
+        items: [], 
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+        branch: branch ? { _id: branch._id, name: branch.name } : null,
+        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+      });
+    }
+    if (req.query.departmentId && req.query.departmentId.trim() !== '') {
+      const deptId = req.query.departmentId.trim();
+      // Verify this department has showInIncomeStatement: true
+      const deptCheck = await Department.findOne({ 
+        _id: mongoose.Types.ObjectId.isValid(deptId) ? new mongoose.Types.ObjectId(deptId) : deptId,
+        showInIncomeStatement: true 
+      });
+      if (!deptCheck) {
+        console.log('⚠️ Requested department does not have showInIncomeStatement: true');
+        return res.json({ 
+          items: [], 
+          summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+          branch: branch ? { _id: branch._id, name: branch.name } : null,
+          meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+        });
+      }
+      subDeptFilter.departmentId = mongoose.Types.ObjectId.isValid(deptId) 
+        ? new mongoose.Types.ObjectId(deptId) 
+        : deptId;
+    }
+    
+    // Get sub-departments - only those whose parent departments have showInIncomeStatement: true or field doesn't exist
+    // Note: We already filtered departments above, so we can safely get sub-departments
+    let subDepartments = await SubDepartment.find(subDeptFilter)
+      .populate('departmentId', 'name showInIncomeStatement sequence marginDedPercent')
+      .select('name departmentId branchId sequence')
+      .lean();
+    
+    // Filter sub-departments to only include those whose parent departments should show in income statement
+    // (showInIncomeStatement: true OR field doesn't exist for backward compatibility)
+    subDepartments = subDepartments.filter(sd => {
+      if (!sd.departmentId || !sd.departmentId._id) return false;
+      const dept = sd.departmentId;
+      // Include if showInIncomeStatement is true OR if field doesn't exist (backward compatibility)
+      return dept.showInIncomeStatement === true || dept.showInIncomeStatement === undefined;
+    });
+    
+    // Sort sub-departments by department sequence, then department name, then sub-department sequence, then sub-department name
+    subDepartments.sort((a, b) => {
+      const deptSeqA = a.departmentId?.sequence ?? 0;
+      const deptSeqB = b.departmentId?.sequence ?? 0;
+      if (deptSeqA !== deptSeqB) {
+        return deptSeqA - deptSeqB;
+      }
+      const deptNameA = a.departmentId?.name || '';
+      const deptNameB = b.departmentId?.name || '';
+      if (deptNameA !== deptNameB) {
+        return deptNameA.localeCompare(deptNameB);
+      }
+      const subDeptSeqA = a.sequence ?? 0;
+      const subDeptSeqB = b.sequence ?? 0;
+      if (subDeptSeqA !== subDeptSeqB) {
+        return subDeptSeqA - subDeptSeqB;
+      }
+      const subDeptNameA = a.name || '';
+      const subDeptNameB = b.name || '';
+      return subDeptNameA.localeCompare(subDeptNameB);
+    });
+    
+    console.log('✅ Found', subDepartments.length, 'sub-departments (filtered by showInIncomeStatement and sorted by sequence)');
+    
+    // If still no sub-departments found, return empty but log for debugging
+    if (subDepartments.length === 0) {
+      console.log('⚠️ No sub-departments found for branch');
+      const totalSubDepts = await SubDepartment.countDocuments({});
+      const totalForBranch = await SubDepartment.countDocuments({ branchId: branchObjectId });
+      console.log('📊 Database check - Total sub-departments:', totalSubDepts, '| For this branch:', totalForBranch);
+      
+      return res.json({ 
+        items: [], 
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+        branch: branch ? { _id: branch._id, name: branch.name } : null,
+        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+      });
+    }
+    
+    console.log('✅ STEP 1 Complete: Loaded', subDepartments.length, 'sub-departments');
+    
+    // STEP 2: Load sales data for those sub-departments (if any exists)
+    console.log('📊 STEP 2: Loading sales data for', subDepartments.length, 'sub-departments');
+    
+    const subDeptIds = subDepartments.map(s => s._id);
+    const salesMatch = {
+      ...match,
+      subDepartmentId: { $in: subDeptIds }
+    };
+    
+    console.log('📊 Date range:', from.toISOString(), 'to', to.toISOString());
+    console.log('📊 Sales match query - branchId:', salesMatch.branchId?.toString() || salesMatch.branchId);
+    console.log('📊 Sales match query - subDepartmentIds:', subDeptIds.length, 'sub-departments');
+    
+    const totalCount = await DepartmentSale.countDocuments(salesMatch);
+    console.log('✅ Found', totalCount, 'DepartmentSale records matching criteria');
+    
+    // Aggregate department sales by sub-department
+    const agg = await DepartmentSale.aggregate([
+      { $match: salesMatch },
+      { 
+        $group: { 
+          _id: '$subDepartmentId', 
+          sales: { $sum: '$grossSale' }, 
+          returns: { $sum: '$returnAmount' }, 
+          gst: { $sum: '$gst' }, 
+          netSale: { $sum: '$netSale' }, 
+          discountAmount: { $sum: '$discountAmount' }, 
+          cost: { $sum: '$cost' }
+        } 
+      }
+    ]);
+    
+    console.log('✅ Aggregated sales data for', agg.length, 'sub-departments');
+    
+    // Create a map of sales data by sub-department ID
+    const salesMap = {};
+    agg.forEach(a => {
+      if (a._id) {
+        salesMap[a._id.toString()] = a;
+      }
+    });
+    
+    console.log('✅ STEP 2 Complete: Sales data loaded');
+    
+    const settings = await Settings.findOne({});
+    const defaultCostPercent = settings?.defaultCostPercent || 70;
+    
+    // STEP 3: Create items for ALL sub-departments (even if no sales data)
+    console.log('📋 STEP 3: Creating items for', subDepartments.length, 'sub-departments');
+    console.log('📊 Sales data available for', Object.keys(salesMap).length, 'sub-departments');
+    
+    const items = subDepartments.map(subDept => {
+      const subDeptId = subDept._id.toString();
+      const salesData = salesMap[subDeptId] || {};
+      
+      const net = salesData.netSale || 0;
+      const actualCost = salesData.cost || 0;
+      const sales = salesData.sales || 0;
+      const discountAmount = salesData.discountAmount || 0;
+      
+      // Calculate discount percentage: (Discount Value / Sales) × 100
+      const discountPercent = sales > 0 ? (discountAmount * 100 / sales) : 0;
+      
+      const item = { 
+        subDepartment: { _id: subDept._id, name: subDept.name, sequence: subDept.sequence || 0 },
+        departmentId: subDept.departmentId?._id || subDept.departmentId,
+        departmentName: subDept.departmentId?.name || '',
+        departmentSequence: subDept.departmentId?.sequence || 0,
+        departmentMarginDedPercent: subDept.departmentId?.marginDedPercent || 0,
+        sales: sales, 
+        returns: salesData.returns || 0, 
+        gst: salesData.gst || 0, 
+        netSale: net, 
+        discountAmount: discountAmount, 
+        discountPercent: discountPercent, 
+        cost: actualCost
+      };
+      
+      return item;
+    });
+    
+    console.log('📊 Items created:', items.length);
+    if (items.length > 0) {
+      console.log('📊 Sample item:', {
+        subDepartment: items[0].subDepartment?.name,
+        departmentName: items[0].departmentName,
+        sales: items[0].sales,
+        netSale: items[0].netSale
+      });
+    }
+    
+    // Sort by department sequence, then department name, then sub-department sequence, then sub-department name
+    // First, we need to get department and sub-department sequences from the subDepartments array
+    const deptSeqMap = {};
+    const subDeptSeqMap = {};
+    subDepartments.forEach(sd => {
+      if (sd.departmentId?._id) {
+        deptSeqMap[sd.departmentId._id.toString()] = sd.departmentId.sequence ?? 0;
+      }
+      if (sd._id) {
+        subDeptSeqMap[sd._id.toString()] = sd.sequence ?? 0;
+      }
+    });
+    
+    items.sort((a, b) => {
+      const deptIdA = a.departmentId?.toString() || '';
+      const deptIdB = b.departmentId?.toString() || '';
+      const deptSeqA = deptSeqMap[deptIdA] ?? 0;
+      const deptSeqB = deptSeqMap[deptIdB] ?? 0;
+      
+      // First sort by department sequence
+      if (deptSeqA !== deptSeqB) {
+        return deptSeqA - deptSeqB;
+      }
+      
+      // Then by department name (if sequences are equal)
+      const deptA = a.departmentName || '';
+      const deptB = b.departmentName || '';
+      if (deptA !== deptB) {
+        return deptA.localeCompare(deptB);
+      }
+      
+      // Then by sub-department sequence
+      const subDeptIdA = a.subDepartment?._id?.toString() || '';
+      const subDeptIdB = b.subDepartment?._id?.toString() || '';
+      const subDeptSeqA = subDeptSeqMap[subDeptIdA] ?? 0;
+      const subDeptSeqB = subDeptSeqMap[subDeptIdB] ?? 0;
+      if (subDeptSeqA !== subDeptSeqB) {
+        return subDeptSeqA - subDeptSeqB;
+      }
+      
+      // Finally by sub-department name
+      const nameA = a.subDepartment?.name || '';
+      const nameB = b.subDepartment?.name || '';
+      return nameA.localeCompare(nameB);
+    });
+    
+    const summary = items.reduce((acc, it) => {
+      acc.totalSale += it.sales;
+      acc.totalReturns += it.returns;
+      acc.netSales += it.netSale;
+      acc.cost += it.cost || 0;
+      acc.grossProfit += (it.netSale - (it.cost || 0));
+      return acc;
+    }, { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 });
+    
+    summary.netProfit = summary.grossProfit;
+    
+    console.log('✅ Final response - Items count:', items.length);
+    console.log('✅ Final response - Summary:', summary);
+    console.log('✅ Final response - Branch:', branch ? branch.name : 'null');
+    
+    const response = { 
+      items, 
+      summary, 
+      branch: branch ? { _id: branch._id, name: branch.name } : null,
+      meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+    };
+    
+    console.log('✅ Sending response with', response.items.length, 'items');
+    res.json(response);
+  } catch (error) {
+    console.error('Error generating income statement report:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// INCOME STATEMENT REPORT SAVE/LIST API ROUTES
+// ========================================
+
+// Save Income Statement Report
+app.post('/api/reports/income-statement/save', authenticate, async (req, res) => {
+  try {
+    const { items, summary, branch, meta, expenses, shortCash, notes } = req.body;
+    
+    if (!items || !summary || !branch || !meta) {
+      return res.status(400).json({ error: 'Missing required fields: items, summary, branch, and meta are required.' });
+    }
+    
+    // Update summary with expenses and shortCash from input
+    const updatedSummary = {
+      ...summary,
+      expenses: expenses || 0,
+      shortCash: shortCash || 0,
+      netProfit: (summary.grossProfit || 0) - (expenses || 0) - (shortCash || 0)
+    };
+    
+    const report = await IncomeStatementReport.create({
+      branchId: branch._id,
+      departmentId: meta.departmentId || null,
+      fromDate: new Date(meta.from),
+      toDate: new Date(meta.to),
+      reportDate: new Date(),
+      items: items,
+      summary: updatedSummary,
+      branch: branch,
+      savedBy: req.user._id,
+      notes: notes || ''
+    });
+    
+    const populatedReport = await IncomeStatementReport.findById(report._id)
+      .populate('branchId', 'name')
+      .populate('savedBy', 'username')
+      .populate('departmentId', 'name');
+    
+    res.status(201).json(populatedReport);
+  } catch (error) {
+    console.error('Error saving income statement report:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get All Saved Income Statement Reports
+app.get('/api/reports/income-statement/list', authenticate, async (req, res) => {
+  console.log('✅ GET /api/reports/income-statement/list - Request received');
+  try {
+    const { from, to, branchId } = req.query;
+    console.log('📋 Query params:', { from, to, branchId });
+    const filter = {};
+    
+    // Filter by date range if provided
+    if (from || to) {
+      filter.reportDate = {};
+      if (from) {
+        filter.reportDate.$gte = new Date(from);
+      }
+      if (to) {
+        filter.reportDate.$lte = new Date(to);
+        filter.reportDate.$lte.setHours(23, 59, 59, 999);
+      }
+    }
+    
+    // Filter by branch
+    if (branchId && branchId.trim() !== '') {
+      filter.branchId = branchId;
+    }
+    
+    // If user is not admin, filter by user's branches
+    if (!req.user.groupId.permissions.includes('admin')) {
+      const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
+      if (filter.branchId) {
+        if (!userBranchIds.includes(filter.branchId.toString())) {
+          return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+        }
+      } else {
+        filter.branchId = { $in: req.user.branches };
+      }
+    }
+    
+    const reports = await IncomeStatementReport.find(filter)
+      .populate('branchId', 'name')
+      .populate('savedBy', 'username')
+      .populate('departmentId', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching income statement reports:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Single Income Statement Report (must come after /list route)
+app.get('/api/reports/income-statement/:id', authenticate, async (req, res) => {
+  try {
+    // Prevent "list" from being treated as an ID
+    if (req.params.id === 'list' || req.params.id === 'save') {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    
+    const report = await IncomeStatementReport.findById(req.params.id)
+      .populate('branchId', 'name')
+      .populate('savedBy', 'username')
+      .populate('departmentId', 'name')
+      .lean();
+    
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    
+    // Check user access to branch
+    if (!req.user.groupId.permissions.includes('admin')) {
+      const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
+      const reportBranchId = report.branchId._id ? report.branchId._id.toString() : report.branchId.toString();
+      if (!userBranchIds.includes(reportBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this report.' });
+      }
+    }
+    
+    res.json(report);
+  } catch (error) {
+    console.error('Error fetching income statement report:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Income Statement Report
+app.delete('/api/reports/income-statement/:id', authenticate, async (req, res) => {
+  try {
+    const report = await IncomeStatementReport.findById(req.params.id);
+    
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    
+    // Check user access
+    if (!req.user.groupId.permissions.includes('admin')) {
+      const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
+      const reportBranchId = report.branchId._id ? report.branchId._id.toString() : report.branchId.toString();
+      if (!userBranchIds.includes(reportBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to delete this report.' });
+      }
+    }
+    
+    await IncomeStatementReport.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Report deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting income statement report:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// PAYMENTS API ROUTES
+// ========================================
+
+// Get All Payments (Supplier Vouchers) - Requires payment-voucher-list permission
+app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), async (req, res) => {
+  try {
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.supplierId && req.query.supplierId !== 'undefined' && req.query.supplierId.trim() !== '') {
+      filter.supplierId = req.query.supplierId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    // If user is not admin, filter by user's assigned branches
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const payments = await Payment.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('supplierId', 'name');
+    
+    res.json(payments);
+  } catch (error) {
+    console.error('Error fetching payments:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SPECIFIC PAYMENT ROUTES (must come before parameterized routes)
+// ========================================
+
+// Get Next Voucher Number - MUST be defined BEFORE /api/payments/:id route
+app.get('/api/payments/next-voucher-number', authenticate, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    console.log('✅ GET /api/payments/next-voucher-number called');
+    
+    // Logic to generate next voucher number
+    const prefix = 'PV';
+    const lastPayment = await Payment.findOne().sort({ voucherNumber: -1 });
+    
+    let nextNumber = 1001;
+    if (lastPayment && lastPayment.voucherNumber) {
+      const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
+      nextNumber = lastNum + 1;
+    }
+    
+    const nextVoucherNumber = `${prefix}${nextNumber}`;
+    res.status(200).json({ voucherNumber: nextVoucherNumber });
+  } catch (error) {
+    console.error('Error generating next voucher number:', error);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ error: 'Failed to generate next voucher number', message: error.message });
+  }
+});
+
+// Create New Payment (Supplier Vouchers ONLY)
+app.post('/api/payments', authenticate, checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    console.log('✅ POST /api/payments called (Supplier voucher)');
+    
+    // Copy request data
+    const data = { ...req.body };
+
+    // Reject if it has categoryId - category vouchers should use /api/category-payments
+    if (data.categoryId || data.voucherType === 'category') {
+      return res.status(400).json({ error: 'Category vouchers must use /api/category-payments endpoint' });
+    }
+
+    // Generate voucher number if not provided
+    if (!data.voucherNumber) {
+      const prefix = 'PV';
+      const lastPayment = await Payment.findOne().sort({ voucherNumber: -1 });
+      let nextNumber = 1001;
+      if (lastPayment && lastPayment.voucherNumber) {
+        const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
+        nextNumber = lastNum + 1;
+      }
+      data.voucherNumber = `${prefix}${nextNumber}`;
+    }
+
+    // If supplier string missing, fetch from Supplier model
+    if (!data.supplier && data.supplierId) {
+      try {
+        const supplier = await Supplier.findById(data.supplierId);
+        data.supplier = supplier ? supplier.name : 'Unknown';
+      } catch (err) {
+        // Supplier not found, using 'Unknown'
+        data.supplier = 'Unknown';
+      }
+    }
+
+    // Set default status if not provided
+    if (!data.status) {
+      data.status = 'Pending';
+    }
+
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && data.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // Create payment using fixed data
+    const payment = await Payment.create(data);
+
+    // Populate branch & supplier references before sending response
+    const populatedPayment = await Payment.findById(payment._id)
+      .populate('branchId', 'name')
+      .populate('supplierId', 'name');
+
+    console.log('✅ Supplier payment created:', populatedPayment.voucherNumber);
+    res.status(201).json(populatedPayment);
+  } catch (error) {
+    console.error('❌ Error creating supplier payment:', error.message);
+    // ALWAYS return JSON even on error
+    res.status(400).json({ 
+      error: 'Bad Request',
+      details: error.message 
+    });
+  }
+});
+
+// ========================================
+// GENERAL PAYMENT ROUTES (parameterized routes come after specific routes)
+// ========================================
+
+// Get Single Payment by ID - This route comes AFTER specific routes like /next-voucher-number
+// NOTE: Express matches routes in order, so /next-voucher-number must come before this
+app.get('/api/payments/:id', authenticate, checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    // CRITICAL: Validate ObjectId BEFORE database query to prevent CastError
+    // This prevents routes like /next-voucher-number from being treated as IDs
+    // Also reject known non-ID paths explicitly
+    if (req.params.id === 'next-voucher-number') {
+      console.error(`❌ Route mismatch detected: /payments/:id matched "next-voucher-number". This should not happen!`);
+      return res.status(404).json({ 
+        error: 'Endpoint not found',
+        message: 'The requested endpoint was not found. Please ensure the route is correctly defined.'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log(`⚠️ Invalid Payment ID format attempted: "${req.params.id}"`);
+      return res.status(400).json({ 
+        error: 'Invalid Payment ID format',
+        message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`,
+        providedId: req.params.id
+      });
+    }
+    
+    // Ensure Content-Type is JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    const payment = await Payment.findById(req.params.id)
+      .populate('branchId', 'name')
+      .populate('supplierId', 'name');
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    // Check permissions: user needs payment-edit OR payment-voucher-list OR reports permission to view/edit
+    // Reports permission grants access to view payment data for reporting purposes
+    const hasPaymentPermission = req.user.groupId.permissions.includes('payment-edit') || 
+                                  req.user.groupId.permissions.includes('payment-voucher-list') ||
+                                  req.user.groupId.permissions.includes('reports') ||
+                                  req.user.groupId.permissions.includes('admin');
+    
+    if (!hasPaymentPermission) {
+      return res.status(403).json({ error: 'Access denied. You do not have permission to access supplier vouchers.' });
+    }
+    
+    // Check if user has access to this payment's branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = payment.branchId?._id ? payment.branchId._id.toString() : payment.branchId?.toString() || payment.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+    
+    res.json(payment);
+  } catch (error) {
+    console.error('Error fetching payment by ID:', error);
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Handle cases where req.params.id is not a valid ObjectId format
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ 
+        error: 'Invalid Payment ID format',
+        message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`,
+        providedId: req.params.id
+      });
+    }
+    
+    res.status(500).json({ error: 'Server error', message: error.message });
+  }
+});
+
+// Update Payment
+app.put('/api/payments/:id', authenticate, hasPermission('payment-edit'), checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST (checkDatabaseConnection already sets it, but being explicit)
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid Payment ID format' });
+    }
+    
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(updateBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // If supplier string missing, fetch from Supplier model
+    if (!req.body.supplier && req.body.supplierId) {
+      try {
+        const supplier = await Supplier.findById(req.body.supplierId);
+        req.body.supplier = supplier ? supplier.name : 'Unknown';
+      } catch (err) {
+        req.body.supplier = 'Unknown';
+      }
+    }
+
+    const updated = await Payment.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name')
+      .populate('supplierId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Handle cases where req.params.id is not a valid ObjectId format
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ 
+        error: 'Invalid Payment ID format',
+        message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`
+      });
+    }
+    
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Payment
+app.delete('/api/payments/:id', authenticate, hasPermission('payment-delete'), checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST (checkDatabaseConnection already sets it, but being explicit)
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid Payment ID format' });
+    }
+    // Check if user has access to this payment's branch
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    // Check branch access (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = payment.branchId?._id ? payment.branchId._id.toString() : payment.branchId?.toString() || payment.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    const deleted = await Payment.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Handle cases where req.params.id is not a valid ObjectId format
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ 
+        error: 'Invalid Payment ID format',
+        message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`
+      });
+    }
+    
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// CATEGORY PAYMENTS API ROUTES (SEPARATE FROM SUPPLIER PAYMENTS)
+// MUST BE BEFORE THE CATCH-ALL ROUTE
+// ========================================
+
+// TEST ENDPOINT - NO AUTH - TO VERIFY ROUTING WORKS
+app.get('/api/test-category-payments', (req, res) => {
+  console.log('✅ TEST ENDPOINT HIT: /api/test-category-payments');
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json({ 
+    success: true, 
+    message: 'Category payments API is accessible',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Get Next Category Voucher Number - MUST be before /api/category-payments/:id
+app.get('/api/category-payments/next-voucher-number', authenticate, hasPermission('category-voucher'), async (req, res) => {
+  // CRITICAL: Set headers FIRST before anything else
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  try {
+    console.log('✅ GET /api/category-payments/next-voucher-number called');
+    
+    // Verify CategoryPayment model exists
+    if (!CategoryPayment) {
+      throw new Error('CategoryPayment model not defined');
+    }
+    
+    const prefix = 'PV';
+    const lastPayment = await CategoryPayment.findOne().sort({ voucherNumber: -1 });
+    
+    let nextNumber = 1001;
+    if (lastPayment && lastPayment.voucherNumber) {
+      const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
+      nextNumber = lastNum + 1;
+    }
+    
+    const nextVoucherNumber = `${prefix}${nextNumber}`;
+    console.log('✅ Generated next category voucher number:', nextVoucherNumber);
+    res.status(200).json({ voucherNumber: nextVoucherNumber });
+  } catch (error) {
+    console.error('❌ Error generating next category voucher number:', error);
+    console.error('❌ Error stack:', error.stack);
+    // ALWAYS return JSON even on error - don't let Express default to HTML
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'Failed to generate next voucher number',
+        details: error.message
+      });
+    }
+  }
+});
+
+// Get All Category Payments
+app.get('/api/category-payments', authenticate, hasPermission('category-voucher-list'), async (req, res) => {
+  // CRITICAL: Set headers FIRST before anything else - MUST BE FIRST LINE
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  try {
+    console.log('🎯 ========== CATEGORY PAYMENTS ROUTE HIT ==========');
+    console.log('✅ GET /api/category-payments called');
+    console.log('✅ Method:', req.method);
+    console.log('✅ Path:', req.path);
+    console.log('✅ Query:', JSON.stringify(req.query));
+    console.log('✅ User authenticated:', req.user ? req.user.username : 'NO USER');
+    
+    // Verify CategoryPayment model exists
+    if (!CategoryPayment) {
+      throw new Error('CategoryPayment model not defined');
+    }
+    
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
+      filter.categoryId = req.query.categoryId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    // If user is not admin, filter by user's assigned branches
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    console.log('✅ Filter:', JSON.stringify(filter));
+    
+    const categoryPayments = await CategoryPayment.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    console.log(`✅ Found ${categoryPayments.length} category payments`);
+    res.status(200).json(categoryPayments);
+  } catch (error) {
+    console.error('❌ Error fetching category payments:', error);
+    console.error('❌ Error stack:', error.stack);
+    // ALWAYS return JSON even on error - don't let Express default to HTML
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'Internal Server Error',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
+});
+
+// Create New Category Payment
+app.post('/api/category-payments', authenticate, hasPermission('category-voucher'), checkDatabaseConnection, async (req, res) => {
+  // CRITICAL: Set headers FIRST before anything else
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  try {
+    console.log('✅ POST /api/category-payments called (Category voucher)');
+    console.log('✅ Request data:', JSON.stringify(req.body));
+    
+    // Verify CategoryPayment model exists
+    if (!CategoryPayment) {
+      throw new Error('CategoryPayment model not defined');
+    }
+    
+    const data = { ...req.body };
+
+    // Generate voucher number if not provided
+    if (!data.voucherNumber) {
+      const prefix = 'PV';
+      const lastPayment = await CategoryPayment.findOne().sort({ voucherNumber: -1 });
+      let nextNumber = 1001;
+      if (lastPayment && lastPayment.voucherNumber) {
+        const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
+        nextNumber = lastNum + 1;
+      }
+      data.voucherNumber = `${prefix}${nextNumber}`;
+    }
+
+    // If category string missing, fetch from Category model
+    if (!data.category && data.categoryId) {
+      try {
+        const category = await Category.findById(data.categoryId);
+        data.category = category ? category.name : 'Unknown';
+      } catch (err) {
+        data.category = 'Unknown';
+      }
+    }
+
+    // Set default status if not provided
+    if (!data.status) {
+      data.status = 'Pending';
+    }
+
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && data.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // Create category payment
+    const categoryPayment = await CategoryPayment.create(data);
+
+    // Populate branch & category references before sending response
+    const populatedPayment = await CategoryPayment.findById(categoryPayment._id)
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+
+    console.log('✅ Category payment created:', populatedPayment.voucherNumber);
+    res.status(201).json(populatedPayment);
+  } catch (error) {
+    console.error('❌ Error creating category payment:', error);
+    console.error('❌ Error stack:', error.stack);
+    // ALWAYS return JSON even on error - don't let Express default to HTML
+    if (!res.headersSent) {
+      res.status(400).json({ 
+        error: 'Bad Request',
+        details: error.message 
+      });
+    }
+  }
+});
+
+// Get Single Category Payment by ID
+app.get('/api/category-payments/:id', authenticate, checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    const categoryPayment = await CategoryPayment.findById(req.params.id)
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    if (!categoryPayment) {
+      return res.status(404).json({ error: 'Category payment not found' });
+    }
+    
+    // Check permissions: user needs category-voucher-edit OR category-voucher-list OR reports permission to view/edit
+    // Reports permission grants access to view category payment data for reporting purposes
+    const hasCategoryPermission = req.user.groupId.permissions.includes('category-voucher-edit') || 
+                                   req.user.groupId.permissions.includes('category-voucher-list') ||
+                                   req.user.groupId.permissions.includes('reports') ||
+                                   req.user.groupId.permissions.includes('admin');
+    
+    if (!hasCategoryPermission) {
+      return res.status(403).json({ error: 'Access denied. You do not have permission to access category vouchers.' });
+    }
+    
+    // Check if user has access to this payment's branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = categoryPayment.branchId?._id ? categoryPayment.branchId._id.toString() : categoryPayment.branchId?.toString() || categoryPayment.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+    
+    res.status(200).json(categoryPayment);
+  } catch (error) {
+    console.error('Error fetching category payment by ID:', error);
+    // ALWAYS return JSON even on error
+    
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      details: error.message 
+    });
+  }
+});
+
+// Update Category Payment
+app.put('/api/category-payments/:id', authenticate, hasPermission('category-voucher-edit'), checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    // Check if user has access to this branch (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(updateBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    // If category string missing, fetch from Category model
+    if (!req.body.category && req.body.categoryId) {
+      try {
+        const category = await Category.findById(req.body.categoryId);
+        req.body.category = category ? category.name : 'Unknown';
+      } catch (err) {
+        req.body.category = 'Unknown';
+      }
+    }
+
+    const updated = await CategoryPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Category payment not found' });
+    }
+    
+    res.status(200).json(updated);
+  } catch (error) {
+    console.error('Error updating category payment:', error);
+    // ALWAYS return JSON even on error
+    
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    res.status(400).json({ 
+      error: 'Bad Request',
+      details: error.message 
+    });
+  }
+});
+
+// Delete Category Payment
+app.delete('/api/category-payments/:id', authenticate, hasPermission('category-voucher-delete'), checkDatabaseConnection, async (req, res) => {
+  // ALWAYS set Content-Type to JSON FIRST
+  res.setHeader('Content-Type', 'application/json');
+  
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    // Check if user has access to this payment's branch
+    const categoryPayment = await CategoryPayment.findById(req.params.id);
+    if (!categoryPayment) {
+      return res.status(404).json({ error: 'Category payment not found' });
+    }
+    
+    // Check branch access (only if not admin)
+    if (!req.user.groupId.permissions.includes('admin')) {
+      // Convert branchId to string for comparison (handle both ObjectId and populated object)
+      const paymentBranchId = categoryPayment.branchId?._id ? categoryPayment.branchId._id.toString() : categoryPayment.branchId?.toString() || categoryPayment.branchId;
+      const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
+      
+      if (!userBranchIds.includes(paymentBranchId)) {
+        return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
+      }
+    }
+
+    await CategoryPayment.findByIdAndDelete(req.params.id);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting category payment:', error);
+    // ALWAYS return JSON even on error
+    
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return res.status(400).json({ error: 'Invalid Category Payment ID format' });
+    }
+    
+    res.status(400).json({ 
+      error: 'Bad Request',
+      details: error.message 
+    });
+  }
+});
+
+// ========================================
+// ADMIN UTILITY ROUTES
+// ========================================
+
+// Admin Delete Action
+app.post('/api/admin/delete', checkDatabaseConnection, async (req, res) => {
+  try {
+    const { resource, id, password } = req.body || {};
+    const expected = String(process.env.ADMIN_PASSWORD || '');
+    const provided = String(password || '');
+    
+    if (!expected) {
+      return res.status(500).json({ error: 'Admin password not configured on server' });
+    }
+    
+    if (provided.trim() !== expected.trim()) {
+      console.warn('Admin delete auth failed');
+      return res.status(403).json({ error: 'Invalid admin password' });
+    }
+
+    if (!resource || !id) {
+      return res.status(400).json({ error: 'resource and id are required' });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    let deleted = null;
+    if (resource === 'sales') {
+      deleted = await Sale.findByIdAndDelete(id);
+    } else if (resource === 'payments') {
+      deleted = await Payment.findByIdAndDelete(id);
+    } else if (resource === 'branches') {
+      deleted = await Branch.findByIdAndDelete(id);
+      await Sale.deleteMany({ branchId: id });
+      await Payment.deleteMany({ branchId: id });
+      await User.updateMany(
+        { branches: id },
+        { $pull: { branches: id } }
+      );
+    } else if (resource === 'categories') {
+      deleted = await Category.findByIdAndDelete(id);
+    } else if (resource === 'groups') {
+      deleted = await Group.findByIdAndDelete(id);
+      await User.updateMany(
+        { groupId: id },
+        { $unset: { groupId: 1 } }
+      );
+    } else if (resource === 'users') {
+      deleted = await User.findByIdAndDelete(id);
+    } else {
+      return res.status(400).json({ error: 'Unknown resource type' });
+    }
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Admin delete error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin Update Action
+app.post('/api/admin/update', checkDatabaseConnection, async (req, res) => {
+  try {
+    const { resource, id, payload, password } = req.body || {};
+    const expected = String(process.env.ADMIN_PASSWORD || '');
+    const provided = String(password || '');
+    
+    if (!expected) {
+      console.error('Admin password not configured on server');
+      return res.status(500).json({ error: 'Admin password not configured on server' });
+    }
+    
+    if (provided.trim() !== expected.trim()) {
+      console.warn('Admin auth failed (update)');
+      return res.status(403).json({ error: 'Invalid admin password' });
+    }
+
+    if (!resource || !id || !payload) {
+      return res.status(400).json({ error: 'resource, id and payload are required' });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    let updated = null;
+    if (resource === 'sales') {
+      updated = await Sale.findByIdAndUpdate(id, payload, { new: true })
+        .populate('branchId', 'name')
+        .populate('categoryId', 'name');
+    } else if (resource === 'payments') {
+      updated = await Payment.findByIdAndUpdate(id, payload, { new: true })
+        .populate('branchId', 'name')
+        .populate('supplierId', 'name');
+    } else if (resource === 'branches') {
+      updated = await Branch.findByIdAndUpdate(id, payload, { new: true });
+    } else if (resource === 'categories') {
+      updated = await Category.findByIdAndUpdate(id, payload, { new: true });
+    } else if (resource === 'groups') {
+      updated = await Group.findByIdAndUpdate(id, payload, { new: true });
+    } else if (resource === 'users') {
+      // Hash password if provided
+      if (payload.password) {
+        const salt = await bcrypt.genSalt(10);
+        payload.password = await bcrypt.hash(payload.password, salt);
+      }
+      updated = await User.findByIdAndUpdate(id, payload, { new: true })
+        .populate('groupId', 'name permissions');
+    } else {
+      return res.status(400).json({ error: 'Unknown resource type' });
+    }
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    return res.json(updated);
+  } catch (error) {
+    console.error('Admin update error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// API KEY MANAGEMENT ROUTES (Admin Only)
+// ========================================
+
+// Get All API Keys
+app.get('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const apiKeys = await ApiKey.find()
+      .populate('createdBy', 'username fullName')
+      .sort({ createdAt: -1 })
+      .select('-apiSecret'); // Don't return the secret hash
+    
+    res.json(apiKeys);
+  } catch (error) {
+    console.error('Error fetching API keys:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New API Key
+app.post('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, expiresAt } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'API key name is required' });
+    }
+    
+    // Generate unique API key and secret
+    const apiKey = `dw_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const apiSecret = `${Math.random().toString(36).substring(2, 15)}${Date.now()}${Math.random().toString(36).substring(2, 15)}`;
+    
+    // Hash the secret before storing
+    const salt = await bcrypt.genSalt(10);
+    const hashedSecret = await bcrypt.hash(apiSecret, salt);
+    
+    // Create API key record
+    const apiKeyRecord = await ApiKey.create({
+      name: name.trim(),
+      description: description || '',
+      apiKey: apiKey,
+      apiSecret: hashedSecret,
+      isActive: true,
+      createdBy: req.user._id,
+      expiresAt: expiresAt ? new Date(expiresAt) : null
+    });
+    
+    // Return the API key and secret (only shown once!)
+    res.status(201).json({
+      id: apiKeyRecord._id,
+      name: apiKeyRecord.name,
+      description: apiKeyRecord.description,
+      apiKey: apiKey, // Return the plain text key (only time it will be shown)
+      apiSecret: apiSecret, // Return the plain text secret (only time it will be shown)
+      isActive: apiKeyRecord.isActive,
+      expiresAt: apiKeyRecord.expiresAt,
+      createdAt: apiKeyRecord.createdAt,
+      warning: '⚠️ Save these credentials now! The API secret will not be shown again.'
+    });
+  } catch (error) {
+    console.error('Error creating API key:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update API Key (toggle active status, update name/description)
+app.put('/api/api-keys/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const { name, description, isActive, expiresAt } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid API key ID format' });
+    }
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    
+    const updated = await ApiKey.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate('createdBy', 'username fullName').select('-apiSecret');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'API key not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating API key:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete API Key
+app.delete('/api/api-keys/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid API key ID format' });
+    }
+    
+    const deleted = await ApiKey.findByIdAndDelete(req.params.id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: 'API key not found' });
+    }
+    
+    res.json({ ok: true, message: 'API key deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting API key:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get API Key Usage Stats
+app.get('/api/api-keys/:id/stats', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid API key ID format' });
+    }
+    
+    const apiKey = await ApiKey.findById(req.params.id).select('-apiSecret');
+    
+    if (!apiKey) {
+      return res.status(404).json({ error: 'API key not found' });
+    }
+    
+    res.json({
+      id: apiKey._id,
+      name: apiKey.name,
+      usageCount: apiKey.usageCount || 0,
+      lastUsed: apiKey.lastUsed,
+      createdAt: apiKey.createdAt,
+      isActive: apiKey.isActive,
+      expiresAt: apiKey.expiresAt
+    });
+  } catch (error) {
+    console.error('Error fetching API key stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// ITEM MANAGEMENT API ROUTES
+// ========================================
+
+// Get All Items
+app.get('/api/items', authenticate, hasPermission('items'), async (req, res) => {
+  try {
+    const filter = {};
+    
+    if (req.query.search) {
+      filter.$or = [
+        { itemCode: { $regex: req.query.search, $options: 'i' } },
+        { itemName: { $regex: req.query.search, $options: 'i' } },
+        { givenPcsBarCode: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    
+    if (req.query.companyId) filter.companyId = req.query.companyId;
+    if (req.query.categoryId) filter.categoryId = req.query.categoryId;
+    if (req.query.classId) filter.classId = req.query.classId;
+    if (req.query.subclassId) filter.subclassId = req.query.subclassId;
+    if (req.query.supplierId) filter.supplierId = req.query.supplierId;
+    if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
+    
+    const items = await Item.find(filter)
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('classId', 'name')
+      .populate('subclassId', 'name')
+      .populate('supplierId', 'name')
+      .sort({ sequence: 1, createdAt: -1 });
+    
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching items:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Next Item Code / Sequence (must be before /api/items/:id to avoid route conflict)
+app.get('/api/items/next-code', authenticate, hasPermission('items'), async (req, res) => {
+  try {
+    // Next itemCode (string, numeric sequence)
+    const lastCodeItem = await Item.findOne().sort({ itemCode: -1 });
+    let nextCode = '1001';
+    
+    if (lastCodeItem && lastCodeItem.itemCode) {
+      const lastNum = parseInt(lastCodeItem.itemCode) || 0;
+      nextCode = String(lastNum + 1);
+    }
+
+    // Next sequence (numeric ID shown in UI)
+    const lastSeqItem = await Item.findOne().sort({ sequence: -1 });
+    const nextSequence = (lastSeqItem && typeof lastSeqItem.sequence === 'number'
+      ? lastSeqItem.sequence
+      : 0) + 1;
+    
+    res.json({ nextCode, nextSequence });
+  } catch (error) {
+    console.error('Error generating next code:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Single Item
+app.get('/api/items/:id', authenticate, hasPermission('items'), async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id)
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('classId', 'name')
+      .populate('subclassId', 'name')
+      .populate('supplierId', 'name');
+    
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    res.json(item);
+  } catch (error) {
+    console.error('Error fetching item:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search Items by Barcode or Name
+app.get('/api/items/search', authenticate, hasPermission('items'), async (req, res) => {
+  try {
+    const { barcode, name } = req.query;
+    const filter = {};
+    
+    if (barcode) {
+      filter.$or = [
+        { itemCode: barcode },
+        { givenPcsBarCode: barcode }
+      ];
+    }
+    
+    if (name) {
+      filter.itemName = { $regex: name, $options: 'i' };
+    }
+    
+    const items = await Item.find(filter)
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('supplierId', 'name')
+      .limit(50);
+    
+    res.json(items);
+  } catch (error) {
+    console.error('Error searching items:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Item
+app.post('/api/items', authenticate, hasPermission('items'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const data = { ...req.body };
+
+    // Default barcode logic: if givenPcsBarCode is empty, use itemCode
+    if (!data.givenPcsBarCode || String(data.givenPcsBarCode).trim() === '') {
+      data.givenPcsBarCode = data.itemCode || '';
+    }
+
+    // Ensure sequence is set (auto-increment)
+    if (!data.sequence || typeof data.sequence !== 'number' || data.sequence <= 0) {
+      const lastSeqItem = await Item.findOne().sort({ sequence: -1 });
+      data.sequence = (lastSeqItem && typeof lastSeqItem.sequence === 'number'
+        ? lastSeqItem.sequence
+        : 0) + 1;
+    }
+
+    const item = await Item.create(data);
+    const populated = await Item.findById(item._id)
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('classId', 'name')
+      .populate('subclassId', 'name')
+      .populate('supplierId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    console.error('Error creating item:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Item
+app.put('/api/items/:id', authenticate, hasPermission('items-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const data = { ...req.body };
+
+    // Default barcode logic on update as well
+    if (!data.givenPcsBarCode || String(data.givenPcsBarCode).trim() === '') {
+      data.givenPcsBarCode = data.itemCode || '';
+    }
+
+    const updated = await Item.findByIdAndUpdate(req.params.id, data, { new: true })
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('classId', 'name')
+      .populate('subclassId', 'name')
+      .populate('supplierId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating item:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Item
+app.delete('/api/items/:id', authenticate, hasPermission('items-delete'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const deleted = await Item.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting item:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// MASTER DATA API ROUTES
+// ========================================
+
+// Companies
+app.get('/api/companies', authenticate, async (req, res) => {
+  try {
+    const companies = await Company.find({ isActive: true }).sort({ name: 1 });
+    res.json(companies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/companies', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const company = await Company.create(req.body);
+    res.status(201).json(company);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/companies/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Company.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Company not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/companies/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await Company.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Classes
+app.get('/api/classes', authenticate, async (req, res) => {
+  try {
+    const classes = await Class.find({ isActive: true }).sort({ sequence: 1, name: 1 });
+    res.json(classes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/classes', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const classItem = await Class.create(req.body);
+    res.status(201).json(classItem);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/classes/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Class.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Class not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/classes/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await Class.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// SubClasses
+app.get('/api/sub-classes', authenticate, async (req, res) => {
+  try {
+    const filter = { isActive: true };
+    if (req.query.classId) filter.classId = req.query.classId;
+    const subClasses = await SubClass.find(filter).populate('classId', 'name').sort({ sequence: 1, name: 1 });
+    res.json(subClasses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/sub-classes', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const subClass = await SubClass.create(req.body);
+    res.status(201).json(await SubClass.findById(subClass._id).populate('classId', 'name'));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/sub-classes/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await SubClass.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('classId', 'name');
+    if (!updated) return res.status(404).json({ error: 'SubClass not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/sub-classes/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await SubClass.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Customers
+app.get('/api/customers', authenticate, async (req, res) => {
+  try {
+    const filter = { isActive: true };
+    if (req.query.search) {
+      filter.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { contactNo: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    const customers = await Customer.find(filter).sort({ name: 1 });
+    res.json(customers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/customers', authenticate, hasPermission('whole-sale'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const customer = await Customer.create(req.body);
+    res.status(201).json(customer);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/customers/:id', authenticate, hasPermission('whole-sale'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Customer not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/customers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await Customer.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Transporters
+app.get('/api/transporters', authenticate, async (req, res) => {
+  try {
+    const transporters = await Transporter.find({ isActive: true }).sort({ name: 1 });
+    res.json(transporters);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/transporters', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const transporter = await Transporter.create(req.body);
+    res.status(201).json(transporter);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/transporters/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Transporter.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Transporter not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/transporters/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await Transporter.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Accounts
+app.get('/api/accounts', authenticate, async (req, res) => {
+  try {
+    const accounts = await Account.find({ isActive: true }).sort({ code: 1 });
+    res.json(accounts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/accounts', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const account = await Account.create(req.body);
+    res.status(201).json(account);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/accounts/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Account.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Account not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/accounts/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+  try {
+    await Account.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// WHOLE SALE API ROUTES
+// ========================================
+
+// Get All Whole Sales
+app.get('/api/whole-sales', authenticate, hasPermission('whole-sale'), async (req, res) => {
+  try {
+    const filter = {};
+    
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.customerId) filter.customerId = req.query.customerId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const wholeSales = await WholeSale.find(filter)
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(wholeSales);
+  } catch (error) {
+    console.error('Error fetching whole sales:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Next Invoice Number
+app.get('/api/whole-sales/next-invoice', authenticate, hasPermission('whole-sale'), async (req, res) => {
+  try {
+    const lastSale = await WholeSale.findOne().sort({ invoiceNo: -1 });
+    let nextInvoice = 'WS-0001';
+    
+    if (lastSale && lastSale.invoiceNo) {
+      const match = lastSale.invoiceNo.match(/(\d+)$/);
+      if (match) {
+        const lastNum = parseInt(match[1]);
+        nextInvoice = `WS-${String(lastNum + 1).padStart(4, '0')}`;
+      }
+    }
+    
+    res.json({ nextInvoice });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Whole Sale
+app.post('/api/whole-sales', authenticate, hasPermission('whole-sale'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const wholeSale = await WholeSale.create([req.body], { session });
+      
+      // Update customer balance
+      if (req.body.customerId) {
+        await Customer.findByIdAndUpdate(
+          req.body.customerId,
+          { $inc: { balance: req.body.balance || 0 } },
+          { session }
+        );
+      }
+      
+      // Update item stock
+      if (req.body.items && Array.isArray(req.body.items)) {
+        for (const item of req.body.items) {
+          if (item.code) {
+            const itemDoc = await Item.findOne({ itemCode: item.code });
+            if (itemDoc && item.storeId) {
+              const stockEntry = itemDoc.stock.find(s => s.storeId.toString() === item.storeId.toString());
+              if (stockEntry) {
+                stockEntry.stockInHand = (stockEntry.stockInHand || 0) - (item.quantity || 0);
+              }
+              await itemDoc.save({ session });
+            }
+          }
+        }
+      }
+      
+      await session.commitTransaction();
+      
+      const populated = await WholeSale.findById(wholeSale[0]._id)
+        .populate('customerId', 'name contactNo')
+        .populate('branchId', 'name');
+      
+      res.status(201).json(populated);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    console.error('Error creating whole sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update Whole Sale
+app.put('/api/whole-sales/:id', authenticate, hasPermission('whole-sale-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await WholeSale.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name');
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Whole sale not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating whole sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete Whole Sale
+app.delete('/api/whole-sales/:id', authenticate, hasPermission('whole-sale-delete'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await WholeSale.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting whole sale:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SALE RETURN API ROUTES
+// ========================================
+
+app.get('/api/sale-returns', authenticate, hasPermission('sale-return'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.customerId) filter.customerId = req.query.customerId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const saleReturns = await SaleReturn.find(filter)
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name')
+      .populate('transporterId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(saleReturns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/sale-returns', authenticate, hasPermission('sale-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const saleReturn = await SaleReturn.create(req.body);
+    const populated = await SaleReturn.findById(saleReturn._id)
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name')
+      .populate('transporterId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/sale-returns/:id', authenticate, hasPermission('sale-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await SaleReturn.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name')
+      .populate('transporterId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Sale return not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/sale-returns/:id', authenticate, hasPermission('sale-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await SaleReturn.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// PURCHASE API ROUTES
+// ========================================
+
+app.get('/api/purchases', authenticate, hasPermission('purchase'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.supplierId) filter.supplierId = req.query.supplierId;
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const purchases = await Purchase.find(filter)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(purchases);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/purchases/unposted', authenticate, hasPermission('purchase'), async (req, res) => {
+  try {
+    const filter = { status: 'unposted' };
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const purchases = await Purchase.find(filter)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(purchases);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/purchases', authenticate, hasPermission('purchase'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const purchase = await Purchase.create(req.body);
+    const populated = await Purchase.findById(purchase._id)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/purchases/:id', authenticate, hasPermission('purchase-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await Purchase.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Purchase not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/purchases/:id', authenticate, hasPermission('purchase-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await Purchase.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// PURCHASE RETURN API ROUTES
+// ========================================
+
+app.get('/api/purchase-returns', authenticate, hasPermission('purchase-return'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.supplierId) filter.supplierId = req.query.supplierId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const purchaseReturns = await PurchaseReturn.find(filter)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(purchaseReturns);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/purchase-returns', authenticate, hasPermission('purchase-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const purchaseReturn = await PurchaseReturn.create(req.body);
+    const populated = await PurchaseReturn.findById(purchaseReturn._id)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/purchase-returns/:id', authenticate, hasPermission('purchase-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await PurchaseReturn.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Purchase return not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/purchase-returns/:id', authenticate, hasPermission('purchase-return'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await PurchaseReturn.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// CUSTOMER PAYMENT API ROUTES
+// ========================================
+
+app.get('/api/customer-payments', authenticate, hasPermission('customer-payment'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.customerId) filter.customerId = req.query.customerId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const payments = await CustomerPayment.find(filter)
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name')
+      .populate('cashAccountId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/customer-payments', authenticate, hasPermission('customer-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const payment = await CustomerPayment.create(req.body);
+    
+    // Update customer balance
+    if (req.body.customerId) {
+      await Customer.findByIdAndUpdate(
+        req.body.customerId,
+        { $inc: { balance: req.body.type === 'Received' ? -req.body.amount : req.body.amount } }
+      );
+    }
+    
+    const populated = await CustomerPayment.findById(payment._id)
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/customer-payments/:id', authenticate, hasPermission('customer-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await CustomerPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('customerId', 'name contactNo')
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Payment not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/customer-payments/:id', authenticate, hasPermission('customer-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await CustomerPayment.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// SUPPLIER PAYMENT API ROUTES
+// ========================================
+
+app.get('/api/supplier-payments', authenticate, hasPermission('supplier-payment'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.supplierId) filter.supplierId = req.query.supplierId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const payments = await SupplierPayment.find(filter)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name')
+      .populate('cashAccountId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/supplier-payments', authenticate, hasPermission('supplier-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const payment = await SupplierPayment.create(req.body);
+    
+    // Update supplier balance
+    if (req.body.supplierId) {
+      await Supplier.findByIdAndUpdate(
+        req.body.supplierId,
+        { $inc: { balance: req.body.type === 'Pay' ? -req.body.amount : req.body.amount } }
+      );
+    }
+    
+    const populated = await SupplierPayment.findById(payment._id)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/supplier-payments/:id', authenticate, hasPermission('supplier-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await SupplierPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Payment not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/supplier-payments/:id', authenticate, hasPermission('supplier-payment'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await SupplierPayment.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// VOUCHER API ROUTES
+// ========================================
+
+app.get('/api/vouchers', authenticate, hasPermission('voucher'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const vouchers = await Voucher.find(filter)
+      .populate('branchId', 'name')
+      .populate('entries.accountId', 'name code')
+      .sort({ date: -1 });
+    
+    res.json(vouchers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/vouchers/next-voucher', authenticate, hasPermission('voucher'), async (req, res) => {
+  try {
+    const lastVoucher = await Voucher.findOne().sort({ voucherSr: -1 });
+    let nextSr = 1;
+    let nextNo = 'VCH-0001';
+    
+    if (lastVoucher) {
+      nextSr = (lastVoucher.voucherSr || 0) + 1;
+      const match = lastVoucher.voucherNo?.match(/(\d+)$/);
+      if (match) {
+        const lastNum = parseInt(match[1]);
+        nextNo = `VCH-${String(lastNum + 1).padStart(4, '0')}`;
+      } else {
+        nextNo = `VCH-${String(nextSr).padStart(4, '0')}`;
+      }
+    }
+    
+    res.json({ voucherSr: nextSr, voucherNo: nextNo });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/vouchers', authenticate, hasPermission('voucher'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Validate debit = credit
+    const totalDebit = req.body.entries?.reduce((sum, e) => sum + (e.debit || 0), 0) || 0;
+    const totalCredit = req.body.entries?.reduce((sum, e) => sum + (e.credit || 0), 0) || 0;
+    
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      return res.status(400).json({ error: 'Total debit must equal total credit' });
+    }
+    
+    const voucher = await Voucher.create(req.body);
+    const populated = await Voucher.findById(voucher._id)
+      .populate('branchId', 'name')
+      .populate('entries.accountId', 'name code');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/vouchers/:id', authenticate, hasPermission('voucher-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    // Validate debit = credit
+    const totalDebit = req.body.entries?.reduce((sum, e) => sum + (e.debit || 0), 0) || 0;
+    const totalCredit = req.body.entries?.reduce((sum, e) => sum + (e.credit || 0), 0) || 0;
+    
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      return res.status(400).json({ error: 'Total debit must equal total credit' });
+    }
+    
+    const updated = await Voucher.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name')
+      .populate('entries.accountId', 'name code');
+    
+    if (!updated) return res.status(404).json({ error: 'Voucher not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/vouchers/:id', authenticate, hasPermission('voucher-edit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await Voucher.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// DAMAGE STOCK API ROUTES
+// ========================================
+
+app.get('/api/damage-stocks', authenticate, hasPermission('damage-stock'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const damageStocks = await DamageStock.find(filter)
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(damageStocks);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/damage-stocks', authenticate, hasPermission('damage-stock'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const damageStock = await DamageStock.create([req.body], { session });
+      
+      // Update item stock
+      if (req.body.items && Array.isArray(req.body.items)) {
+        for (const item of req.body.items) {
+          if (item.code) {
+            const itemDoc = await Item.findOne({ itemCode: item.code });
+            if (itemDoc && item.storeId) {
+              const stockEntry = itemDoc.stock.find(s => s.storeId.toString() === item.storeId.toString());
+              if (stockEntry) {
+                stockEntry.stockInHand = (stockEntry.stockInHand || 0) - (item.damageQty || 0);
+              }
+              await itemDoc.save({ session });
+            }
+          }
+        }
+      }
+      
+      await session.commitTransaction();
+      
+      const populated = await DamageStock.findById(damageStock[0]._id)
+        .populate('branchId', 'name');
+      
+      res.status(201).json(populated);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/damage-stocks/:id', authenticate, hasPermission('damage-stock'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await DamageStock.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Damage stock not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/damage-stocks/:id', authenticate, hasPermission('damage-stock'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await DamageStock.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// STOCK AUDIT API ROUTES
+// ========================================
+
+app.get('/api/stock-audits', authenticate, hasPermission('stock-audit'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.branchId) filter.branchId = req.query.branchId;
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) filter.date.$gte = new Date(req.query.from);
+      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+    }
+    
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const audits = await StockAudit.find(filter)
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(audits);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/stock-audits/un-audit', authenticate, hasPermission('stock-audit'), async (req, res) => {
+  try {
+    const filter = { status: 'un-audit' };
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const audits = await StockAudit.find(filter)
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(audits);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/stock-audits/posted', authenticate, hasPermission('stock-audit'), async (req, res) => {
+  try {
+    const filter = { status: 'posted' };
+    if (!req.user.groupId.permissions.includes('admin')) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const audits = await StockAudit.find(filter)
+      .populate('branchId', 'name')
+      .sort({ date: -1 });
+    
+    res.json(audits);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/stock-audits', authenticate, hasPermission('stock-audit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const audit = await StockAudit.create(req.body);
+    const populated = await StockAudit.findById(audit._id)
+      .populate('branchId', 'name');
+    
+    res.status(201).json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/stock-audits/:id/post', authenticate, hasPermission('stock-audit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      const audit = await StockAudit.findById(req.params.id);
+      if (!audit) {
+        await session.abortTransaction();
+        return res.status(404).json({ error: 'Stock audit not found' });
+      }
+      
+      // Update item stock
+      if (audit.items && Array.isArray(audit.items)) {
+        for (const item of audit.items) {
+          if (item.code) {
+            const itemDoc = await Item.findOne({ itemCode: item.code });
+            if (itemDoc && item.storeId) {
+              const stockEntry = itemDoc.stock.find(s => s.storeId.toString() === item.storeId.toString());
+              if (stockEntry) {
+                stockEntry.stockInHand = item.newPack || 0;
+              }
+              await itemDoc.save({ session });
+            }
+          }
+        }
+      }
+      
+      audit.status = 'posted';
+      await audit.save({ session });
+      
+      await session.commitTransaction();
+      
+      const populated = await StockAudit.findById(audit._id)
+        .populate('branchId', 'name');
+      
+      res.json(populated);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/stock-audits/:id', authenticate, hasPermission('stock-audit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    const updated = await StockAudit.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('branchId', 'name');
+    
+    if (!updated) return res.status(404).json({ error: 'Stock audit not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/stock-audits/:id', authenticate, hasPermission('stock-audit'), checkDatabaseConnection, async (req, res) => {
+  try {
+    await StockAudit.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========================================
+// PUBLIC API ENDPOINTS (API Key Authentication)
+// ========================================
+
+// Get All Sales (Public API with API Key)
+app.get('/api/public/sales', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
+      filter.categoryId = req.query.categoryId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    const sales = await Sale.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    res.json({
+      success: true,
+      count: sales.length,
+      data: sales
+    });
+  } catch (error) {
+    console.error('Error fetching sales (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get All Payments (Public API with API Key)
+app.get('/api/public/payments', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.supplierId && req.query.supplierId !== 'undefined' && req.query.supplierId.trim() !== '') {
+      filter.supplierId = req.query.supplierId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    const payments = await Payment.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('supplierId', 'name');
+    
+    res.json({
+      success: true,
+      count: payments.length,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Error fetching payments (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get All Category Payments (Public API with API Key)
+app.get('/api/public/category-payments', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const filter = {};
+    
+    // Build filter from query parameters
+    if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
+      filter.branchId = req.query.branchId;
+    }
+    
+    if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
+      filter.categoryId = req.query.categoryId;
+    }
+    
+    if (req.query.from || req.query.to) {
+      filter.date = {};
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        filter.date.$lte = new Date(req.query.to);
+      }
+    }
+    
+    const categoryPayments = await CategoryPayment.find(filter)
+      .sort({ date: -1 })
+      .populate('branchId', 'name')
+      .populate('categoryId', 'name');
+    
+    res.json({
+      success: true,
+      count: categoryPayments.length,
+      data: categoryPayments
+    });
+  } catch (error) {
+    console.error('Error fetching category payments (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get All Branches (Public API with API Key)
+app.get('/api/public/branches', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const branches = await Branch.find().sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: branches.length,
+      data: branches
+    });
+  } catch (error) {
+    console.error('Error fetching branches (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get All Categories (Public API with API Key)
+app.get('/api/public/categories', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: categories.length,
+      data: categories
+    });
+  } catch (error) {
+    console.error('Error fetching categories (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get All Suppliers (Public API with API Key)
+app.get('/api/public/suppliers', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const suppliers = await Supplier.find().sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: suppliers.length,
+      data: suppliers
+    });
+  } catch (error) {
+    console.error('Error fetching suppliers (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Dashboard Summary (Public API with API Key)
+app.get('/api/public/dashboard', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    // Build date filter if provided
+    const dateFilter = {};
+    if (req.query.from || req.query.to) {
+      dateFilter.date = {};
+      if (req.query.from) dateFilter.date.$gte = new Date(req.query.from);
+      if (req.query.to) dateFilter.date.$lte = new Date(req.query.to);
+    }
+    
+    // Get sales totals
+    const allSales = await Sale.find(dateFilter);
+    const totalSales = allSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const totalProfit = allSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    
+    // Get monthly sales
+    const monthlySales = await Sale.find({ 
+      ...dateFilter,
+      date: { $gte: startOfMonth }
+    });
+    const monthlyTotal = monthlySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    
+    // Get payment totals
+    const allPayments = await Payment.find(dateFilter);
+    const totalPayments = allPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    // Get category payment totals
+    const allCategoryPayments = await CategoryPayment.find(dateFilter);
+    const totalCategoryPayments = allCategoryPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    // Get counts
+    const branchCount = await Branch.countDocuments();
+    const categoryCount = await Category.countDocuments();
+    const supplierCount = await Supplier.countDocuments();
+    
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          totalSales,
+          totalProfit,
+          monthlySales: monthlyTotal,
+          totalPayments,
+          totalCategoryPayments,
+          netAmount: totalSales - totalPayments - totalCategoryPayments
+        },
+        counts: {
+          branches: branchCount,
+          categories: categoryCount,
+          suppliers: supplierCount,
+          sales: allSales.length,
+          payments: allPayments.length,
+          categoryPayments: allCategoryPayments.length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard (public API):', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// DATABASE SEEDING FUNCTION
+// ========================================
+
+// Seed default data - Creates initial data for the system
+async function seedDefaultData() {
+  
+  try {
+    // Seed branches
+    const branchCount = await Branch.estimatedDocumentCount();
+    
+    if (branchCount === 0) {
+      const defaultBranches = [
+        { name: 'D WATSON PWD', address: '' },
+        { name: 'D WATSON F6', address: '' },
+        { name: 'D WATSON GUJJAR KHAN', address: '' },
+        { name: 'D WATSON CHANDNI CHOWK', address: '' },
+        { name: 'D WATSON ATTOCK', address: '' },
+        { name: 'D WATSON GHORI TOWN', address: '' },
+        { name: 'D WATSON G 15', address: '' }
+      ];
+      await Branch.insertMany(defaultBranches);
+    } else {
+    }
+
+    // Seed categories
+    const categoryCount = await Category.estimatedDocumentCount();
+    if (categoryCount === 0) {
+      const defaultCategories = [
+        { name: 'MEDICINE NEUTRA', description: 'Neutral medicine category', color: 'primary' },
+        { name: 'MEDICINE AIMS', description: 'AIMS medicine category', color: 'success' },
+        { name: 'COSTMAIES', description: 'Costmaies category', color: 'info' }
+      ];
+      await Category.insertMany(defaultCategories);
+    }
+    
+    // Seed groups - FIXED to ensure admin permissions are set correctly
+    const groupCount = await Group.estimatedDocumentCount();
+    if (groupCount === 0) {
+      const defaultGroups = [
+        {
+          name: 'Admin',
+          description: 'System administrators with full access',
+          permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-edit', 'payment-delete', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'employees', 'employee-list', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit'],
+          isDefault: true
+        },
+        {
+          name: 'Sales',
+          description: 'Sales staff with access to sales entry and reports',
+          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'customer-payment'],
+          isDefault: true
+        },
+        {
+          name: 'Manager',
+          description: 'Branch managers with access to dashboard and reports only',
+          permissions: ['dashboard', 'reports'],
+          isDefault: true
+        }
+      ];
+      await Group.insertMany(defaultGroups);
+    } else {
+      
+      // Check if admin group exists and has correct permissions
+      const adminGroup = await Group.findOne({ name: 'Admin' });
+      if (adminGroup) {
+        let needsUpdate = false;
+        const requiredPermissions = ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'sales-edit', 'sales-delete', 'payment-edit', 'payment-delete', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit'];
+        
+        requiredPermissions.forEach(perm => {
+          if (!adminGroup.permissions.includes(perm)) {
+            adminGroup.permissions.push(perm);
+            needsUpdate = true;
+          }
+        });
+        
+        if (needsUpdate) {
+          await adminGroup.save();
+          console.log('✅ Updated Admin group with new payment permissions');
+        }
+      }
+      
+      const managerGroup = await Group.findOne({ name: 'Manager' });
+      if (managerGroup) {
+        const correctManagerPermissions = ['dashboard', 'reports'];
+        const needsUpdate = JSON.stringify(managerGroup.permissions.sort()) !== JSON.stringify(correctManagerPermissions.sort());
+        
+        if (needsUpdate) {
+          managerGroup.permissions = correctManagerPermissions;
+          managerGroup.description = 'Branch managers with access to dashboard and reports only';
+          await managerGroup.save();
+        }
+      }
+    }
+    
+    // Seed admin user - FIXED to ensure it references the admin group
+    const userCount = await User.estimatedDocumentCount();
+    if (userCount === 0) {
+      
+      // Find the admin group
+      const adminGroup = await Group.findOne({ name: 'Admin' });
+      if (!adminGroup) {
+        return;
+      }
+      
+      // Get all branches
+      const allBranches = await Branch.find();
+      if (allBranches.length === 0) {
+        return;
+      }
+      
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('admin123', salt);
+      
+      const adminUser = new User({
+        username: 'admin',
+        fullName: 'System Administrator',
+        email: 'admin@dwatson.com',
+        password: hashedPassword,
+        groupId: adminGroup._id,
+        branches: allBranches.map(b => b._id)
+      });
+      
+      await adminUser.save();
+    } else {
+      
+      // Check if admin user exists and has correct group
+      const adminUser = await User.findOne({ username: 'admin' }).populate('groupId');
+      if (adminUser) {
+        
+        // Ensure admin user has admin permission
+        if (!adminUser.groupId.permissions.includes('admin')) {
+          adminUser.groupId.permissions.push('admin');          
+          await adminUser.groupId.save();
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Seed error:', error.message);
+  }
+}
+
+// ========================================
+// CRITICAL: VERIFY ALL API ROUTES ARE REGISTERED
+// ========================================
+
+// Log all registered routes on startup (for debugging)
+const logRegisteredRoutes = () => {
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      const methods = Object.keys(middleware.route.methods).join(', ').toUpperCase();
+      routes.push(`${methods} ${middleware.route.path}`);
+    }
+  });
+  console.log('\n📋 Registered Routes:');
+  routes.filter(r => r.includes('/api/')).forEach(r => console.log(`   ${r}`));
+  console.log('');
+};
+
+// ========================================
+// API ROUTE INTERCEPTOR - MUST BE BEFORE STATIC FILES
+// ========================================
+
+// This middleware ensures ALL /api/ routes bypass static file serving
+// MUST be before static middleware to prevent path rewriting
+app.use((req, res, next) => {
+  // Check originalUrl FIRST (before any path modification)
+  // Extract path from originalUrl (remove query string)
+  const originalPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+  
+  // If it's an API route, skip static serving and continue to API routes
+  if (originalPath.startsWith('/api/') || req.path.startsWith('/api/')) {
+    console.log('🔵 API Route Detected - Bypassing static files:', req.method, 'Path:', req.path, '| Original:', req.originalUrl);
+    return next(); // Continue to API route handlers
+  }
+  // For non-API routes, continue to static file middleware
+  next();
+});
+
+// ========================================
+// STATIC FILE SERVING
+// ========================================
+
+// Serve static frontend files (but NOT for API routes)
+// IMPORTANT: This MUST come AFTER all API routes are defined
+const clientDir = paths.clientDir;
+const staticMiddleware = express.static(clientDir, {
+  // Don't modify the request path
+  index: false
+});
+app.use((req, res, next) => {
+  // This should never catch API routes now due to the interceptor above
+  // But keep this check as a safety net - use originalUrl to avoid path rewriting issues
+  // Check originalUrl FIRST before path, as path might be modified
+  const isApiRoute = req.originalUrl && req.originalUrl.split('?')[0].startsWith('/api/');
+  if (isApiRoute || req.path.startsWith('/api/')) {
+    console.log('⚠️ Static middleware: API route slipped through!', req.method, req.path, '| Original:', req.originalUrl);
+    return next(); // Continue to API routes - DO NOT call staticMiddleware
+  }
+  // Only serve static files for non-API routes
+  staticMiddleware(req, res, next);
+});
+
+// ========================================
+// SERVER STARTUP
+// ========================================
+
+// Start server immediately - not dependent on database
+app.listen(port, () => {
+  console.log(`\n✅ ========================================`);
+  console.log(`✅ Server listening on port ${port}`);
+  console.log(`✅ ========================================\n`);
+  
+  // Log all registered API routes
+  logRegisteredRoutes();
+  
+  console.log(`✅ Expected Category Payment Routes:`);
+  console.log(`   - GET  /api/category-payments`);
+  console.log(`   - POST /api/category-payments`);
+  console.log(`   - GET  /api/category-payments/next-voucher-number`);
+  console.log(`   - GET  /api/test-category-payments (no auth - TEST IT FIRST!)\n`);
+});
+
+// Start seeding when database is ready (if connected)
+const handleDatabaseReady = () => {
+  seedDefaultData();
+};
+
+// Handle if already connected
+if (mongoose.connection.readyState === 1) {
+  handleDatabaseReady();
+} else {
+  mongoose.connection.once('open', handleDatabaseReady);
+}
+
+// ========================================
+// ERROR HANDLING MIDDLEWARE
+// ========================================
+
+// Global error handler - MUST be before catch-all
+app.use((err, req, res, next) => {
+  console.error('🔴 Unhandled error:', err);
+  // ALWAYS return JSON
+  if (!res.headersSent) {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// 404 handler for API routes and frontend
+// THIS MUST BE THE ABSOLUTE LAST ROUTE - AFTER EVERYTHING
+app.use('*', (req, res) => {
+  console.log('🔴🔴🔴 404 Handler reached:', req.method, req.path);
+  console.log('🔴 Query string:', req.query);
+  console.log('🔴 Original URL:', req.originalUrl);
+  console.log('🔴 Headers:', JSON.stringify(req.headers, null, 2));
+  
+  // ALWAYS set Content-Type to JSON for API routes - DO THIS FIRST
+  if (req.path.startsWith('/api/') || req.originalUrl.startsWith('/api/')) {
+    console.log('🔴 API 404 - returning JSON:', req.path);
+    console.log('🔴 Checking if /api/departments route exists...');
+    res.setHeader('Content-Type', 'application/json');
+    res.status(404).json({ 
+      error: 'API endpoint not found', 
+      path: req.path,
+      originalUrl: req.originalUrl,
+      method: req.method,
+      availableEndpoints: [
+        'GET /api/departments',
+        'GET /api/branches/:branchId/departments',
+        'GET /api/category-payments',
+        'POST /api/category-payments',
+        'GET /api/category-payments/next-voucher-number',
+        'GET /api/test-category-payments'
+      ]
+    });
+  } else {
+    console.log('🔴 Frontend 404 - serving index.html for:', req.path);
+    // For non-API routes, serve the frontend
+    res.sendFile(path.join(clientDir, 'index.html'));
+  }
+});
+
+
+
+

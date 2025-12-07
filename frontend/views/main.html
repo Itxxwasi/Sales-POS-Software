@@ -1,0 +1,253 @@
+<div id="mainApp" class="main-app">
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <div class="notification" id="notification">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-2"></i>
+                <span id="notification-message">Operation completed successfully!</span>
+            </div>
+        </div>
+        <nav class="navbar navbar-expand-lg navbar-dark no-print">
+            <div class="container-fluid">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="#dashboard" data-section="dashboard">
+                    <span class="navbar-text ms-2">
+                        <span class="company-name">Haris Bakhtawari Warehouse</span>
+                    </span>
+                </a>
+                <div class="ms-auto d-flex align-items-center">
+                    <div class="user-menu-container">
+                        <button class="btn btn-sm btn-outline-light" type="button" id="userDropdown">
+                            <i class="fas fa-user-circle me-1"></i> <span id="currentUserDisplay">Admin</span>
+                        </button>
+                        <button class="btn btn-sm btn-danger" type="button" id="logoutBtn" style="display: none; margin-left: 8px;">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar no-print" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo-container">
+                    <div class="sidebar-logo">
+                        <i class="fas fa-infinity"></i>
+                    </div>
+                    <h3 class="sidebar-title">D.Watson Pharmacy</h3>
+                </div>
+                <div class="sidebar-toggle-icon" id="sidebarToggleIcon" title="Toggle Sidebar">
+                    <i class="fas fa-chevron-left" style="font-size: 12px;"></i>
+                </div>
+            </div>
+            <div class="sidebar-search">
+                <div class="sidebar-search-wrapper">
+                    <i class="fas fa-search sidebar-search-icon"></i>
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#administrationSectionItems" aria-expanded="false" aria-controls="administrationSectionItems">
+                        <span>ADMINISTRATION</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="administrationSectionItems">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="branches">
+                                <i class="fas fa-store"></i>
+                                <span class="sidebar-text">Branches</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item admin-only">
+                            <a class="nav-link" href="#" data-section="groups">
+                                <i class="fas fa-users"></i>
+                                <span class="sidebar-text">Groups</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item admin-only">
+                            <a class="nav-link" href="#" data-section="users">
+                                <i class="fas fa-user"></i>
+                                <span class="sidebar-text">Users</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item admin-only">
+                            <a class="nav-link" href="#" data-section="settings">
+                                <i class="fas fa-cog"></i>
+                                <span class="sidebar-text">Settings</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#mainSectionItems" aria-expanded="false" aria-controls="mainSectionItems">
+                        <span>OVERVIEW</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="mainSectionItems">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-section="dashboard">
+                                <i class="fas fa-chart-bar"></i>
+                                <span class="sidebar-text">Dashboard</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#salesSectionItems" aria-expanded="false" aria-controls="salesSectionItems">
+                        <span>SALES</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="salesSectionItems">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="sales">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span class="sidebar-text">Warehouse Sale Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-whole-sale">
+                            <a class="nav-link" href="#" data-section="whole-sale-entry">
+                                <i class="fas fa-cash-register"></i>
+                                <span class="sidebar-text">Whole Sale Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-sale-return">
+                            <a class="nav-link" href="#" data-section="sale-return-entry">
+                                <i class="fas fa-undo"></i>
+                                <span class="sidebar-text">Sale Return Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#purchaseSectionItems" aria-expanded="false" aria-controls="purchaseSectionItems">
+                        <span>PURCHASE</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="purchaseSectionItems">
+                        <li class="nav-item permission-purchase">
+                            <a class="nav-link" href="#" data-section="purchase-entry">
+                                <i class="fas fa-shopping-bag"></i>
+                                <span class="sidebar-text">Purchase Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-purchase-return">
+                            <a class="nav-link" href="#" data-section="purchase-return-entry">
+                                <i class="fas fa-undo-alt"></i>
+                                <span class="sidebar-text">Purchase Return Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#paymentsSectionItems" aria-expanded="false" aria-controls="paymentsSectionItems">
+                        <span>PAYMENTS</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="paymentsSectionItems">
+                        <li class="nav-item permission-customer-payment">
+                            <a class="nav-link" href="#" data-section="customer-payments">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span class="sidebar-text">Customer Payments</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-supplier-payment">
+                            <a class="nav-link" href="#" data-section="supplier-payments">
+                                <i class="fas fa-money-check-alt"></i>
+                                <span class="sidebar-text">Supplier Payments</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#inventorySectionItems" aria-expanded="false" aria-controls="inventorySectionItems">
+                        <span>INVENTORY</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="inventorySectionItems">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="categories">
+                                <i class="fas fa-tags"></i>
+                                <span class="sidebar-text">Categories</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="departments">
+                                <i class="fas fa-building"></i>
+                                <span class="sidebar-text">Departments</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="suppliers">
+                                <i class="fas fa-truck"></i>
+                                <span class="sidebar-text">Suppliers</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-items">
+                            <a class="nav-link" href="#" data-section="item-registration">
+                                <i class="fas fa-box"></i>
+                                <span class="sidebar-text">Item Registration</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-damage-stock">
+                            <a class="nav-link" href="#" data-section="damage-stock">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span class="sidebar-text">Damage Stock</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item permission-stock-audit">
+                            <a class="nav-link" href="#" data-section="stock-audit">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span class="sidebar-text">Stock Audit</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <hr class="sidebar-section-separator">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header" data-bs-toggle="collapse" data-bs-target="#accountingSectionItems" aria-expanded="false" aria-controls="accountingSectionItems">
+                        <span>ACCOUNTING</span>
+                        <i class="fas fa-chevron-down section-chevron"></i>
+                    </div>
+                    <ul class="nav flex-column sidebar-section-items collapse" id="accountingSectionItems">
+                        <li class="nav-item permission-voucher">
+                            <a class="nav-link" href="#" data-section="voucher-entry">
+                                <i class="fas fa-file-invoice"></i>
+                                <span class="sidebar-text">Voucher Entry</span>
+                                <i class="fas fa-chevron-down item-chevron"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Content sections continue in original index.html; this partial is a starting structural split. -->
+</div>

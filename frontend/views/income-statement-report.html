@@ -1,0 +1,177 @@
+<div id="income-statement-report-section" class="content-section">
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Income Statement Report</h1>
+    <p class="dashboard-subtitle">Monthly income statement with summary</p>
+  </div>
+  <div class="card mb-4 no-print">
+    <div class="card-header">
+      <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+    </div>
+    <div class="card-body isr-controls">
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label">Branch</label>
+          <select class="form-select" id="isrBranchSelect">
+            <option value="">All Branches</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Section</label>
+          <select class="form-select" id="isrSectionSelect">
+            <option value="">All Sections</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Group</label>
+          <select class="form-select" id="isrGroupSelect">
+            <option value="">All Groups</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-control" id="isrFromDate">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-control" id="isrToDate">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-primary w-100" id="isrGenerateBtn"><i class="fas fa-play me-2"></i>Generate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="report-tabs no-print d-flex justify-content-start align-items-center" id="isrTabBar" style="display: flex !important; visibility: visible !important;">
+    <div class="d-flex gap-2">
+      <button class="report-tab active" data-tab="isr-income-statement"><i class="fas fa-table me-2"></i>Income Statement</button>
+      <button class="report-tab" data-tab="isr-summary"><i class="fas fa-list me-2"></i>Summary</button>
+    </div>
+  </div>
+  <div id="tab-isr-income-statement" class="report-tab-content active">
+    <div class="table-responsive">
+      <table class="table table-hover isr-table">
+        <tbody id="isrTableBody">
+          <tr>
+            <td colspan="13" class="text-center text-muted py-4">
+              <i class="fas fa-info-circle me-2"></i>Click Generate to view data
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="isr-total-row">
+            <th class="text-end" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">Total</th>
+            <th class="text-end" id="isrTotalSales" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalReturns" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalGst" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalNetSale" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalCost" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalGrossProfit" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalBankDed" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalGP" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalDiscountPct" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrTotalDiscount" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-end" id="isrAvgGpRate" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff;">0</th>
+            <th class="text-center" id="isrTotalMarginDed" style="background-color: #000000; color: #ffffff; font-weight: bold; border: 1px solid #ffffff; text-align: center; padding: 10px 8px;"></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <div id="tab-isr-summary" class="report-tab-content">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Summary</h5>
+          </div>
+          <div class="card-body">
+            <div class="isr-summary-item"><span>Total Sales</span><strong id="isrSummaryTotalSale">0</strong></div>
+            <div class="isr-summary-item"><span>Total Sale Returns</span><strong id="isrSummaryTotalReturns">0</strong></div>
+            <div class="isr-summary-item"><span>Net Sales</span><strong id="isrSummaryNetSales">0</strong></div>
+            <div class="isr-summary-item"><span>Cost</span><strong id="isrSummaryCost">0</strong></div>
+            <div class="isr-summary-item"><span>G Profit</span><strong id="isrSummaryGrossProfit">0</strong></div>
+            <div class="isr-summary-item"><span>Expenses</span><input type="number" class="form-control form-control-sm isr-summary-input" id="isrSummaryExpenses" min="0" step="0.01" placeholder="0.00" value="0" style="display: inline-block; width: 120px; text-align: right;"></div>
+            <div class="isr-summary-item"><span>Short Cash (-)</span><input type="number" class="form-control form-control-sm isr-summary-input" id="isrSummaryShortCash" min="0" step="0.01" placeholder="0.00" value="0" style="display: inline-block; width: 120px; text-align: right;"></div>
+            <div class="isr-summary-item" style="background:#000;color:#fff;border:1px solid #ffffff;"><span>Net Profit</span><strong id="isrSummaryNetProfit">0</strong></div>
+          </div>
+          <div class="mt-3 pt-3 border-top">
+            <div class="d-flex gap-2 justify-content-center">
+              <button type="button" class="btn btn-info" id="isrListBtn">
+                <i class="fas fa-list me-1"></i>View Saved Reports
+              </button>
+              <button type="button" class="btn btn-primary" id="isrPrintBtn">
+                <i class="fas fa-print me-1"></i>Print Report
+              </button>
+              <button type="button" class="btn btn-success" id="isrSaveBtn" style="display: inline-block !important; visibility: visible !important;">
+                <i class="fas fa-save me-1"></i>Save Report
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div id="isrBranchNameHeader" style="display:none;margin-bottom:20px;">
+          <h4 style="font-size:1.6rem;color:#495057;font-weight:700;text-align:center;margin:0;">
+            <span id="isrBranchName"></span>
+          </h4>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Saved Reports List View -->
+    <div id="isrSavedReportsList" style="display: none; margin-top: 20px;">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Saved Reports</h5>
+          <button type="button" class="btn btn-sm btn-secondary" id="isrCloseListBtn">
+            <i class="fas fa-times me-1"></i>Close
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label">From Date</label>
+              <input type="date" class="form-control" id="isrListFromDate">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">To Date</label>
+              <input type="date" class="form-control" id="isrListToDate">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Branch</label>
+              <select class="form-select" id="isrListBranchFilter">
+                <option value="">All Branches</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="button" class="btn btn-primary w-100" id="isrFilterListBtn">
+                <i class="fas fa-search me-1"></i>Search
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Branch</th>
+                  <th>From Date</th>
+                  <th>To Date</th>
+                  <th>Total Sales</th>
+                  <th>Net Profit</th>
+                  <th>Saved By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="isrSavedReportsTableBody">
+                <tr>
+                  <td colspan="8" class="text-center text-muted">No saved reports found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

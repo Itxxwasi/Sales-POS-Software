@@ -1,0 +1,122 @@
+<div id="damage-stock-section" class="content-section">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Damage Stock</h1>
+        <p class="dashboard-subtitle">Record damaged inventory items</p>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Damage Entry</h5>
+        </div>
+        <div class="card-body">
+            <form id="damageStockForm">
+                <input type="hidden" id="damageStockId" value="">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="damageNo" class="form-label">Damage.No</label>
+                        <input type="text" class="form-control" id="damageNo">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="damageDate" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="damageDate" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="damageRemarks" class="form-label">Remarks</label>
+                        <input type="text" class="form-control" id="damageRemarks">
+                    </div>
+                </div>
+                <hr class="my-4">
+                <h6 class="mb-3">Item Details</h6>
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label for="damageItemSrNo" class="form-label">Sr.No</label>
+                        <input type="number" class="form-control" id="damageItemSrNo">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="damageItemStore" class="form-label">Store</label>
+                        <select class="form-select" id="damageItemStore">
+                            <option value="">Shop</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="damageItemCode" class="form-label">Code</label>
+                        <input type="text" class="form-control" id="damageItemCode">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="damageItemName" class="form-label">Name</label>
+                        <select class="form-select" id="damageItemName">
+                            <option value="">Select Item</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label for="damageItemPreQty" class="form-label">Pre-Qty</label>
+                        <input type="number" class="form-control" id="damageItemPreQty" step="0.01" readonly>
+                    </div>
+                    <div class="col-md-1">
+                        <label for="damageItemDamageQty" class="form-label">Damage-Qty</label>
+                        <input type="number" class="form-control" id="damageItemDamageQty" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-2">
+                        <label for="damageItemDifference" class="form-label">Difference</label>
+                        <input type="number" class="form-control" id="damageItemDifference" step="0.01" readonly>
+                    </div>
+                    <div class="col-md-8">
+                        <label for="damageItemRemarks" class="form-label">Item Remarks</label>
+                        <input type="text" class="form-control" id="damageItemRemarks">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-success w-100" id="addDamageItemBtn">
+                            <i class="fas fa-plus me-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+                <div class="row g-3 mt-3">
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Sr.No</th>
+                                        <th>Store</th>
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Pre-Qty</th>
+                                        <th>Damage-Qty</th>
+                                        <th>Difference</th>
+                                        <th>Item Remarks</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="damageItemsTableBody">
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">No items added yet</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">Total</td>
+                                        <td id="damageTotalPreQty">0</td>
+                                        <td id="damageTotalDamageQty">0</td>
+                                        <td id="damageTotalDifference">0</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="button" class="btn btn-info me-2" id="listDamageStockBtn">
+                        <i class="fas fa-list me-1"></i>List
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
