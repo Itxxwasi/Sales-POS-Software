@@ -4,56 +4,47 @@
         <p class="dashboard-subtitle">Record purchase invoices</p>
     </div>
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Purchase Invoice</h5>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Purchase Entry</h5>
                 </div>
                 <div class="card-body">
                     <form id="purchaseForm">
                         <input type="hidden" id="purchaseId" value="">
-                        <div class="row g-3">
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-3">
                                 <label for="purchaseInvoiceNo" class="form-label">Invoice.No</label>
-                                <input type="text" class="form-control" id="purchaseInvoiceNo">
+                                <input type="text" class="form-control form-control-sm" id="purchaseInvoiceNo" readonly style="background-color:#f5f7fb;">
                             </div>
                             <div class="col-md-3">
                                 <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="purchaseDate" required>
+                                <input type="date" class="form-control form-control-sm" id="purchaseDate" required>
                             </div>
                             <div class="col-md-6">
                                 <label for="purchaseSupplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="purchaseSupplierId" value="Haris SB WareHouse" readonly>
-                                    <button type="button" class="btn btn-outline-primary" id="addPurchaseSupplierBtn">
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select form-select-sm" id="purchaseSupplierId">
+                                        <option value="">Select supplier</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addPurchaseSupplierBtn">
                                         <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning" id="refreshPurchaseSupplierBtn">
-                                        <i class="fas fa-sync-alt"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="row g-3 mt-2">
+                        <div class="row g-2 mt-2 align-items-end">
                             <div class="col-md-4">
                                 <label for="purchaseRefNo" class="form-label">Ref No</label>
-                                <input type="text" class="form-control" id="purchaseRefNo">
+                                <input type="text" class="form-control form-control-sm" id="purchaseRefNo">
                             </div>
                             <div class="col-md-4">
                                 <label for="purchaseBiltyNo" class="form-label">Bilty No</label>
-                                <input type="text" class="form-control" id="purchaseBiltyNo">
+                                <input type="text" class="form-control form-control-sm" id="purchaseBiltyNo">
                             </div>
                             <div class="col-md-4">
                                 <label for="purchaseRemarks" class="form-label">Remarks</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="purchaseRemarks">
-                                    <button type="button" class="btn btn-outline-primary">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </div>
+                                <input type="text" class="form-control form-control-sm" id="purchaseRemarks">
                             </div>
                         </div>
                         <div class="row g-3 mt-2">
@@ -61,72 +52,79 @@
                                 <span class="badge bg-success" id="purchaseStatus">Un-Posted</span>
                             </div>
                         </div>
-                        <hr class="my-4">
-                        <h6 class="mb-3">Item Details</h6>
-                        <div class="row g-3">
+                        <hr class="my-3">
+                        <h6 class="mb-2">Item Details</h6>
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-2">
                                 <label for="purchaseItemCode" class="form-label">Code</label>
-                                <input type="text" class="form-control" id="purchaseItemCode">
+                                <input type="text" class="form-control form-control-sm" id="purchaseItemCode">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="purchaseItemName" class="form-label">Name</label>
-                                <select class="form-select" id="purchaseItemName">
-                                    <option value="">Select Item</option>
-                                </select>
+                                <div class="input-group input-group-sm" style="position:relative;">
+                                    <select class="form-select form-select-sm" id="purchaseItemName">
+                                        <option value="">Select Item</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addPurchaseItemRegBtn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm" id="refreshPurchaseItemsBtn">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <div id="purchaseNameOverlay" class="name-overlay" style="position:absolute; left:0; right:0; top:100%; background:#ffffff; border:1px solid #ced4da; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:none; z-index:1000;">
+                                        <input type="text" id="purchaseNameOverlaySearch" class="form-control form-control-sm" placeholder="Search by name" style="border:0; border-bottom:1px solid #e9ecef; border-radius:0;">
+                                        <div id="purchaseNameOverlayList" style="max-height:300px; overflow:auto;"></div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemPack" class="form-label">Pack</label>
-                                <input type="number" class="form-control" id="purchaseItemPack" step="0.01">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="purchaseItemStore" class="form-label">Store</label>
-                                <select class="form-select" id="purchaseItemStore">
-                                    <option value="">Shop</option>
-                                </select>
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemPack" step="0.01">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemCostPrice" class="form-label">Cost Price</label>
-                                <input type="number" class="form-control" id="purchaseItemCostPrice" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemCostPrice" step="0.01">
                             </div>
                         </div>
-                        <div class="row g-3 mt-2">
+                        <input type="hidden" id="purchaseItemStore" value="">
+                        <div class="row g-2 mt-2 align-items-end">
                             <div class="col-md-2">
                                 <label for="purchaseItemTotal" class="form-label">Total</label>
-                                <input type="number" class="form-control" id="purchaseItemTotal" step="0.01" readonly>
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemTotal" step="0.01" readonly style="background-color:#cfe8f3;">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemDiscPercent" class="form-label">Dis %</label>
-                                <input type="number" class="form-control" id="purchaseItemDiscPercent" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemDiscPercent" step="0.01">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemDiscRs" class="form-label">Dis Rs</label>
-                                <input type="number" class="form-control" id="purchaseItemDiscRs" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemDiscRs" step="0.01">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemStock" class="form-label">Stock</label>
-                                <input type="number" class="form-control" id="purchaseItemStock" readonly>
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemStock" readonly style="background-color:#f5f7fb;">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemTaxPercent" class="form-label">Tax %</label>
-                                <input type="number" class="form-control" id="purchaseItemTaxPercent" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemTaxPercent" step="0.01">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemNetTotal" class="form-label">NetTotal</label>
-                                <input type="number" class="form-control" id="purchaseItemNetTotal" step="0.01" readonly>
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemNetTotal" step="0.01" readonly style="background-color:#cfe8f3;">
                             </div>
                         </div>
-                        <div class="row g-3 mt-2">
+                        <div class="row g-2 mt-2 align-items-end">
                             <div class="col-md-2">
                                 <label for="purchaseItemRs" class="form-label">Rs</label>
-                                <input type="number" class="form-control" id="purchaseItemRs" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemRs" step="0.01">
                             </div>
                             <div class="col-md-2">
                                 <label for="purchaseItemSalePrice" class="form-label">Sale Price</label>
-                                <input type="number" class="form-control" id="purchaseItemSalePrice" step="0.01">
+                                <input type="number" class="form-control form-control-sm" id="purchaseItemSalePrice" step="0.01">
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-primary w-100" id="addPurchaseItemBtn">
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="addPurchaseItemBtn">
                                     <i class="fas fa-plus me-1"></i>Add
                                 </button>
                             </div>
@@ -134,29 +132,32 @@
                         <div class="row g-3 mt-3">
                             <div class="col-12">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-light">
+                                    <style>
+                                        .purchase-items-table th:nth-child(3),
+                                        .purchase-items-table td:nth-child(3) { white-space: nowrap; }
+                                    </style>
+                                    <table class="table table-bordered table-sm w-100 purchase-items-table" style="table-layout:fixed;">
+                                        <thead class="table-primary">
                                             <tr>
-                                                <th>Sr.No</th>
-                                                <th>Code</th>
-                                                <th>Name</th>
-                                                <th>Pack</th>
-                                                <th>Pcs Price</th>
-                                                <th>Sub Total</th>
-                                                <th>Tax %</th>
-                                                <th>Tax Rs</th>
-                                                <th>Total</th>
-                                                <th>Dis %</th>
-                                                <th>Dis Rs</th>
-                                                <th>Net Total</th>
-                                                <th>Store</th>
-                                                <th>Pcs Sale Price</th>
-                                                <th>Actions</th>
+                                                <th style="width:60px;">Sr.No</th>
+                                                <th style="width:90px;">Code</th>
+                                                <th style="width:40%;">Name</th>
+                                                <th style="width:80px;">Pack</th>
+                                                <th style="width:95px;">Pcs Price</th>
+                                                <th style="width:110px;">Sub Total</th>
+                                                <th style="width:70px;">Tax %</th>
+                                                <th style="width:100px;">Tax Rs</th>
+                                                <th style="width:110px;">Total</th>
+                                                <th style="width:70px;">Dis %</th>
+                                                <th style="width:100px;">Dis Rs</th>
+                                                <th style="width:120px;">Net Total</th>
+                                                <th style="width:115px;">Pcs Sale Price</th>
+                                                <th style="width:90px;">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="purchaseItemsTableBody">
                                             <tr>
-                                                <td colspan="15" class="text-center text-muted">No items added yet</td>
+                                                <td colspan="14" class="text-center text-muted">No items added yet</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -167,102 +168,367 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="purchaseTotal" class="form-label">Total</label>
-                        <input type="number" class="form-control" id="purchaseTotal" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseDiscPercent" class="form-label">Dis%</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="purchaseDiscPercent" step="0.01">
-                            <span class="input-group-text">Rs 0.000</span>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseTaxPercent" class="form-label">Tax %</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="purchaseTaxPercent" step="0.01">
-                            <span class="input-group-text">Rs 0.000</span>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseMisc" class="form-label">Misc</label>
-                        <input type="number" class="form-control" id="purchaseMisc" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseFreight" class="form-label">Freight</label>
-                        <input type="number" class="form-control" id="purchaseFreight" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseNetTotal" class="form-label">Net Total</label>
-                        <input type="number" class="form-control" id="purchaseNetTotal" step="0.01" value="0.000" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchasePaid" class="form-label">Paid</label>
-                        <input type="number" class="form-control" id="purchasePaid" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseInvBalance" class="form-label">Inv Balance</label>
-                        <input type="number" class="form-control" id="purchaseInvBalance" step="0.01" value="0.000" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchasePreBalance" class="form-label">Pre Balance</label>
-                        <input type="number" class="form-control" id="purchasePreBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchaseNewBalance" class="form-label">New Balance</label>
-                        <input type="number" class="form-control" id="purchaseNewBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="purchasePayMode" class="form-label">Pay Mode</label>
-                        <select class="form-select" id="purchasePayMode">
-                            <option value="Credit">Credit</option>
-                            <option value="Cash">Cash</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <a href="#" class="text-danger" id="searchPurchaseInvoiceLink">Search Invoice (Alt+X)</a>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
     <div class="row mt-3">
         <div class="col-12">
-            <div class="card bg-dark text-white">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
+                </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <button type="button" class="btn btn-danger me-2" id="holdPurchaseBtn">
-                                <i class="fas fa-pause me-1"></i>Hold Inv
-                            </button>
-                            <button type="button" class="btn btn-success me-2" id="savePurchaseBtn">
-                                <i class="fas fa-save me-1"></i>Save
-                            </button>
-                            <button type="button" class="btn btn-danger me-2" id="unpostedListBtn">
-                                <i class="fas fa-list me-1"></i>Unposted List
-                            </button>
-                            <button type="button" class="btn btn-info" id="listPurchaseBtn">
-                                <i class="fas fa-list me-1"></i>List
-                            </button>
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="purchaseTotal" class="form-label">Total</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseTotal" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseDiscPercent" class="form-label">Dis%</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" id="purchaseDiscPercent" step="0.01">
+                                    <span class="input-group-text" style="background-color:#f5f7fb;">Rs 0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseTaxPercent" class="form-label">Tax %</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" id="purchaseTaxPercent" step="0.01">
+                                    <span class="input-group-text" style="background-color:#f5f7fb;">Rs 0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseMisc" class="form-label">Misc</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseMisc" step="0.01">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseFreight" class="form-label">Freight</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseFreight" step="0.01">
+                            </div>
                         </div>
-                        <div>
-                            <label class="me-2">Apply Discount</label>
-                            <input type="number" class="form-control d-inline-block" style="width: 100px;" id="applyPurchaseDiscount">
-                            <select class="form-select d-inline-block" style="width: 80px;">
-                                <option value="%">%</option>
-                            </select>
+                        
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="purchaseNetTotal" class="form-label">Net Total</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseNetTotal" step="0.01" value="0.000" readonly style="background-color:#cfe8f3;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchasePaid" class="form-label">Paid</label>
+                                <input type="number" class="form-control form-control-sm" id="purchasePaid" step="0.01">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseInvBalance" class="form-label">Inv Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseInvBalance" step="0.01" value="0.000" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchasePreBalance" class="form-label">Pre Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchasePreBalance" step="0.01" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseNewBalance" class="form-label">New Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseNewBalance" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Full width elements -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="mb-2">
+                                <label for="purchasePayMode" class="form-label">Pay Mode</label>
+                                <select class="form-select form-select-sm" id="purchasePayMode" style="width: 100%;">
+                                    <option value="Credit">Credit</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    <!-- Fixed Bottom Toolbar -->
+    <style>
+        /* Debug styles - can be removed after fixing */
+        #purchaseFooter {
+            z-index: 9999 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 2px solid #28a745 !important; /* Green border to make it stand out */
+        }
+        #savePurchaseBtn {
+            border: 2px solid #28a745 !important;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    <div id="purchaseFooter" class="fixed-bottom py-2" style="background: white; z-index: 1050;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Left side -->
+                <div class="d-flex align-items-center">
+                    <h4 class="mb-0 me-3">Purchase Entry</h4>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="listInvoicesBtn">
+                        <i class="fas fa-list me-1"></i> List Invoices
+                    </button>
+                </div>
+                
+                <!-- Right side - Action Buttons -->
+                <div class="d-flex gap-2">
 
+                     <!-- Save Button -->
+                    <button type="button" class="btn btn-primary" id="savePurchaseBtn" 
+                    style="min-width: 110px; font-weight: 500; padding: 8px 16px;"> 
+                    <i class="fas fa-trash-alt me-1"></i> Save (F4)
+</button>
+                    <!-- Delete Button -->
+                    <button type="button" class="btn btn-danger" id="deletePurchaseBtn"
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-trash-alt me-1"></i> Delete (F6)
+                    </button>
+                    
+                    <!-- Print Button -->
+                    <button type="button" class="btn btn-primary" id="printPurchaseBtn"
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-print me-1"></i> Print (F7)
+                    </button>
+                    
+                    <!-- Close Button -->
+                    <button type="button" class="btn btn-secondary" id="closePurchaseBtn"
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-times me-1"></i> Close (F8)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices List Modal -->
+    <div class="modal fade" id="invoicesModal" tabindex="-1" aria-labelledby="invoicesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="invoicesModalLabel">Saved Purchase Invoices</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped" id="invoicesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTableBody">
+                                <!-- Invoices will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Debug: Check if Bootstrap is loaded
+    console.log('Bootstrap available?', typeof bootstrap !== 'undefined');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded');
+        
+        // Initialize modal only if it exists
+        const invoicesModalEl = document.getElementById('invoicesModal');
+        if (!invoicesModalEl) {
+            console.error('❌ Error: invoicesModal element not found in DOM');
+            return;
+        }
+        
+        console.log('✅ Modal element found');
+        
+        try {
+            // Try to initialize Bootstrap modal
+            const invoicesModal = new bootstrap.Modal(invoicesModalEl);
+            console.log('✅ Bootstrap Modal initialized successfully');
+            
+            // Store modal instance for global access if needed
+            window.purchaseInvoicesModal = invoicesModal;
+        } catch (error) {
+            console.error('❌ Failed to initialize Bootstrap Modal:', error);
+            return;
+        }
+        
+        const listInvoicesBtn = document.getElementById('listInvoicesBtn');
+        if (!listInvoicesBtn) {
+            console.error('❌ Error: listInvoicesBtn not found');
+            return;
+        }
+        
+        console.log('✅ List Invoices button found');
+        
+        // Add click handler with better debugging
+        listInvoicesBtn.addEventListener('click', async function(e) {
+            console.log('🔘 List Invoices button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                    // Show loading state
+                    const tbody = document.getElementById('invoicesTableBody');
+                    if (!tbody) {
+                        console.error('Table body not found');
+                        return;
+                    }
+                    
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">Loading invoices...</td></tr>';
+                    
+                    // Show the modal first
+                    console.log('Showing modal...');
+                    invoicesModal.show();
+                    
+                    // Fetch invoices
+                    console.log('Fetching invoices...');
+                    const response = await fetch('/api/purchases');
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch invoices: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const invoices = await response.json();
+                    console.log('Invoices loaded:', invoices.length);
+                    
+                    // Clear loading message
+                    tbody.innerHTML = '';
+                    
+                    if (!invoices || invoices.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No invoices found</td></tr>';
+                        return;
+                    }
+                    
+                    // Add invoices to the table
+                    invoices.forEach(invoice => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${invoice.invoiceNo || 'N/A'}</td>
+                            <td>${new Date(invoice.date).toLocaleDateString()}</td>
+                            <td>${invoice.supplierId?.name || 'N/A'}</td>
+                            <td>${parseFloat(invoice.netTotal || 0).toFixed(2)}</td>
+                            <td><span class="badge ${invoice.status === 'posted' ? 'bg-success' : 'bg-warning'}">${invoice.status || 'N/A'}</span></td>
+                            <td class="d-flex gap-1">
+                                <button class="btn btn-sm btn-primary view-invoice" data-id="${invoice._id}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-sm btn-success print-invoice" data-id="${invoice._id}">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // Add event listeners to view/print buttons
+                    document.querySelectorAll('.view-invoice').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const invoiceId = this.getAttribute('data-id');
+                            // Load the invoice data into the form
+                            loadInvoice(invoiceId);
+                            invoicesModal.hide();
+                        });
+                    });
+                    
+                    document.querySelectorAll('.print-invoice').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const invoiceId = this.getAttribute('data-id');
+                            // Open print view in a new tab
+                            window.open(`/purchases/print/${invoiceId}`, '_blank');
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('Error loading invoices:', error);
+                    const tbody = document.getElementById('invoicesTableBody');
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error loading invoices: ${error.message}</td></tr>`;
+                }
+            });
+        }
+        
+        // Function to load an invoice into the form
+        async function loadInvoice(invoiceId) {
+            try {
+                const response = await fetch(`/api/purchases/${invoiceId}`);
+                if (!response.ok) throw new Error('Failed to load invoice');
+                
+                const invoice = await response.json();
+                
+                // Populate the form fields
+                document.getElementById('purchaseId').value = invoice._id;
+                document.getElementById('purchaseInvoiceNo').value = invoice.invoiceNo;
+                document.getElementById('purchaseDate').value = new Date(invoice.date).toISOString().split('T')[0];
+                document.getElementById('purchaseSupplierId').value = invoice.supplierId?._id || '';
+                document.getElementById('purchaseItemStore').value = invoice.branchId?._id || '';
+                document.getElementById('purchaseRefNo').value = invoice.refNo || '';
+                document.getElementById('purchaseBiltyNo').value = invoice.biltyNo || '';
+                document.getElementById('purchaseTotal').value = invoice.total || '0.00';
+                document.getElementById('purchaseDiscPercent').value = invoice.discountPercent || '0';
+                document.getElementById('purchaseTaxPercent').value = invoice.taxPercent || '0';
+                document.getElementById('purchaseMisc').value = invoice.misc || '0.00';
+                document.getElementById('purchaseFreight').value = invoice.freight || '0.00';
+                document.getElementById('purchaseNetTotal').value = invoice.netTotal || '0.00';
+                document.getElementById('purchasePaid').value = invoice.paid || '0.00';
+                document.getElementById('purchaseInvBalance').value = invoice.invBalance || '0.00';
+                document.getElementById('purchasePreBalance').value = invoice.preBalance || '0.00';
+                document.getElementById('purchaseNewBalance').value = invoice.newBalance || '0.00';
+                document.getElementById('purchasePayMode').value = invoice.paymentMode || 'Credit';
+                document.getElementById('purchaseRemarks').value = invoice.remarks || '';
+                
+                // Update the items table
+                if (Array.isArray(invoice.items)) {
+                    purchaseItems = invoice.items;
+                    updatePurchaseItemsTable();
+                }
+                
+                // Show success message
+                if (typeof showNotification === 'function') {
+                    showNotification('Invoice loaded successfully', 'success');
+                }
+                
+            } catch (error) {
+                console.error('Error loading invoice:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification(`Error loading invoice: ${error.message}`, 'error');
+                } else {
+                    alert(`Error loading invoice: ${error.message}`);
+                }
+            }
+        }
+    });
+    </script>
+    
+    <!-- jQuery (required for Bootstrap) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Check if Bootstrap is loaded -->
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            console.error('❌ Bootstrap JS failed to load!');
+            alert('Error: Required scripts failed to load. Please check your internet connection.');
+        } else {
+            console.log('✅ Bootstrap JS loaded successfully');
+        }
+    </script>
+</div>

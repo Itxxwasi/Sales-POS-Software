@@ -83,7 +83,7 @@ const __dirname = path.dirname(__filename);
 // Env is loaded via ./config/env.js
 
 const app = express();
-const port = env.PORT;
+const port = process.env.PORT || 3000;  // Default to port 3000 if not specified in env
 const mongoUri = env.MONGO_URI;
 
 // ========================================
@@ -4509,48 +4509,18 @@ app.get('/api/items/next-code', authenticate, hasPermission('items'), async (req
   try {
     // Next itemCode (string, numeric sequence)
     const lastCodeItem = await Item.findOne().sort({ itemCode: -1 });
-    let nextCode = '1001';
-    
-    if (lastCodeItem && lastCodeItem.itemCode) {
-      const lastNum = parseInt(lastCodeItem.itemCode) || 0;
-      nextCode = String(lastNum + 1);
-    }
-
-    // Next sequence (numeric ID shown in UI)
-    const lastSeqItem = await Item.findOne().sort({ sequence: -1 });
-    const nextSequence = (lastSeqItem && typeof lastSeqItem.sequence === 'number'
-      ? lastSeqItem.sequence
-      : 0) + 1;
-    
-    res.json({ nextCode, nextSequence });
+    const nextCode = lastCodeItem && lastCodeItem.itemCode && !isNaN(lastCodeItem.itemCode) 
+      ? String(parseInt(lastCodeItem.itemCode) + 1) 
+      : '1000';
+      
+    res.json({ nextCode });
   } catch (error) {
-    console.error('Error generating next code:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Error getting next item code:', error);
+    res.status(500).json({ error: 'Failed to get next item code' });
   }
 });
 
-// Get Single Item
-app.get('/api/items/:id', authenticate, hasPermission('items'), async (req, res) => {
-  try {
-    const item = await Item.findById(req.params.id)
-      .populate('companyId', 'name')
-      .populate('categoryId', 'name')
-      .populate('classId', 'name')
-      .populate('subclassId', 'name')
-      .populate('supplierId', 'name');
-    
-    if (!item) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-    
-    res.json(item);
-  } catch (error) {
-    console.error('Error fetching item:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Search Items by Barcode or Name
+// Search Items by Barcode or Name (must be before /api/items/:id)
 app.get('/api/items/search', authenticate, hasPermission('items'), async (req, res) => {
   try {
     const { barcode, name } = req.query;
@@ -4577,6 +4547,25 @@ app.get('/api/items/search', authenticate, hasPermission('items'), async (req, r
   } catch (error) {
     console.error('Error searching items:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Single Item
+app.get('/api/items/:id', authenticate, hasPermission('items'), async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id)
+      .populate('companyId', 'name')
+      .populate('categoryId', 'name')
+      .populate('supplierId', 'name');
+      
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    
+    res.json(item);
+  } catch (error) {
+    console.error('Error getting item:', error);
+    res.status(500).json({ error: 'Failed to get item' });
   }
 });
 

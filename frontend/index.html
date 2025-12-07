@@ -10494,7 +10494,7 @@
     
     <!-- Add Supplier Modal -->
     <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-fullscreen">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addSupplierModalLabel">Add New Supplier</h5>
@@ -10502,35 +10502,108 @@
                 </div>
                 <div class="modal-body">
                     <form id="supplierForm">
-                        <div class="mb-3">
-                            <label for="supplierName" class="form-label">Supplier Name</label>
-                            <input type="text" class="form-control" id="supplierName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="supplierDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="supplierDescription" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="supplierContact" class="form-label">Contact Person</label>
-                            <input type="text" class="form-control" id="supplierContact">
-                        </div>
-                        <div class="mb-3">
-                            <label for="supplierPhone" class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="supplierPhone">
-                        </div>
-                        <div class="mb-3">
-                            <label for="supplierEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="supplierEmail">
-                        </div>
-                        <div class="mb-3">
-                            <label for="supplierAddress" class="form-label">Address</label>
-                            <textarea class="form-control" id="supplierAddress" rows="3"></textarea>
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Branch</label>
+                                    <select class="form-select" id="supplierBranch"></select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" id="supplierAddress" rows="2"></textarea>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">PhoneNo</label>
+                                    <input type="tel" class="form-control" id="supplierPhone">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="supplierEmail">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">STRN</label>
+                                    <input type="text" class="form-control" id="supplierSTRN">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Opening</label>
+                                    <input type="number" class="form-control" id="supplierOpening" step="0.01" value="0">
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="supplierName" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" id="supplierCity">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">MobileNo</label>
+                                    <input type="tel" class="form-control" id="supplierMobileNo">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">NTN</label>
+                                    <input type="text" class="form-control" id="supplierNTN">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Remarks</label>
+                                    <textarea class="form-control" id="supplierDescription" rows="2"></textarea>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="supplierActive" checked>
+                                    <label class="form-check-label" for="supplierActive">Active</label>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success" id="saveSupplierBtn">Save</button>
+                                    <button type="button" class="btn btn-danger" id="clearSupplierBtn">Clear</button>
+                                </div>
+                            </div>
                         </div>
                     </form>
+                    <div class="mt-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="text" class="form-control" id="globalSupplierModalSearch" placeholder="Search" />
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sr. No.</th>
+                                                <th>Supplier Name</th>
+                                                <th>Category</th>
+                                                <th>Sub Category</th>
+                                                <th>Phone No</th>
+                                                <th>Mobile No</th>
+                                                <th>NTN</th>
+                                                <th>STRN</th>
+                                                <th>Email</th>
+                                                <th>WHT Type</th>
+                                                <th>WHT Per</th>
+                                                <th>ADV Tax Per</th>
+                                                <th>Address</th>
+                                                <th>Active</th>
+                                                <th>City Name</th>
+                                                <th>Branch Name</th>
+                                                <th>Finished</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="globalSupplierListTableBody">
+                                            <tr><td colspan="18" class="text-center text-muted">No suppliers found</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveSupplierBtn">Save Supplier</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -11795,7 +11868,7 @@
                 const qp = new URLSearchParams();
                 if (query.barcode) qp.append('barcode', query.barcode);
                 if (query.name) qp.append('name', query.name);
-                return this.request(`/items/search?${qp.toString()}`);
+                return this.request(`items/search?${qp.toString()}`);
             }
             
             async getNextItemCode() {
@@ -16807,38 +16880,55 @@
             
             // Add supplier button
             const addSupplierBtn = document.getElementById('addSupplierBtn');
-            if (addSupplierBtn) {
-                addSupplierBtn.addEventListener('click', function() {
-                    // Reset form
-                    document.getElementById('supplierForm').reset();
-                    
-                    // Update modal title for ADD mode
-                    document.getElementById('addSupplierModalLabel').textContent = 'Add New Supplier';
-                    
-                    // FORCE RESET save button to create mode
-                    const saveBtn = document.getElementById('saveSupplierBtn');
-                    if (saveBtn) {
-                        saveBtn.textContent = 'Save Supplier';
+                if (addSupplierBtn) {
+                    addSupplierBtn.addEventListener('click', function() {
+                        // Reset form
+                        document.getElementById('supplierForm').reset();
+                        const branchSelect = document.getElementById('supplierBranch');
+                        if (branchSelect) {
+                            const fillBranches = (branches) => {
+                                branchSelect.innerHTML = '';
+                                const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Select...'; branchSelect.appendChild(opt);
+                                (branches || []).forEach(b => { const o = document.createElement('option'); o.value = b._id; o.textContent = b.name || ''; branchSelect.appendChild(o); });
+                                const shop = (branches || []).find(b => String(b.name).toLowerCase() === 'shop');
+                                if (shop) branchSelect.value = shop._id;
+                            };
+                            if (window.appData?.branches?.length) fillBranches(window.appData.branches);
+                            else if (window.api?.getBranches) window.api.getBranches().then(b => { window.appData = window.appData || {}; window.appData.branches = b || []; fillBranches(window.appData.branches); });
+                        }
                         
-                        // Remove ALL existing event handlers
-                        saveBtn.onclick = null;
-                        saveBtn.removeAttribute('onclick');
+                        // Update modal title for ADD mode
+                        document.getElementById('addSupplierModalLabel').textContent = 'Add New Supplier';
                         
-                        // Create a new function that calls saveSupplier with validation
-                        const createSupplierHandler = function() {
-                            if (document.getElementById('supplierForm').checkValidity()) {
-                                saveSupplier();
-                            } else {
-                                document.getElementById('supplierForm').reportValidity();
-                            }
-                        };
+                        // FORCE RESET save button to create mode
+                        const saveBtn = document.getElementById('saveSupplierBtn');
+                        if (saveBtn) {
+                            saveBtn.textContent = 'Save Supplier';
+                            
+                            // Remove ALL existing event handlers
+                            saveBtn.onclick = null;
+                            saveBtn.removeAttribute('onclick');
+                            
+                            // Create a new function that calls saveSupplier with validation
+                            const createSupplierHandler = function() {
+                                if (document.getElementById('supplierForm').checkValidity()) {
+                                    saveSupplier();
+                                } else {
+                                    document.getElementById('supplierForm').reportValidity();
+                                }
+                            };
+                            
+                            // Set the new handler
+                            saveBtn.onclick = createSupplierHandler;
+                        }
+                        const clearBtn = document.getElementById('clearSupplierBtn');
+                        if (clearBtn) {
+                            clearBtn.onclick = function() { document.getElementById('supplierForm').reset(); const activeEl = document.getElementById('supplierActive'); if (activeEl) activeEl.checked = true; };
+                        }
                         
-                        // Set the new handler
-                        saveBtn.onclick = createSupplierHandler;
-                    }
-                    
                     const modal = new bootstrap.Modal(document.getElementById('addSupplierModal'));
                     modal.show();
+                    if (typeof loadSuppliers === 'function') loadSuppliers();
                 });
             }
             
@@ -37256,10 +37346,17 @@ sortedBranches.forEach(data => {
             const supplierData = {
                 name: document.getElementById('supplierName').value.trim(),
                 description: document.getElementById('supplierDescription').value,
+                branchId: document.getElementById('supplierBranch')?.value || '',
                 contact: document.getElementById('supplierContact').value,
                 phone: document.getElementById('supplierPhone').value,
+                mobileNo: document.getElementById('supplierMobileNo').value,
                 email: document.getElementById('supplierEmail').value,
-                address: document.getElementById('supplierAddress').value
+                address: document.getElementById('supplierAddress').value,
+                city: document.getElementById('supplierCity').value,
+                strn: document.getElementById('supplierSTRN').value,
+                ntn: document.getElementById('supplierNTN').value,
+                opening: parseFloat(document.getElementById('supplierOpening').value) || 0,
+                isActive: !!document.getElementById('supplierActive')?.checked
             };
             
             api.createSupplier(supplierData).then(supplier => {
@@ -37377,6 +37474,45 @@ sortedBranches.forEach(data => {
                 `;
                 tableBody.appendChild(row);
             });
+
+            // Also render modal list table beneath the form
+            const modalBody = document.getElementById('globalSupplierListTableBody');
+            if (modalBody) {
+                modalBody.innerHTML = '';
+                if (sortedSuppliers.length === 0) {
+                    modalBody.innerHTML = '<tr><td colspan="18" class="text-center text-muted">No suppliers found</td></tr>';
+                } else {
+                    sortedSuppliers.forEach((supplier, idx) => {
+                        const branchName = (() => {
+                            const id = supplier.branchId?._id || supplier.branchId;
+                            const b = (appData.branches || []).find(x => x._id === id);
+                            return b ? (b.name || '') : '';
+                        })();
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${idx + 1}</td>
+                            <td><strong>${supplier.name || ''}</strong></td>
+                            <td>${supplier.category || '-'}</td>
+                            <td>${supplier.subCategory || '-'}</td>
+                            <td>${supplier.phone || '-'}</td>
+                            <td>${supplier.mobileNo || '-'}</td>
+                            <td>${supplier.ntn || '-'}</td>
+                            <td>${supplier.strn || '-'}</td>
+                            <td>${supplier.email || '-'}</td>
+                            <td>${supplier.whtType || ''}</td>
+                            <td>${supplier.whtPercent != null ? supplier.whtPercent : 0}</td>
+                            <td>${supplier.advTaxPercent != null ? supplier.advTaxPercent : 0}</td>
+                            <td>${supplier.address || '-'}</td>
+                            <td>${supplier.isActive ? 'Active' : '-'}</td>
+                            <td>${supplier.city || '-'}</td>
+                            <td>${branchName || '-'}</td>
+                            <td>${supplier.finished ? 'Yes' : 'No'}</td>
+                            <td><button class="btn btn-sm btn-warning" onclick="editSupplier('${supplier._id}')">Edit</button></td>
+                        `;
+                        modalBody.appendChild(tr);
+                    });
+                }
+            }
         }
         
         // Edit supplier
@@ -37388,8 +37524,27 @@ sortedBranches.forEach(data => {
                     document.getElementById('supplierDescription').value = supplier.description || '';
                     document.getElementById('supplierContact').value = supplier.contact || '';
                     document.getElementById('supplierPhone').value = supplier.phone || '';
+                    document.getElementById('supplierMobileNo').value = supplier.mobileNo || '';
                     document.getElementById('supplierEmail').value = supplier.email || '';
                     document.getElementById('supplierAddress').value = supplier.address || '';
+                    document.getElementById('supplierCity').value = supplier.city || '';
+                    document.getElementById('supplierSTRN').value = supplier.strn || '';
+                    document.getElementById('supplierNTN').value = supplier.ntn || '';
+                    document.getElementById('supplierOpening').value = supplier.opening != null ? supplier.opening : 0;
+                    const activeEl = document.getElementById('supplierActive');
+                    if (activeEl) activeEl.checked = supplier.isActive !== false;
+                    const branchSelect = document.getElementById('supplierBranch');
+                    if (branchSelect) {
+                        // Populate branches
+                        const fillBranches = (branches) => {
+                            branchSelect.innerHTML = '';
+                            const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Select...'; branchSelect.appendChild(opt);
+                            (branches || []).forEach(b => { const o = document.createElement('option'); o.value = b._id; o.textContent = b.name || ''; branchSelect.appendChild(o); });
+                            branchSelect.value = supplier.branchId?._id || supplier.branchId || '';
+                        };
+                        if (window.appData?.branches?.length) fillBranches(window.appData.branches);
+                        else if (window.api?.getBranches) window.api.getBranches().then(b => { window.appData = window.appData || {}; window.appData.branches = b || []; fillBranches(window.appData.branches); });
+                    }
                     
                     // Update modal title for EDIT mode
                     document.getElementById('addSupplierModalLabel').textContent = 'Edit Supplier';
@@ -37430,10 +37585,17 @@ sortedBranches.forEach(data => {
             const supplierData = {
                 name: document.getElementById('supplierName').value.trim(),
                 description: document.getElementById('supplierDescription').value,
+                branchId: document.getElementById('supplierBranch')?.value || '',
                 contact: document.getElementById('supplierContact').value,
                 phone: document.getElementById('supplierPhone').value,
+                mobileNo: document.getElementById('supplierMobileNo').value,
                 email: document.getElementById('supplierEmail').value,
-                address: document.getElementById('supplierAddress').value
+                address: document.getElementById('supplierAddress').value,
+                city: document.getElementById('supplierCity').value,
+                strn: document.getElementById('supplierSTRN').value,
+                ntn: document.getElementById('supplierNTN').value,
+                opening: parseFloat(document.getElementById('supplierOpening').value) || 0,
+                isActive: !!document.getElementById('supplierActive')?.checked
             };
             
             api.updateSupplier(id, supplierData).then(() => {

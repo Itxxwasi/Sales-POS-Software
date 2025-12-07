@@ -129,19 +129,33 @@
       });
     }
 
-    function populateSearchByName() {
-      if (!window.api) return;
-      window.api.getItems().then(items => {
-        const select = document.getElementById('searchByName');
-        if (!select) return;
-        select.innerHTML = '<option value="">Select Item</option>';
-        items.forEach(item => {
-          const option = document.createElement('option');
-          option.value = item._id;
-          option.textContent = `${item.itemCode} - ${item.itemName}`;
-          select.appendChild(option);
+    function searchItemByName(name) {
+      if (!window.api || !window.api.searchItems) {
+        console.error('API not available');
+        return;
+      }
+
+      window.api.searchItems({ name: name })
+        .then(items => {
+          if (items && items.length > 0) {
+            // If we have exactly one match, load it
+            if (items.length === 1) {
+              loadItemData(items[0]);
+            } 
+            // If multiple matches, show a dropdown or handle as needed
+            else {
+              // For now, just load the first match
+              loadItemData(items[0]);
+            }
+          } else {
+            // No items found
+            alert('No items found matching: ' + name);
+          }
+        })
+        .catch(error => {
+          console.error('Error searching items:', error);
+          alert('Error searching for items. Please try again.');
         });
-      }).catch(err => console.error('Error loading items:', err));
     }
 
     function refreshSupplierDropdown() {
@@ -427,11 +441,33 @@
       const searchByBarcode = document.getElementById('searchByBarcode');
       if (searchByBarcode) {
         searchByBarcode.addEventListener('change', handleBarcodeSearch);
+        searchByBarcode.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); const val = (searchByBarcode.value||'').trim(); if (val) searchItemByBarcode(val); } });
+        searchByBarcode.addEventListener('blur', function(){ const val = (searchByBarcode.value||'').trim(); if (val) searchItemByBarcode(val); });
       }
 
       const searchByName = document.getElementById('searchByName');
       if (searchByName) {
-        searchByName.addEventListener('change', handleNameSearch);
+        searchByName.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = (searchByName.value || '').trim();
+            if (val) {
+              searchItemByName(val);
+            }
+          }
+        });
+        
+        // Optional: Add debounce for better performance
+        let searchTimeout;
+        searchByName.addEventListener('input', function(e) {
+          const val = (e.target.value || '').trim();
+          if (val.length >= 2) { // Only search if at least 2 characters
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+              searchItemByName(val);
+            }, 300); // 300ms debounce
+          }
+        });
       }
 
       const classId = document.getElementById('classId');
@@ -463,7 +499,33 @@
       const addSubClassBtn = document.getElementById('itemAddSubClassBtn');
       if (addSubClassBtn) addSubClassBtn.addEventListener('click', openSubClassModal);
       const addSupplierBtn = document.getElementById('itemAddSupplierBtn');
-      if (addSupplierBtn) addSupplierBtn.addEventListener('click', openSupplierModal);
+      if (addSupplierBtn) {
+        addSupplierBtn.addEventListener('click', () => {
+          const modalEl = document.getElementById('addSupplierModal');
+          if (modalEl && (window.bootstrap || typeof bootstrap !== 'undefined')) {
+            const form = document.getElementById('supplierForm');
+            if (form) form.reset();
+            const branchSelect = document.getElementById('supplierBranch');
+            if (branchSelect) {
+              const branches = (window.appData && window.appData.branches) ? window.appData.branches : [];
+              const fillOpts = () => { branchSelect.innerHTML = ''; const o = document.createElement('option'); o.value = ''; o.textContent = 'Select...'; branchSelect.appendChild(o); (window.appData.branches || []).forEach(b => { const opt = document.createElement('option'); opt.value = b._id; opt.textContent = b.name || ''; branchSelect.appendChild(opt); }); const shop = (window.appData.branches || []).find(b => String(b.name).toLowerCase() === 'shop'); if (shop) branchSelect.value = shop._id; };
+              if ((!branches || branches.length === 0) && window.api && typeof window.api.getBranches === 'function') {
+                window.api.getBranches().then(data => { window.appData = window.appData || {}; window.appData.branches = data || []; fillOpts(); });
+              } else { fillOpts(); }
+            }
+            const label = document.getElementById('addSupplierModalLabel');
+            if (label) label.textContent = 'Add New Supplier';
+            const bs = (window.bootstrap || bootstrap);
+            let modal = bs.Modal.getInstance(modalEl);
+            if (!modal) modal = new bs.Modal(modalEl);
+            modal.show();
+            if (typeof window.loadSuppliers === 'function') window.loadSuppliers();
+          } else {
+            // Fallback: use item registration supplier modal if global modal not available
+            openSupplierModal();
+          }
+        });
+      }
 
       const supplierSelect = document.getElementById('supplierId');
       if (supplierSelect) supplierSelect.addEventListener('focus', refreshSupplierDropdown);
@@ -483,19 +545,35 @@
 
     function handleBarcodeSearch(e) {
       const barcode = e.target.value;
-      if (!barcode || !window.api) return;
-      window.api.searchItems({ barcode }).then(items => {
-        if (items.length > 0) {
-          loadItemData(items[0]);
-        }
-      });
+      if (!barcode) return;
+      searchItemByBarcode(barcode);
     }
 
     function handleNameSearch(e) {
       const itemId = e.target.value;
       if (!itemId || !window.api) return;
-      window.api.getItem(itemId).then(item => {
-        loadItemData(item);
+      window.api.getItem(itemId).then(item => { loadItemData(item); });
+    }
+
+    function searchItemByBarcode(barcode){
+      // Try local cache first
+      const local = (window.appData.items || []).find(i => String(i.itemCode) === String(barcode) || String(i.givenPcsBarCode) === String(barcode));
+      if (local) { loadItemData(local); return; }
+      if (!window.api || typeof window.api.searchItems !== 'function') return;
+      window.api.searchItems({ barcode }).then(items => { if (items && items.length) loadItemData(items[0]); });
+    }
+
+    function searchItemByName(name){
+      const q = (name||'').toLowerCase();
+      // Try local cache first
+      const local = (window.appData.items || []).find(i => (i.itemName||'').toLowerCase() === q) || (window.appData.items || []).find(i => (i.itemName||'').toLowerCase().includes(q));
+      if (local) { loadItemData(local); return; }
+      if (!window.api || typeof window.api.searchItems !== 'function') return;
+      window.api.searchItems({ name }).then(items => {
+        if (!items || !items.length) return;
+        // Prefer exact match, otherwise first
+        const exact = items.find(i => (i.itemName||'').toLowerCase() === q);
+        loadItemData(exact || items[0]);
       });
     }
 
