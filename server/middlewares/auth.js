@@ -78,7 +78,20 @@ export const hasPermission = (permission) => {
       if (!req.user || !req.user.groupId || !Array.isArray(req.user.groupId.permissions)) {
         return res.status(403).json({ error: 'Access denied - insufficient privileges.' });
       }
-      if (!req.user.groupId.permissions.includes(permission) && !req.user.groupId.permissions.includes('admin')) {
+      
+      const userPermissions = req.user.groupId.permissions;
+      if (userPermissions.includes('admin')) {
+        return next();
+      }
+
+      let hasAccess = false;
+      if (Array.isArray(permission)) {
+        hasAccess = permission.some(p => userPermissions.includes(p));
+      } else {
+        hasAccess = userPermissions.includes(permission);
+      }
+
+      if (!hasAccess) {
         return res.status(403).json({ error: 'Access denied - missing permission.' });
       }
       next();

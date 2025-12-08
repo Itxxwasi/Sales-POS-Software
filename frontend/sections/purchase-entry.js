@@ -113,10 +113,6 @@
       const deleteBtn = document.getElementById('deletePurchaseBtn');
       if (deleteBtn) deleteBtn.addEventListener('click', deleteCurrentPurchase);
       
-      // Print button handler
-      const printBtn = document.getElementById('printPurchaseBtn');
-      if (printBtn) printBtn.addEventListener('click', printCurrentPurchase);
-      
       // Close button handler
       const closeBtn = document.getElementById('closePurchaseBtn');
       if (closeBtn) closeBtn.addEventListener('click', closePurchaseScreen);
@@ -140,10 +136,6 @@
           case 'F6':
             e.preventDefault();
             deleteBtn?.click();
-            break;
-          case 'F7':
-            e.preventDefault();
-            printBtn?.click();
             break;
           case 'F8':
           case 'Escape':
@@ -375,6 +367,9 @@
         fillFromItem(null);
       }
     }
+    
+    // Clear form function exposed for external use
+    window.clearPurchaseForm = clearForm;
 
     function updatePurchaseItemCalculations() {
       const pack = parseFloat(document.getElementById('purchaseItemPack')?.value) || 0;
@@ -637,20 +632,47 @@
       };
 
       const purchaseId = document.getElementById('purchaseId')?.value;
-      const promise = purchaseId
-        ? window.api.updatePurchase(purchaseId, formData)
-        : window.api.createPurchase(formData);
-
-      promise.then(() => {
-        if (typeof showNotification === 'function') {
-          showNotification('Purchase saved successfully', 'success');
-        }
-        clearForm();
-      }).catch(err => {
-        if (typeof showNotification === 'function') {
-          showNotification(err.message || 'Error saving purchase', 'error');
-        }
-      });
+      
+      // If we are editing (purchaseId exists), use updatePurchase
+      if (purchaseId) {
+          fetch(`/api/purchases/${purchaseId}`, {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(formData)
+          })
+          .then(res => {
+              if (!res.ok) throw new Error('Failed to update purchase');
+              return res.json();
+          })
+          .then(() => {
+              if (typeof showNotification === 'function') {
+                  showNotification('Purchase updated successfully', 'success');
+              }
+              clearForm();
+          })
+          .catch(err => {
+              console.error(err);
+              if (typeof showNotification === 'function') {
+                  showNotification(err.message || 'Error updating purchase', 'error');
+              }
+          });
+      } else {
+          // Creating new purchase
+          const promise = window.api.createPurchase(formData);
+          promise.then(() => {
+            if (typeof showNotification === 'function') {
+              showNotification('Purchase saved successfully', 'success');
+            }
+            clearForm();
+          }).catch(err => {
+            if (typeof showNotification === 'function') {
+              showNotification(err.message || 'Error saving purchase', 'error');
+            }
+          });
+      }
     }
 
     function clearForm() {
@@ -661,6 +683,304 @@
       setCurrentDate();
       setNextInvoiceNo();
     }
+
+    // --- Purchase List Logic ---
+    let purchaseListModal = null;
+
+    function initPurchaseListModal() {
+      const modalEl = document.getElementById('purchaseListModal');
+      if (modalEl && window.bootstrap && typeof window.bootstrap.Modal === 'function') {
+        purchaseListModal = new window.bootstrap.Modal(modalEl);
+      }
+
+      const openBtn = document.getElementById('openPurchaseListBtn');
+      if (openBtn) {
+        openBtn.addEventListener('click', () => {
+           if (purchaseListModal) {
+             purchaseListModal.show();
+             loadPurchases();
+           }
+        });
+      }
+
+      const searchBtn = document.getElementById('plSearchBtn');
+      if (searchBtn) {
+        searchBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          loadPurchases();
+        });
+      }
+      
+      const searchInput = document.getElementById('plSearchInput');
+      if (searchInput) {
+          searchInput.addEventListener('input', (e) => {
+              const term = e.target.value.toLowerCase();
+              filterTable(term);
+          });
+      }
+      
+      // Set default dates
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      
+      const fromDateInput = document.getElementById('plFromDate');
+      const toDateInput = document.getElementById('plToDate');
+      if(fromDateInput) fromDateInput.value = today;
+      if(toDateInput) toDateInput.value = today;
+
+      // Populate Category Dropdown
+      const categorySelect = document.getElementById('plFilterSelect');
+      if (categorySelect) {
+          // Clear existing options except the first one
+          categorySelect.innerHTML = '<option value="">All Categories</option>';
+          if (window.appData && window.appData.categories) {
+              window.appData.categories.forEach(cat => {
+                  const option = document.createElement('option');
+                  option.value = cat._id;
+                  option.textContent = cat.name;
+                  categorySelect.appendChild(option);
+              });
+          } else if (window.api && typeof window.api.getCategories === 'function') {
+              window.api.getCategories().then(categories => {
+                  if (categories) {
+                      categories.forEach(cat => {
+                          const option = document.createElement('option');
+                          option.value = cat._id;
+                          option.textContent = cat.name;
+                          categorySelect.appendChild(option);
+                      });
+                  }
+              });
+          }
+      }
+
+      // Add event listener for category filter
+      if (categorySelect) {
+          categorySelect.addEventListener('change', loadPurchases);
+      }
+
+      // Auto-fetch when dates change
+      if (fromDateInput) fromDateInput.addEventListener('change', loadPurchases);
+      if (toDateInput) toDateInput.addEventListener('change', loadPurchases);
+
+      // Initial load
+      loadPurchases();
+    }
+
+    function loadPurchases() {
+      const tbody = document.getElementById('purchaseListTableBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '<tr><td colspan="18" class="text-center">Loading...</td></tr>';
+      
+      const from = document.getElementById('plFromDate')?.value;
+      const to = document.getElementById('plToDate')?.value;
+      const categoryId = document.getElementById('plFilterSelect')?.value;
+      
+      let query = '';
+      if (from && to) {
+        query = `?from=${from}&to=${to}`;
+      }
+
+      if (categoryId) {
+          query += query ? `&categoryId=${categoryId}` : `?categoryId=${categoryId}`;
+      }
+
+      fetch(`/api/purchases${query}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+        .then(res => {
+            if (res.status === 401) {
+                throw new Error('Unauthorized');
+            }
+            return res.json();
+        })
+        .then(data => {
+            renderPurchaseList(data);
+        })
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="18" class="text-center text-danger">Error loading data</td></tr>`;
+        });
+    }
+
+    function renderPurchaseList(data) {
+        const tbody = document.getElementById('purchaseListTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        // Handle case where data might not be an array
+        if (!Array.isArray(data) || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="18" class="text-center">No records found</td></tr>';
+            return;
+        }
+
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <button class="btn btn-sm btn-success py-0 px-2 select-purchase" data-id="${item._id}">Select</button>
+                    <button class="btn btn-sm btn-info text-white py-0 px-2 edit-purchase" data-id="${item._id}">Edit</button>
+                    <button class="btn btn-sm btn-primary py-0 px-2 print-purchase" data-id="${item._id}">Print</button>
+                </td>
+                <td>${item.invoiceNo || ''}</td>
+                <td>${new Date(item.date).toLocaleDateString()}</td>
+                <td>${item.refNo || ''}</td>
+                <td>${item.branchId?.name || ''}</td>
+                <td>${item.biltyNo || ''}</td>
+                <td>${item.supplierId?.name || ''}</td>
+                <td>${fmt(item.total)}</td>
+                <td>${fmt(item.discountPercent)}%</td>
+                <td>${fmt(item.taxPercent)}%</td>
+                <td>${fmt(item.misc)}</td>
+                <td>${fmt(item.freight)}</td>
+                <td>${fmt(item.netTotal)}</td>
+                <td>${item.remarks || ''}</td>
+                <td>${item.paymentMode || ''}</td>
+                <td>${item.userId?.name || ''}</td>
+                <td>${new Date(item.createdAt || item.date).toLocaleString()}</td>
+                <td></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll('.select-purchase').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                loadInvoice(id);
+                if (purchaseListModal) purchaseListModal.hide();
+            });
+        });
+
+        tbody.querySelectorAll('.edit-purchase').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                loadInvoice(id);
+                if (purchaseListModal) purchaseListModal.hide();
+            });
+        });
+        
+        tbody.querySelectorAll('.print-purchase').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                // Open print preview in a new window/tab
+                if (window.api && typeof window.api.printPurchase === 'function') {
+                    window.api.printPurchase(id).then(url => {
+                        window.open(url, '_blank');
+                    });
+                } else {
+                     window.open(`/purchases/print/${id}`, '_blank');
+                }
+            });
+        });
+    }
+    
+    function filterTable(term) {
+        const rows = document.querySelectorAll('#purchaseListTableBody tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    }
+
+    function loadInvoice(id) {
+        if (!id) return;
+        console.log('Loading invoice:', id);
+        fetch(`/api/purchases/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+            .then(async res => {
+                if (res.status === 401) throw new Error('Unauthorized');
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Failed to fetch invoice: ${res.status} ${res.statusText} - ${text}`);
+                }
+                return res.json();
+            })
+            .then(invoice => {
+                console.log('Invoice data:', invoice);
+                document.getElementById('purchaseId').value = invoice._id;
+                document.getElementById('purchaseInvoiceNo').value = invoice.invoiceNo;
+                
+                try {
+                  const d = new Date(invoice.date);
+                  if (!isNaN(d.getTime())) {
+                    document.getElementById('purchaseDate').value = d.toISOString().split('T')[0];
+                  } else {
+                     document.getElementById('purchaseDate').value = new Date().toISOString().split('T')[0];
+                  }
+                } catch (e) {
+                   console.error('Invalid date', e);
+                   document.getElementById('purchaseDate').value = new Date().toISOString().split('T')[0];
+                }
+
+                // Handle Supplier
+                const supplierId = invoice.supplierId?._id || (invoice.supplierId && invoice.supplierId._id) || invoice.supplierId || '';
+                const supplierSelect = document.getElementById('purchaseSupplierId');
+                if (supplierSelect) {
+                    supplierSelect.value = supplierId;
+                    // If value didn't stick (supplier not in list), try to add it temporarily or warn
+                    if (supplierSelect.value !== supplierId && supplierId) {
+                        console.warn('Supplier ID not found in dropdown:', supplierId);
+                        // Optional: Create a temporary option so it shows up
+                        const option = document.createElement('option');
+                        option.value = supplierId;
+                        option.textContent = invoice.supplierId?.name || 'Unknown Supplier';
+                        supplierSelect.appendChild(option);
+                        supplierSelect.value = supplierId;
+                    }
+                }
+
+                document.getElementById('purchaseItemStore').value = invoice.branchId?._id || (invoice.branchId && invoice.branchId._id) || invoice.branchId || '';
+                document.getElementById('purchaseRefNo').value = invoice.refNo || '';
+                document.getElementById('purchaseBiltyNo').value = invoice.biltyNo || '';
+                document.getElementById('purchaseRemarks').value = invoice.remarks || '';
+                document.getElementById('purchasePayMode').value = invoice.paymentMode || 'Credit';
+                
+                document.getElementById('purchaseTotal').value = fmt(invoice.total);
+                document.getElementById('purchaseDiscPercent').value = fmt(invoice.discountPercent);
+                document.getElementById('purchaseTaxPercent').value = fmt(invoice.taxPercent);
+                document.getElementById('purchaseMisc').value = fmt(invoice.misc);
+                document.getElementById('purchaseFreight').value = fmt(invoice.freight);
+                document.getElementById('purchaseNetTotal').value = fmt(invoice.netTotal);
+                document.getElementById('purchasePaid').value = fmt(invoice.paid);
+                document.getElementById('purchaseInvBalance').value = fmt(invoice.invBalance);
+                document.getElementById('purchasePreBalance').value = fmt(invoice.preBalance);
+                document.getElementById('purchaseNewBalance').value = fmt(invoice.newBalance);
+
+                purchaseItems = (invoice.items || []).map(it => ({
+                    ...it,
+                    name: it.name || it.itemName,
+                    // Ensure numeric values are numbers
+                    pack: Number(it.pack || 0),
+                    unitPrice: Number(it.unitPrice || it.costPrice || 0),
+                    costPrice: Number(it.costPrice || 0),
+                    salePrice: Number(it.salePrice || 0),
+                    discountPercent: Number(it.discountPercent || 0),
+                    discountRs: Number(it.discountRs || 0),
+                    taxPercent: Number(it.taxPercent || 0),
+                    taxRs: Number(it.taxRs || 0),
+                    subtotal: Number(it.subtotal || 0),
+                    netTotal: Number(it.netTotal || 0)
+                }));
+                updatePurchaseItemsTable();
+                
+                if (typeof showNotification === 'function') showNotification('Invoice loaded', 'success');
+            })
+            .catch(err => {
+                console.error('Error loading invoice:', err);
+                if (typeof showNotification === 'function') showNotification('Error loading invoice: ' + err.message, 'error');
+            });
+    }
+
+    initPurchaseListModal();
   }
 
   // Delete current purchase
@@ -704,38 +1024,6 @@
       } else {
         alert('Delete functionality not available');
       }
-    }
-  }
-
-  // Print current purchase
-  function printCurrentPurchase() {
-    const purchaseId = document.getElementById('purchaseId')?.value;
-    if (!purchaseId) {
-      if (typeof showNotification === 'function') {
-        showNotification('No purchase loaded to print', 'warning');
-      } else {
-        alert('No purchase loaded to print');
-      }
-      return;
-    }
-    
-    // Open print dialog or redirect to print view
-    if (window.api && typeof window.api.printPurchase === 'function') {
-      window.api.printPurchase(purchaseId)
-        .then(url => {
-          window.open(url, '_blank');
-        })
-        .catch(err => {
-          console.error('Error printing purchase:', err);
-          if (typeof showNotification === 'function') {
-            showNotification('Error generating print view', 'error');
-          } else {
-            alert('Error generating print view');
-          }
-        });
-    } else {
-      // Fallback to simple print
-      window.print();
     }
   }
 

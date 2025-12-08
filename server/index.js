@@ -400,7 +400,7 @@ app.post('/api/admin/promote-user', async (req, res) => {
         adminGroup = await Group.create({
           name: 'Admin',
           description: 'System administrators with full access',
-          permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers'],
+          permissions: ['admin', 'dashboard', 'categories', 'departments', 'suppliers', 'items', 'items-edit', 'items-delete', 'damage-stock', 'stock-audit', 'sales', 'sales-edit', 'sales-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-entry', 'purchase-return', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'reports', 'sales-report', 'sales-comparison-report', 'datewise-sales-report', 'department-wise-report', 'sub-department-wise-report', 'department-wise-sale-comparison', 'branch-wise-sale-comparison', 'income-statement-report', 'branches', 'groups', 'users', 'settings', 'employees', 'employee-list', 'support-chat'],
           isDefault: true
         });
     }
@@ -2620,8 +2620,23 @@ app.get('/api/sales', authenticate, async (req, res) => {
     }
     
     // If user is not admin, filter by user's assigned branches
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
     
     const sales = await Sale.find(filter)
@@ -3525,8 +3540,23 @@ app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), as
     }
     
     // If user is not admin, filter by user's assigned branches
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
     
     const payments = await Payment.find(filter)
@@ -3929,8 +3959,23 @@ app.get('/api/category-payments', authenticate, hasPermission('category-voucher-
     }
     
     // If user is not admin, filter by user's assigned branches
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
     
     console.log('✅ Filter:', JSON.stringify(filter));
@@ -4898,12 +4943,33 @@ app.get('/api/whole-sales', authenticate, hasPermission('whole-sale'), async (re
     if (req.query.customerId) filter.customerId = req.query.customerId;
     if (req.query.from || req.query.to) {
       filter.date = {};
-      if (req.query.from) filter.date.$gte = new Date(req.query.from);
-      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        const toDate = new Date(req.query.to);
+        toDate.setHours(23, 59, 59, 999);
+        filter.date.$lte = toDate;
+      }
     }
     
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
     
     const wholeSales = await WholeSale.find(filter)
@@ -5035,8 +5101,23 @@ app.get('/api/sale-returns', authenticate, hasPermission('sale-return'), async (
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
     
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
     
     const saleReturns = await SaleReturn.find(filter)
@@ -5092,7 +5173,7 @@ app.delete('/api/sale-returns/:id', authenticate, hasPermission('sale-return'), 
 // PURCHASE API ROUTES
 // ========================================
 
-app.get('/api/purchases', authenticate, hasPermission('purchase'), async (req, res) => {
+app.get('/api/purchases', authenticate, hasPermission(['purchase', 'purchase-entry']), async (req, res) => {
   try {
     const filter = {};
     if (req.query.branchId) filter.branchId = req.query.branchId;
@@ -5100,26 +5181,52 @@ app.get('/api/purchases', authenticate, hasPermission('purchase'), async (req, r
     if (req.query.status) filter.status = req.query.status;
     if (req.query.from || req.query.to) {
       filter.date = {};
-      if (req.query.from) filter.date.$gte = new Date(req.query.from);
-      if (req.query.to) filter.date.$lte = new Date(req.query.to);
+      if (req.query.from) {
+        filter.date.$gte = new Date(req.query.from);
+      }
+      if (req.query.to) {
+        const toDate = new Date(req.query.to);
+        toDate.setHours(23, 59, 59, 999);
+        filter.date.$lte = toDate;
+      }
     }
     
-    if (!req.user.groupId.permissions.includes('admin')) {
-      filter.branchId = { $in: req.user.branches };
+    // Debug permissions
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
+    console.log(`[DEBUG] User Branches: ${JSON.stringify(req.user.branches)}`);
+
+    if (!isSuperAdmin) {
+      // If user has NO branches assigned, this query will become { $in: [] } which returns nothing.
+      // We should check if branches array exists and has length.
+      if (req.user.branches && req.user.branches.length > 0) {
+        filter.branchId = { $in: req.user.branches };
+      } else {
+         // Fallback: If no branches assigned, maybe show nothing or show all? 
+         // Usually if no branches are assigned, they shouldn't see anything.
+         // But let's log this to be sure.
+         console.log('[DEBUG] User has no branches assigned:', req.user.username);
+         filter.branchId = { $in: [] }; 
+      }
     }
+    
+    console.log('[DEBUG] Purchases Query:', JSON.stringify(filter));
     
     const purchases = await Purchase.find(filter)
       .populate('supplierId', 'name')
       .populate('branchId', 'name')
       .sort({ date: -1 });
     
+    console.log('[DEBUG] Purchases Found:', purchases.length);
+    
     res.json(purchases);
   } catch (error) {
+    console.error('[ERROR] Purchases API:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/purchases/unposted', authenticate, hasPermission('purchase'), async (req, res) => {
+app.get('/api/purchases/unposted', authenticate, hasPermission(['purchase', 'purchase-entry']), async (req, res) => {
   try {
     const filter = { status: 'unposted' };
     if (!req.user.groupId.permissions.includes('admin')) {
@@ -5137,7 +5244,38 @@ app.get('/api/purchases/unposted', authenticate, hasPermission('purchase'), asyn
   }
 });
 
-app.post('/api/purchases', authenticate, hasPermission('purchase'), checkDatabaseConnection, async (req, res) => {
+app.get('/api/purchases/test-route/:id', (req, res) => {
+  res.json({ message: 'Server is reloading correctly', id: req.params.id });
+});
+
+app.get('/api/purchases/:id', authenticate, hasPermission(['purchase', 'purchase-entry']), async (req, res) => {
+  try {
+    console.log('[DEBUG] Fetching purchase with ID:', req.params.id);
+
+    // Check if id is valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        console.log('[DEBUG] Invalid ID format:', req.params.id);
+        return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    const purchase = await Purchase.findById(req.params.id)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!purchase) {
+        console.log('[DEBUG] Purchase not found in DB for ID:', req.params.id);
+        return res.status(404).json({ error: 'Purchase not found' });
+    }
+    
+    console.log('[DEBUG] Purchase found:', purchase.invoiceNo);
+    res.json(purchase);
+  } catch (error) {
+    console.error('Error fetching purchase:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/purchases', authenticate, hasPermission(['purchase', 'purchase-entry']), checkDatabaseConnection, async (req, res) => {
   try {
     const purchase = await Purchase.create(req.body);
     const populated = await Purchase.findById(purchase._id)
@@ -5150,7 +5288,7 @@ app.post('/api/purchases', authenticate, hasPermission('purchase'), checkDatabas
   }
 });
 
-app.put('/api/purchases/:id', authenticate, hasPermission('purchase-edit'), checkDatabaseConnection, async (req, res) => {
+app.put('/api/purchases/:id', authenticate, hasPermission(['purchase-edit', 'purchase-entry']), checkDatabaseConnection, async (req, res) => {
   try {
     const updated = await Purchase.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('supplierId', 'name')
@@ -5163,7 +5301,7 @@ app.put('/api/purchases/:id', authenticate, hasPermission('purchase-edit'), chec
   }
 });
 
-app.delete('/api/purchases/:id', authenticate, hasPermission('purchase-edit'), checkDatabaseConnection, async (req, res) => {
+app.delete('/api/purchases/:id', authenticate, hasPermission(['purchase-edit', 'purchase-entry']), checkDatabaseConnection, async (req, res) => {
   try {
     await Purchase.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
@@ -6141,6 +6279,10 @@ app.use((req, res, next) => {
   }
   // For non-API routes, continue to static file middleware
   next();
+});
+
+app.get('/purchases/print/:id', (req, res) => {
+  res.sendFile(path.join(clientDir, 'views', 'purchase-print.html'));
 });
 
 // ========================================
