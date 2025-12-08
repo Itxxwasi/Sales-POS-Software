@@ -13440,7 +13440,9 @@
                 return false;
             }
             
-            const isAdmin = permissions.includes('admin');
+            // Normalize permissions to lowercase for robust checks
+            try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
+            const isAdmin = permissions.includes('admin') || permissions.includes('all');
             const requiredPerms = PERMISSION_MAP[sectionId];
             const hasAlias = permissions.includes(sectionId);
             
@@ -13485,8 +13487,9 @@
             if (!appData.currentUser) return;
             
             // Get user permissions
-            const permissions = appData.currentUser.permissions || [];
-            const isAdmin = permissions.includes('admin');
+            let permissions = appData.currentUser.permissions || [];
+            try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
+            const isAdmin = permissions.includes('admin') || permissions.includes('all');
             
             // Debug: Log permissions
             console.log('📋 User permissions:', permissions);
@@ -14052,8 +14055,9 @@
                     }
                     
                     // Check if user has permission to access this section
-                    const permissions = appData.currentUser?.permissions || [];
-                    const isAdmin = permissions.includes('admin');
+                    let permissions = appData.currentUser?.permissions || [];
+                    try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
+                    const isAdmin = permissions.includes('admin') || permissions.includes('all');
                     
                     // For reports section with specific report tab, check individual report permission
                     if (section === 'reports' && reportTab) {
@@ -14077,9 +14081,9 @@
                             // Check if user has permission for this section
                             // Explicit check for purchase-return-entry to handle potential mapping issues
                             const isPurchaseReturnEntry = section === 'purchase-return-entry' && 
-                                (permissions.includes('purchase-return') || permissions.includes('admin'));
+                                (permissions.includes('purchase-return') || isAdmin);
                             const isPurchaseReturnList = section === 'purchase-return-list' && 
-                                (permissions.includes('purchase-return') || permissions.includes('admin'));
+                                (permissions.includes('purchase-return') || isAdmin);
                                 
                             if (!isPurchaseReturnEntry && !isPurchaseReturnList && !hasPermission(section, permissions)) {
                                 console.warn(`Access denied for section: ${section}. Permissions:`, permissions);
@@ -14358,15 +14362,16 @@
                         return;
                     }
                     
-                    const permissions = appData.currentUser?.permissions || [];
+                    let permissions = appData.currentUser?.permissions || [];
+                    try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
+                    const isAdmin = permissions.includes('admin') || permissions.includes('all');
                     
-                    // Check permissions before showing section
-                    if (['groups', 'users', 'settings'].includes(section) && !permissions.includes('admin')) {
+                    if (['groups', 'users', 'settings'].includes(section) && !isAdmin) {
                         showNotification('You need admin privileges to access this section', 'error');
                         return;
                     }
                     
-                    if (section && !['groups', 'users', 'settings'].includes(section) && !permissions.includes(section)) {
+                    if (section && !['groups', 'users', 'settings'].includes(section) && !hasPermission(section, permissions)) {
                         showNotification(`You don't have permission to access ${section}`, 'error');
                         return;
                     }

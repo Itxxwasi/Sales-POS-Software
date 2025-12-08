@@ -61,7 +61,8 @@ export const isAdmin = (req, res, next) => {
     if (!req.user || !req.user.groupId || !Array.isArray(req.user.groupId.permissions)) {
       return res.status(403).json({ error: 'Access denied - insufficient privileges.' });
     }
-    if (!req.user.groupId.permissions.includes('admin')) {
+    const perms = req.user.groupId.permissions.map(p => String(p).toLowerCase());
+    if (!perms.includes('admin') && !perms.includes('all')) {
       return res.status(403).json({ error: 'Access denied - admin required.' });
     }
     next();
@@ -79,16 +80,16 @@ export const hasPermission = (permission) => {
         return res.status(403).json({ error: 'Access denied - insufficient privileges.' });
       }
       
-      const userPermissions = req.user.groupId.permissions;
-      if (userPermissions.includes('admin')) {
+      const userPermissions = req.user.groupId.permissions.map(p => String(p).toLowerCase());
+      if (userPermissions.includes('admin') || userPermissions.includes('all')) {
         return next();
       }
 
       let hasAccess = false;
       if (Array.isArray(permission)) {
-        hasAccess = permission.some(p => userPermissions.includes(p));
+        hasAccess = permission.some(p => userPermissions.includes(String(p).toLowerCase()));
       } else {
-        hasAccess = userPermissions.includes(permission);
+        hasAccess = userPermissions.includes(String(permission).toLowerCase());
       }
 
       if (!hasAccess) {

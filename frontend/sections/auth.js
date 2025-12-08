@@ -1,6 +1,15 @@
 // Authentication module: handles login/signup UI and auth checks
 // Relies on global window.api (APIService) and window.appData
 
+function normalizePermissions(perms) {
+  if (!Array.isArray(perms)) return [];
+  try {
+    return perms.map(p => String(p).toLowerCase());
+  } catch (_) {
+    return [];
+  }
+}
+
 function setupLoginForm() {
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
@@ -122,7 +131,7 @@ async function handleLogin(event) {
 
     window.appData.currentUser = {
       ...response.user,
-      permissions: response.user.permissions || response.user.groupId?.permissions || []
+      permissions: normalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
     };
 
     showMainApp();
@@ -293,7 +302,7 @@ async function handleSignup(event) {
 
     window.appData.currentUser = {
       ...response.user,
-      permissions: response.user.permissions || response.user.groupId?.permissions || []
+      permissions: normalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
     };
 
     showMainApp();
@@ -559,7 +568,7 @@ async function checkAuthStatus(retryAttempt = 0) {
       return;
     }
 
-    window.appData.currentUser = { ...user, permissions: (user && Array.isArray(user.permissions) ? user.permissions : (user.groupId?.permissions || [])) };
+    window.appData.currentUser = { ...user, permissions: normalizePermissions((user && Array.isArray(user.permissions) ? user.permissions : (user.groupId?.permissions || []))) };
     // Main app already shown above when user was authenticated
     if (typeof loadInitialData === 'function') loadInitialData();
 
@@ -592,7 +601,7 @@ async function checkAuthStatus(retryAttempt = 0) {
         const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
         let hasPermission = false;
         if (['groups', 'users', 'settings'].includes(section)) {
-          hasPermission = permissions.includes('admin');
+          hasPermission = permissions.includes('admin') || permissions.includes('all');
         } else {
           const permissionMap = {
              'purchase-return-entry': 'purchase-return',
@@ -606,7 +615,7 @@ async function checkAuthStatus(retryAttempt = 0) {
              'voucher-entry': 'voucher'
           };
           const requiredPerm = permissionMap[section] || section;
-          hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin');
+          hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
         }
         if (hasPermission) {
           // Update URL hash to match the section being shown
@@ -680,7 +689,7 @@ async function checkAuthStatus(retryAttempt = 0) {
           const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
           let hasPermission = false;
           if (['groups', 'users', 'settings'].includes(section)) {
-            hasPermission = permissions.includes('admin');
+            hasPermission = permissions.includes('admin') || permissions.includes('all');
           } else {
             const permissionMap = {
                'purchase-return-entry': 'purchase-return',
@@ -694,7 +703,7 @@ async function checkAuthStatus(retryAttempt = 0) {
                'voucher-entry': 'voucher'
             };
             const requiredPerm = permissionMap[section] || section;
-            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin');
+            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
           }
           if (hasPermission) {
             console.log('✅ Restoring section from URL hash (else block):', section);
@@ -728,7 +737,7 @@ async function checkAuthStatus(retryAttempt = 0) {
                 const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
                 let hasPermissionForSaved = false;
                 if (['groups', 'users', 'settings'].includes(lastActiveSection)) {
-                  hasPermissionForSaved = permissions.includes('admin');
+                  hasPermissionForSaved = permissions.includes('admin') || permissions.includes('all');
                 } else {
                   const permissionMap = {
                      'purchase-return-entry': 'purchase-return',
@@ -742,7 +751,7 @@ async function checkAuthStatus(retryAttempt = 0) {
                      'voucher-entry': 'voucher'
                   };
                   const requiredPerm = permissionMap[lastActiveSection] || lastActiveSection;
-                  hasPermissionForSaved = permissions.includes(requiredPerm) || permissions.includes('admin');
+                  hasPermissionForSaved = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
                 }
                 if (hasPermissionForSaved) {
                   if (window.location.hash !== '#' + lastActiveSection) {
@@ -798,12 +807,25 @@ async function checkAuthStatus(retryAttempt = 0) {
       try {
         const lastActiveSection = localStorage.getItem('lastActiveSection');
         if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
-          const permissions = user.groupId?.permissions || [];
+          let permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
+          try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
           let hasPermission = false;
           if (['groups', 'users', 'settings'].includes(lastActiveSection)) {
-            hasPermission = permissions.includes('admin');
+            hasPermission = permissions.includes('admin') || permissions.includes('all');
           } else {
-            hasPermission = permissions.includes(lastActiveSection) || permissions.includes('admin');
+            const permissionMap = {
+               'purchase-return-entry': 'purchase-return',
+               'purchase-return-list': 'purchase-return',
+               'purchase-entry': 'purchase',
+               'sale-return-entry': 'sale-return',
+               'item-registration': 'items',
+               'whole-sale-entry': 'whole-sale',
+               'customer-payments': 'customer-payment',
+               'supplier-payments': 'supplier-payment',
+               'voucher-entry': 'voucher'
+            };
+            const requiredPerm = permissionMap[lastActiveSection] || lastActiveSection;
+            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
           }
           if (hasPermission) {
             // Update URL hash to match the section being restored
