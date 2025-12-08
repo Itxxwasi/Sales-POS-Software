@@ -46,7 +46,6 @@ const PurchaseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-PurchaseSchema.index({ invoiceNo: 1 });
 PurchaseSchema.index({ date: -1 });
 PurchaseSchema.index({ supplierId: 1 });
 PurchaseSchema.index({ status: 1 });

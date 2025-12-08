@@ -7217,6 +7217,7 @@
             <div id="sale-return-entry-section" class="content-section"></div>
             <div id="purchase-entry-section" class="content-section"></div>
             <div id="purchase-return-entry-section" class="content-section"></div>
+            <div id="purchase-return-list-section" class="content-section"></div>
             <div id="customer-payments-section" class="content-section"></div>
             <div id="supplier-payments-section" class="content-section"></div>
             <div id="voucher-entry-section" class="content-section"></div>
@@ -10789,6 +10790,7 @@
             'sale-return-entry': 'views/sale-return-entry.html',
             'purchase-entry': 'views/purchase-entry.html',
             'purchase-return-entry': 'views/purchase-return-entry.html',
+            'purchase-return-list': 'views/purchase-return-list.html',
             'customer-payments': 'views/customer-payments.html',
             'supplier-payments': 'views/supplier-payments.html',
             'voucher-entry': 'views/voucher-entry.html',
@@ -10821,6 +10823,7 @@
             'sale-return-entry': 'sections/sale-return-entry.js',
             'purchase-entry': 'sections/purchase-entry.js',
             'purchase-return-entry': 'sections/purchase-return-entry.js',
+            'purchase-return-list': 'sections/purchase-return-list.js',
             'customer-payments': 'sections/customer-payments.js',
             'supplier-payments': 'sections/supplier-payments.js',
             'voucher-entry': 'sections/voucher-entry.js',
@@ -10861,7 +10864,11 @@
             }
             
             try {
-                const response = await fetch(viewFile);
+                // Add cache buster to view URL
+                const cacheBuster = window.__SECTION_CACHE_BUSTER__ || Date.now();
+                const url = viewFile + (viewFile.includes('?') ? '&' : '?') + 'v=' + cacheBuster;
+                
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`Failed to load ${viewFile}: ${response.status}`);
                 }
@@ -12945,6 +12952,9 @@
         // Check authentication status
         async function checkAuthStatus(retryAttempt = 0) {
             try {
+                // If this is a fresh page load (no hash), check if we have a valid token
+                // If no token/cookie (implied by API failure), we should show login
+                
                 // MIGRATED: No longer checking localStorage for token
                 // Token is now in httpOnly cookie, automatically sent with requests
                 
@@ -13055,15 +13065,17 @@
                 // Priority 2: Only check localStorage if no hash exists
                 if (!sectionToShow) {
                     try {
-                        const lastActiveSection = localStorage.getItem('lastActiveSection');
-                        if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
-                            sectionToShow = lastActiveSection;
-                            console.log('🔍 Restoring section from localStorage:', sectionToShow);
-                            // Update URL hash to match
-                            if (window.location.hash !== '#' + sectionToShow) {
-                                window.history.replaceState(null, null, '#' + sectionToShow);
-                            }
-                        }
+                        // Removed logic that restored lastActiveSection from localStorage automatically
+                        // This prevents re-opening the last screen after a browser restart if no hash is present
+                        // const lastActiveSection = localStorage.getItem('lastActiveSection');
+                        // if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
+                        //     sectionToShow = lastActiveSection;
+                        //     console.log('🔍 Restoring section from localStorage:', sectionToShow);
+                        //     // Update URL hash to match
+                        //     if (window.location.hash !== '#' + sectionToShow) {
+                        //         window.history.replaceState(null, null, '#' + sectionToShow);
+                        //     }
+                        // }
                     } catch (e) {
                         console.warn('Could not read last active section from localStorage:', e);
                     }
@@ -13388,6 +13400,7 @@
             'sale-return-entry': ['sale-return'],
             'purchase-entry': ['purchase'],
             'purchase-return-entry': ['purchase-return'],
+            'purchase-return-list': ['purchase-return'],
             'customer-payments': ['customer-payment'],
             'supplier-payments': ['supplier-payment'],
             'voucher-entry': ['voucher'],
@@ -14062,7 +14075,14 @@
                             // Admin can access, continue
                         } else {
                             // Check if user has permission for this section
-                            if (!hasPermission(section, permissions)) {
+                            // Explicit check for purchase-return-entry to handle potential mapping issues
+                            const isPurchaseReturnEntry = section === 'purchase-return-entry' && 
+                                (permissions.includes('purchase-return') || permissions.includes('admin'));
+                            const isPurchaseReturnList = section === 'purchase-return-list' && 
+                                (permissions.includes('purchase-return') || permissions.includes('admin'));
+                                
+                            if (!isPurchaseReturnEntry && !isPurchaseReturnList && !hasPermission(section, permissions)) {
+                                console.warn(`Access denied for section: ${section}. Permissions:`, permissions);
                                 showNotification(`You don't have permission to access ${section}`, 'error');
                                 return;
                             }
@@ -17278,8 +17298,12 @@
                 if (isAdmin && !sectionId.startsWith('payment-') && sectionId !== 'support-chat') {
                     // Admin can access, continue
                 } else {
+                    // Explicit check for purchase-return-entry
+                    const isPurchaseReturnEntry = sectionId === 'purchase-return-entry' && 
+                        (permissions.includes('purchase-return') || isAdmin);
+
                     // Use the comprehensive permission check function
-                    if (!hasPermission(sectionId, permissions)) {
+                    if (!isPurchaseReturnEntry && !hasPermission(sectionId, permissions)) {
                         console.warn('❌ Permission denied for section:', sectionId);
                         console.warn('📋 User permissions:', permissions);
                         console.warn('📋 Required permissions for', sectionId, ':', PERMISSION_MAP[sectionId]);

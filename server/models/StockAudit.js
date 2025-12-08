@@ -26,7 +26,6 @@ const StockAuditSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-StockAuditSchema.index({ auditNo: 1 });
 StockAuditSchema.index({ date: -1 });
 StockAuditSchema.index({ branchId: 1 });
 StockAuditSchema.index({ status: 1 });

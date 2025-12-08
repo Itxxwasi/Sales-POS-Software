@@ -43,7 +43,6 @@ const SaleReturnSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-SaleReturnSchema.index({ invoiceNo: 1 });
 SaleReturnSchema.index({ date: -1 });
 SaleReturnSchema.index({ customerId: 1 });
 

@@ -22,7 +22,6 @@ const VoucherSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-VoucherSchema.index({ voucherNo: 1 });
 VoucherSchema.index({ date: -1 });
 VoucherSchema.index({ branchId: 1 });
 

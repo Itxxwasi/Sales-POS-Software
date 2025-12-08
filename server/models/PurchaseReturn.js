@@ -37,7 +37,6 @@ const PurchaseReturnSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-PurchaseReturnSchema.index({ invoiceNo: 1 });
 PurchaseReturnSchema.index({ date: -1 });
 PurchaseReturnSchema.index({ supplierId: 1 });
 

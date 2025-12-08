@@ -92,7 +92,7 @@ const mongoUri = env.MONGO_URI;
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser()); // Parse cookies for httpOnly JWT tokens
-app.use(morgan('dev'));
+// app.use(morgan('dev'));
 /*
 // DEBUG: Log ALL incoming API requests to see what's happening
 app.use((req, res, next) => {
@@ -1894,7 +1894,7 @@ app.put('/api/sub-departments/sequences', authenticate, isAdmin, checkDatabaseCo
 // Get All Suppliers
 app.get('/api/suppliers', authenticate, async (req, res) => {
   try {
-    console.log('✅ /api/suppliers route hit');
+    // console.log('✅ /api/suppliers route hit');
     // Ensure Content-Type is set to JSON
     res.setHeader('Content-Type', 'application/json');
     
@@ -1904,7 +1904,7 @@ app.get('/api/suppliers', authenticate, async (req, res) => {
     }
     
     const suppliers = await Supplier.find().sort({ createdAt: -1 });
-    console.log(`✅ Returning ${suppliers.length} suppliers`);
+    // console.log(`✅ Returning ${suppliers.length} suppliers`);
     res.status(200).json(suppliers);
   } catch (error) {
     console.error('❌ Error fetching suppliers:', error.message);
@@ -2758,7 +2758,7 @@ app.delete('/api/sales/:id', authenticate, hasPermission('sales-delete'), checkD
 // Get All Department Sales
 app.get('/api/department-sales', authenticate, async (req, res) => {
   try {
-    console.log('✅ GET /api/department-sales - Query:', req.query);
+    // console.log('✅ GET /api/department-sales - Query:', req.query);
     const filter = {};
     
     // If user is not admin, filter by user's assigned branches
@@ -5340,6 +5340,22 @@ app.get('/api/purchase-returns', authenticate, hasPermission('purchase-return'),
   }
 });
 
+app.get('/api/purchase-returns/:id', authenticate, hasPermission('purchase-return'), async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ error: 'Invalid ID format' });
+    }
+    const purchaseReturn = await PurchaseReturn.findById(req.params.id)
+      .populate('supplierId', 'name')
+      .populate('branchId', 'name');
+    
+    if (!purchaseReturn) return res.status(404).json({ error: 'Purchase return not found' });
+    res.json(purchaseReturn);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/purchase-returns', authenticate, hasPermission('purchase-return'), checkDatabaseConnection, async (req, res) => {
   try {
     const purchaseReturn = await PurchaseReturn.create(req.body);
@@ -6150,7 +6166,7 @@ async function seedDefaultData() {
         {
           name: 'Sales',
           description: 'Sales staff with access to sales entry and reports',
-          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'customer-payment'],
+          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'purchase-return', 'customer-payment'],
           isDefault: true
         },
         {
@@ -6192,6 +6208,16 @@ async function seedDefaultData() {
           managerGroup.description = 'Branch managers with access to dashboard and reports only';
           await managerGroup.save();
         }
+      }
+
+      // Update Sales group with new permissions
+      const salesGroup = await Group.findOne({ name: 'Sales' });
+      if (salesGroup) {
+         if (!salesGroup.permissions.includes('purchase-return')) {
+             salesGroup.permissions.push('purchase-return');
+             await salesGroup.save();
+             console.log('✅ Updated Sales group with purchase-return permission');
+         }
       }
     }
     
@@ -6274,7 +6300,7 @@ app.use((req, res, next) => {
   
   // If it's an API route, skip static serving and continue to API routes
   if (originalPath.startsWith('/api/') || req.path.startsWith('/api/')) {
-    console.log('🔵 API Route Detected - Bypassing static files:', req.method, 'Path:', req.path, '| Original:', req.originalUrl);
+    // console.log('🔵 API Route Detected - Bypassing static files:', req.method, 'Path:', req.path, '| Original:', req.originalUrl);
     return next(); // Continue to API route handlers
   }
   // For non-API routes, continue to static file middleware
@@ -6283,6 +6309,10 @@ app.use((req, res, next) => {
 
 app.get('/purchases/print/:id', (req, res) => {
   res.sendFile(path.join(clientDir, 'views', 'purchase-print.html'));
+});
+
+app.get('/purchase-returns/print/:id', (req, res) => {
+  res.sendFile(path.join(clientDir, 'views', 'purchase-return-print.html'));
 });
 
 // ========================================
@@ -6320,7 +6350,7 @@ app.listen(port, () => {
   console.log(`✅ ========================================\n`);
   
   // Log all registered API routes
-  logRegisteredRoutes();
+  // logRegisteredRoutes();
   
   console.log(`✅ Expected Category Payment Routes:`);
   console.log(`   - GET  /api/category-payments`);

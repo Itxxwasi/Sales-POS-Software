@@ -559,7 +559,7 @@ async function checkAuthStatus(retryAttempt = 0) {
       return;
     }
 
-    window.appData.currentUser = { ...user, permissions: user.groupId?.permissions || [] };
+    window.appData.currentUser = { ...user, permissions: (user && Array.isArray(user.permissions) ? user.permissions : (user.groupId?.permissions || [])) };
     // Main app already shown above when user was authenticated
     if (typeof loadInitialData === 'function') loadInitialData();
 
@@ -589,12 +589,24 @@ async function checkAuthStatus(retryAttempt = 0) {
     if (sectionToShow && sectionToShow !== '') {
       setTimeout(() => {
         const section = sectionToShow;
-        const permissions = user.groupId?.permissions || [];
+        const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
         let hasPermission = false;
         if (['groups', 'users', 'settings'].includes(section)) {
           hasPermission = permissions.includes('admin');
         } else {
-          hasPermission = permissions.includes(section) || permissions.includes('admin');
+          const permissionMap = {
+             'purchase-return-entry': 'purchase-return',
+             'purchase-return-list': 'purchase-return',
+             'purchase-entry': 'purchase',
+             'sale-return-entry': 'sale-return',
+             'item-registration': 'items',
+             'whole-sale-entry': 'whole-sale',
+             'customer-payments': 'customer-payment',
+             'supplier-payments': 'supplier-payment',
+             'voucher-entry': 'voucher'
+          };
+          const requiredPerm = permissionMap[section] || section;
+          hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin');
         }
         if (hasPermission) {
           // Update URL hash to match the section being shown
@@ -665,12 +677,24 @@ async function checkAuthStatus(retryAttempt = 0) {
         // Found hash - restore it
         setTimeout(() => {
           const section = currentHash;
-          const permissions = user.groupId?.permissions || [];
+          const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
           let hasPermission = false;
           if (['groups', 'users', 'settings'].includes(section)) {
             hasPermission = permissions.includes('admin');
           } else {
-            hasPermission = permissions.includes(section) || permissions.includes('admin');
+            const permissionMap = {
+               'purchase-return-entry': 'purchase-return',
+               'purchase-return-list': 'purchase-return',
+               'purchase-entry': 'purchase',
+               'sale-return-entry': 'sale-return',
+               'item-registration': 'items',
+               'whole-sale-entry': 'whole-sale',
+               'customer-payments': 'customer-payment',
+               'supplier-payments': 'supplier-payment',
+               'voucher-entry': 'voucher'
+            };
+            const requiredPerm = permissionMap[section] || section;
+            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin');
           }
           if (hasPermission) {
             console.log('✅ Restoring section from URL hash (else block):', section);
@@ -701,12 +725,24 @@ async function checkAuthStatus(retryAttempt = 0) {
             try {
               const lastActiveSection = localStorage.getItem('lastActiveSection');
               if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
-                const permissions = user.groupId?.permissions || [];
+                const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
                 let hasPermissionForSaved = false;
                 if (['groups', 'users', 'settings'].includes(lastActiveSection)) {
                   hasPermissionForSaved = permissions.includes('admin');
                 } else {
-                  hasPermissionForSaved = permissions.includes(lastActiveSection) || permissions.includes('admin');
+                  const permissionMap = {
+                     'purchase-return-entry': 'purchase-return',
+                     'purchase-return-list': 'purchase-return',
+                     'purchase-entry': 'purchase',
+                     'sale-return-entry': 'sale-return',
+                     'item-registration': 'items',
+                     'whole-sale-entry': 'whole-sale',
+                     'customer-payments': 'customer-payment',
+                     'supplier-payments': 'supplier-payment',
+                     'voucher-entry': 'voucher'
+                  };
+                  const requiredPerm = permissionMap[lastActiveSection] || lastActiveSection;
+                  hasPermissionForSaved = permissions.includes(requiredPerm) || permissions.includes('admin');
                 }
                 if (hasPermissionForSaved) {
                   if (window.location.hash !== '#' + lastActiveSection) {

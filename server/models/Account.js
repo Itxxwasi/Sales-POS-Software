@@ -12,7 +12,6 @@ const AccountSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-AccountSchema.index({ code: 1 });
 AccountSchema.index({ name: 1 });
 
 export const Account = mongoose.model('Account', AccountSchema);

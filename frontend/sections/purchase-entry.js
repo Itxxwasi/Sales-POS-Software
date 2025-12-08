@@ -696,10 +696,10 @@
       const openBtn = document.getElementById('openPurchaseListBtn');
       if (openBtn) {
         openBtn.addEventListener('click', () => {
-           if (purchaseListModal) {
-             purchaseListModal.show();
-             loadPurchases();
-           }
+          if (purchaseListModal) {
+            purchaseListModal.show();
+            loadPurchases();
+          }
         });
       }
 
@@ -868,13 +868,15 @@
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const id = btn.getAttribute('data-id');
-                // Open print preview in a new window/tab
                 if (window.api && typeof window.api.printPurchase === 'function') {
                     window.api.printPurchase(id).then(url => {
-                        window.open(url, '_blank');
+                        const targetUrl = url && typeof url === 'string' ? url : `/purchases/print/${id}`;
+                        window.open(targetUrl, '_blank');
+                    }).catch(() => {
+                        window.open(`/purchases/print/${id}`, '_blank');
                     });
                 } else {
-                     window.open(`/purchases/print/${id}`, '_blank');
+                    window.open(`/purchases/print/${id}`, '_blank');
                 }
             });
         });
@@ -978,6 +980,10 @@
                 console.error('Error loading invoice:', err);
                 if (typeof showNotification === 'function') showNotification('Error loading invoice: ' + err.message, 'error');
             });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.loadPurchaseById = loadInvoice;
     }
 
     initPurchaseListModal();

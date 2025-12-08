@@ -42,7 +42,6 @@ const WholeSaleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-WholeSaleSchema.index({ invoiceNo: 1 });
 WholeSaleSchema.index({ date: -1 });
 WholeSaleSchema.index({ customerId: 1 });
 WholeSaleSchema.index({ branchId: 1 });

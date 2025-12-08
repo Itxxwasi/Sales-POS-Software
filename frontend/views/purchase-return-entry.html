@@ -1,81 +1,164 @@
 <div id="purchase-return-entry-section" class="content-section">
     <div class="dashboard-header">
         <h1 class="dashboard-title">Purchase Return Entry</h1>
-        <p class="dashboard-subtitle">Process purchase returns</p>
+        <p class="dashboard-subtitle">Record purchase return invoices</p>
     </div>
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Return Invoice</h5>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Purchase Return Entry</h5>
                 </div>
                 <div class="card-body">
                     <form id="purchaseReturnForm">
                         <input type="hidden" id="purchaseReturnId" value="">
-                        <div class="row g-3">
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-3">
                                 <label for="purchaseReturnInvoiceNo" class="form-label">Invoice.No</label>
-                                <input type="text" class="form-control" id="purchaseReturnInvoiceNo">
+                                <input type="text" class="form-control form-control-sm" id="purchaseReturnInvoiceNo" readonly style="background-color:#f5f7fb;">
                             </div>
                             <div class="col-md-3">
                                 <label for="purchaseReturnDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="purchaseReturnDate" required>
+                                <input type="date" class="form-control form-control-sm" id="purchaseReturnDate" required>
                             </div>
                             <div class="col-md-6">
                                 <label for="purchaseReturnSupplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="purchaseReturnSupplierId" value="Haris SB WareHouse" readonly>
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select form-select-sm" id="purchaseReturnSupplierId">
+                                        <option value="">Select supplier</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addPurchaseReturnSupplierBtn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <label for="purchaseReturnRemarks" class="form-label">Remarks</label>
-                                <input type="text" class="form-control" id="purchaseReturnRemarks">
-                            </div>
-                            <div class="col-md-6">
+                        <div class="row g-2 mt-2 align-items-end">
+                            <div class="col-md-4">
                                 <label for="purchaseReturnRefNo" class="form-label">Ref No</label>
-                                <input type="text" class="form-control" id="purchaseReturnRefNo">
+                                <input type="text" class="form-control form-control-sm" id="purchaseReturnRefNo">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="purchaseReturnBiltyNo" class="form-label">Bilty No</label>
+                                <input type="text" class="form-control form-control-sm" id="purchaseReturnBiltyNo">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="purchaseReturnRemarks" class="form-label">Remarks</label>
+                                <input type="text" class="form-control form-control-sm" id="purchaseReturnRemarks">
                             </div>
                         </div>
-                        <hr class="my-4">
-                        <h6 class="mb-3">Item Details</h6>
-                        <div class="row g-3">
-                            <div class="col-md-2"><label for="prItemCode" class="form-label">Code</label><input type="text" class="form-control" id="prItemCode"></div>
-                            <div class="col-md-4"><label for="prItemName" class="form-label">Name</label><select class="form-select" id="prItemName"><option value="">Select Item</option></select></div>
-                            <div class="col-md-2"><label for="prItemPack" class="form-label">Pack</label><input type="number" class="form-control" id="prItemPack" step="0.01"></div>
-                            <div class="col-md-2"><label for="prItemStore" class="form-label">Store</label><select class="form-select" id="prItemStore"><option value="">Shop</option></select></div>
-                            <div class="col-md-2"><label for="prItemCostPrice" class="form-label">Cost Price</label><input type="number" class="form-control" id="prItemCostPrice" step="0.01"></div>
-                        </div>
                         <div class="row g-3 mt-2">
-                            <div class="col-md-2"><label for="prItemTotal" class="form-label">Total</label><input type="number" class="form-control" id="prItemTotal" step="0.01" readonly></div>
-                            <div class="col-md-2"><label for="prItemDiscPercent" class="form-label">Dis %</label><input type="number" class="form-control" id="prItemDiscPercent" step="0.01"></div>
-                            <div class="col-md-2"><label for="prItemDiscRs" class="form-label">Dis Rs</label><input type="number" class="form-control" id="prItemDiscRs" step="0.01"></div>
-                            <div class="col-md-2"><label for="prItemTaxPercent" class="form-label">Tax %</label><input type="number" class="form-control" id="prItemTaxPercent" step="0.01"></div>
-                            <div class="col-md-2"><label for="prItemNetTotal" class="form-label">NetTotal</label><input type="number" class="form-control" id="prItemNetTotal" step="0.01" readonly></div>
-                            <div class="col-md-2"><label for="prItemStock" class="form-label">Stock</label><input type="number" class="form-control" id="prItemStock" readonly></div>
+                            <div class="col-12">
+                                <span class="badge bg-success" id="purchaseReturnStatus">Un-Posted</span>
+                            </div>
                         </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-2"><label for="prItemRs" class="form-label">Rs</label><input type="number" class="form-control" id="prItemRs" step="0.01"></div>
-                            <div class="col-md-2"><label for="prItemTotalFinal" class="form-label">Total</label><input type="number" class="form-control" id="prItemTotalFinal" step="0.01" readonly></div>
+                        <hr class="my-3">
+                        <h6 class="mb-2">Item Details</h6>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemCode" class="form-label">Code</label>
+                                <input type="text" class="form-control form-control-sm" id="purchaseReturnItemCode">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="purchaseReturnItemName" class="form-label">Name</label>
+                                <div class="input-group input-group-sm" style="position:relative;">
+                                    <select class="form-select form-select-sm" id="purchaseReturnItemName">
+                                        <option value="">Select Item</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addPurchaseReturnItemRegBtn">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm" id="refreshPurchaseReturnItemsBtn">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <div id="purchaseReturnNameOverlay" class="name-overlay" style="position:absolute; left:0; right:0; top:100%; background:#ffffff; border:1px solid #ced4da; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:none; z-index:1000;">
+                                        <input type="text" id="purchaseReturnNameOverlaySearch" class="form-control form-control-sm" placeholder="Search by name" style="border:0; border-bottom:1px solid #e9ecef; border-radius:0;">
+                                        <div id="purchaseReturnNameOverlayList" style="max-height:300px; overflow:auto;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemPack" class="form-label">Pack</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemPack" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemCostPrice" class="form-label">Cost Price</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemCostPrice" step="0.01">
+                            </div>
+                        </div>
+                        <input type="hidden" id="purchaseReturnItemStore" value="">
+                        <div class="row g-2 mt-2 align-items-end">
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemTotal" class="form-label">Total</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemTotal" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemDiscPercent" class="form-label">Dis %</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemDiscPercent" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemDiscRs" class="form-label">Dis Rs</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemDiscRs" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemStock" class="form-label">Stock</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemStock" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemTaxPercent" class="form-label">Tax %</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemTaxPercent" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemNetTotal" class="form-label">NetTotal</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemNetTotal" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-2 align-items-end">
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemRs" class="form-label">Rs</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemRs" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="purchaseReturnItemSalePrice" class="form-label">Sale Price</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnItemSalePrice" step="0.01">
+                            </div>
                             <div class="col-md-8">
                                 <label class="form-label">&nbsp;</label>
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-info" id="listPrItemsBtn"><i class="fas fa-list me-1"></i>List</button>
-                                    <button type="button" class="btn btn-primary" id="addPrItemBtn"><i class="fas fa-plus me-1"></i>Add</button>
-                                </div>
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="addPurchaseReturnItemBtn">
+                                    <i class="fas fa-plus me-1"></i>Add
+                                </button>
                             </div>
                         </div>
                         <div class="row g-3 mt-3">
                             <div class="col-12">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-light">
+                                    <style>
+                                        .purchase-return-items-table th:nth-child(3),
+                                        .purchase-return-items-table td:nth-child(3) { white-space: nowrap; }
+                                    </style>
+                                    <table class="table table-bordered table-sm w-100 purchase-return-items-table" style="table-layout:fixed;">
+                                        <thead class="table-primary">
                                             <tr>
-                                                <th>Sr.No</th><th>Code</th><th>Name</th><th>Pack</th><th>Price</th><th>Sub Total</th>
-                                                <th>Tax %</th><th>Tax Rs</th><th>Total</th><th>Dis %</th><th>Dis Rs</th><th>Net Total</th><th>Actions</th>
+                                                <th style="width:60px;">Sr.No</th>
+                                                <th style="width:90px;">Code</th>
+                                                <th style="width:40%;">Name</th>
+                                                <th style="width:80px;">Pack</th>
+                                                <th style="width:95px;">Pcs Price</th>
+                                                <th style="width:110px;">Sub Total</th>
+                                                <th style="width:70px;">Tax %</th>
+                                                <th style="width:100px;">Tax Rs</th>
+                                                <th style="width:110px;">Total</th>
+                                                <th style="width:70px;">Dis %</th>
+                                                <th style="width:100px;">Dis Rs</th>
+                                                <th style="width:120px;">Net Total</th>
+                                                <th style="width:115px;">Pcs Sale Price</th>
+                                                <th style="width:90px;">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="purchaseReturnItemsTableBody">
-                                            <tr><td colspan="13" class="text-center text-muted">No items added yet</td></tr>
+                                            <tr>
+                                                <td colspan="14" class="text-center text-muted">No items added yet</td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -85,29 +168,248 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
+    </div>
+    <div class="row mt-3">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header bg-light"><h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5></div>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
+                </div>
                 <div class="card-body">
-                    <div class="mb-3"><label for="prTotal" class="form-label">Total</label><input type="number" class="form-control" id="prTotal" step="0.01" readonly></div>
-                    <div class="mb-3"><label for="prDiscPercent" class="form-label">Dis%</label><div class="input-group"><input type="number" class="form-control" id="prDiscPercent" step="0.01"><span class="input-group-text">Rs 0</span></div></div>
-                    <div class="mb-3"><label for="prTaxPercent" class="form-label">Tax %</label><div class="input-group"><input type="number" class="form-control" id="prTaxPercent" step="0.01"><span class="input-group-text">Rs 0</span></div></div>
-                    <div class="mb-3"><label for="prMisc" class="form-label">Misc</label><input type="number" class="form-control" id="prMisc" step="0.01"></div>
-                    <div class="mb-3"><label for="prFreight" class="form-label">Freight</label><input type="number" class="form-control" id="prFreight" step="0.01"></div>
-                    <div class="mb-3"><label for="prNetTotal" class="form-label">Net Total</label><input type="number" class="form-control" id="prNetTotal" step="0.01" value="0.00" readonly></div>
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="purchaseReturnTotal" class="form-label">Total</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnTotal" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnDiscPercent" class="form-label">Dis%</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" id="purchaseReturnDiscPercent" step="0.01">
+                                    <span class="input-group-text" style="background-color:#f5f7fb;">Rs 0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnTaxPercent" class="form-label">Tax %</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" id="purchaseReturnTaxPercent" step="0.01">
+                                    <span class="input-group-text" style="background-color:#f5f7fb;">Rs 0</span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnMisc" class="form-label">Misc</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnMisc" step="0.01">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnFreight" class="form-label">Freight</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnFreight" step="0.01">
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label for="purchaseReturnNetTotal" class="form-label">Net Total</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnNetTotal" step="0.01" value="0.000" readonly style="background-color:#cfe8f3;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnPaid" class="form-label">Paid</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnPaid" step="0.01">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnInvBalance" class="form-label">Inv Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnInvBalance" step="0.01" value="0.000" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnPreBalance" class="form-label">Pre Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnPreBalance" step="0.01" readonly style="background-color:#f5f7fb;">
+                            </div>
+                            <div class="mb-2">
+                                <label for="purchaseReturnNewBalance" class="form-label">New Balance</label>
+                                <input type="number" class="form-control form-control-sm" id="purchaseReturnNewBalance" step="0.01" readonly style="background-color:#cfe8f3;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Full width elements -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="mb-2">
+                                <label for="purchaseReturnPayMode" class="form-label">Pay Mode</label>
+                                <select class="form-select form-select-sm" id="purchaseReturnPayMode" style="width: 100%;">
+                                    <option value="Credit">Credit</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <button type="button" class="btn btn-danger me-2" id="savePurchaseReturnBtn"><i class="fas fa-save me-1"></i>Save</button>
-                    <button type="button" class="btn btn-success" id="listPurchaseReturnBtn"><i class="fas fa-list me-1"></i>List</button>
+    <!-- Fixed Bottom Toolbar -->
+    <style>
+        /* Debug styles - can be removed after fixing */
+        #purchaseReturnFooter {
+            z-index: 9999 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 2px solid #28a745 !important; /* Green border to make it stand out */
+        }
+        #savePurchaseReturnBtn {
+            border: 2px solid #28a745 !important;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    <div id="purchaseReturnFooter" class="py-2 mt-3" style="background: white;">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Left side -->
+                <div class="d-flex align-items-center">
+                    <h4 class="mb-0 me-3">Purchase Return Entry</h4>
+                </div>
+                
+                <!-- Right side - Action Buttons -->
+                <div class="d-flex gap-2">
+
+                     <!-- Purchase Return List Button -->
+                    <button type="button" class="btn btn-info text-white" id="openPurchaseReturnListBtn" 
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-list me-1"></i> Purchase Return List
+                    </button>
+
+                     <!-- Save Button -->
+                    <button type="button" class="btn btn-primary" id="savePurchaseReturnBtn" 
+                    style="min-width: 110px; font-weight: 500; padding: 8px 16px;"> 
+                    <i class="fas fa-trash-alt me-1"></i> Save (F4)
+                    </button>
+                    <!-- Delete Button -->
+                    <button type="button" class="btn btn-danger" id="deletePurchaseReturnBtn"
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-trash-alt me-1"></i> Delete (F6)
+                    </button>
+                    
+                    <!-- Close Button -->
+                    <button type="button" class="btn btn-secondary" id="closePurchaseReturnBtn"
+                            style="min-width: 110px; font-weight: 500; padding: 8px 16px;">
+                        <i class="fas fa-times me-1"></i> Close (F8)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Return List Modal -->
+    <div class="modal fade" id="purchaseReturnListModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl" style="max-width: 95vw;">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h5 class="modal-title fs-6">PurchaseReturnList</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-2" style="background-color: #f0f2f5;">
+                    <!-- Filters -->
+                    <div class="card mb-2 border-0 shadow-sm">
+                        <div class="card-body p-2">
+                            <div class="row g-2 align-items-center flex-wrap flex-lg-nowrap">
+                                <div class="col-auto">
+                                    <label class="fw-bold small">From</label>
+                                </div>
+                                <div class="col-auto">
+                                    <input type="date" class="form-control form-control-sm" id="prlFromDate">
+                                </div>
+                                <div class="col-auto">
+                                    <label class="fw-bold small">To</label>
+                                </div>
+                                <div class="col-auto">
+                                    <input type="date" class="form-control form-control-sm" id="prlToDate">
+                                </div>
+                                <div class="col-auto">
+                                    <div class="input-group input-group-sm">
+                                        <select class="form-select" id="prlFilterSelect" style="min-width: 200px;">
+                                            <option value="">All Categories</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col"></div>
+                                <div class="col-auto">
+                                    <label class="fw-bold small me-1">Print Size</label>
+                                </div>
+                                <div class="col-auto">
+                                    <select class="form-select form-select-sm" id="prlPrintSize">
+                                        <option value="A-4">A-4</option>
+                                        <option value="Thermal">Thermal</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <input type="text" class="form-control form-control-sm" id="prlSearchInput" placeholder="Search...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 70vh;">
+                                <style>
+                                    #purchaseReturnListTable thead th {
+                                        background-color: #007bff;
+                                        color: white;
+                                        position: sticky;
+                                        top: 0;
+                                        z-index: 1;
+                                        white-space: nowrap;
+                                    }
+                                    #purchaseReturnListTable tbody td {
+                                        white-space: nowrap;
+                                        vertical-align: middle;
+                                    }
+                                    #purchaseReturnListTableBody tr.selected {
+                                        background-color: #d1e7dd;
+                                    }
+                                </style>
+                                <table class="table table-striped table-hover table-sm small mb-0" id="purchaseReturnListTable">
+                                    <thead>
+                                        <tr>
+                                            <th style="min-width: 120px;">Actions</th>
+                                            <th>Purchase Return ID</th>
+                                            <th>Date</th>
+                                            <th>Ref No</th>
+                                            <th>Branch</th>
+                                            <th>Bilty No</th>
+                                            <th>Supplier</th>
+                                            <th>GrossTotal</th>
+                                            <th>Discount</th>
+                                            <th>Tax</th>
+                                            <th>Misc</th>
+                                            <th>Freight</th>
+                                            <th>NetTotal</th>
+                                            <th>Remarks</th>
+                                            <th>Payment Mode</th>
+                                            <th>User Name</th>
+                                            <th>Creation Date-Time</th>
+                                            <th>Remarks2</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="purchaseReturnListTableBody">
+                                        <!-- Rows will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-

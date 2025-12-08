@@ -23,7 +23,6 @@ const DamageStockSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-DamageStockSchema.index({ damageNo: 1 });
 DamageStockSchema.index({ date: -1 });
 DamageStockSchema.index({ branchId: 1 });
 
