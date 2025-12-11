@@ -37,7 +37,7 @@
     if (!listSection || listSection.style.display === 'none') return;
 
     const permissions = window.appData?.currentUser?.permissions || [];
-    if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+    if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: true })) {
       showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
       const tbody = document.getElementById('categoryVoucherSimpleListTable');
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Access denied. You do not have permission to view category voucher list.</td></tr>';
@@ -93,8 +93,8 @@
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No category vouchers found</td></tr>';
       return;
     }
-    const canEditVoucher = (window.appData?.currentUser?.permissions || []).includes('category-voucher-edit') || (window.appData?.currentUser?.permissions || []).includes('admin');
-    const canDeleteVoucher = (window.appData?.currentUser?.permissions || []).includes('category-voucher-delete') || (window.appData?.currentUser?.permissions || []).includes('admin');
+    const canEditVoucher = hasPermission('category-voucher-edit', window.appData?.currentUser?.permissions || [], { allowAdminBypass: true });
+    const canDeleteVoucher = hasPermission('category-voucher-delete', window.appData?.currentUser?.permissions || [], { allowAdminBypass: true });
     vouchers.forEach(voucher => {
       const branchName = voucher.branchId?.name || 'Unknown';
       const categoryName = voucher.categoryId?.name || voucher.category || 'Unknown';

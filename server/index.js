@@ -114,6 +114,24 @@ app.use('/api/auth/signup', rateLimit(10, 15 * 60 * 1000));
 // INPUT SANITIZATION MIDDLEWARE (imported from middlewares/util.js)
 app.use(sanitizeInput);
 
+// Helper: canonicalize permissions sent to clients
+function canonicalizePermissions(perms) {
+  if (!Array.isArray(perms)) return [];
+  try {
+    const set = new Set();
+    perms.forEach(p => {
+      if (p === undefined || p === null) return;
+      try {
+        const s = String(p).toLowerCase().trim();
+        if (s && s !== 'null' && s !== 'undefined') set.add(s);
+      } catch (e) {}
+    });
+    return Array.from(set);
+  } catch (e) {
+    return [];
+  }
+}
+
 
 // ========================================
 // DATABASE CONNECTION
@@ -532,7 +550,7 @@ app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
         email: user.email,
         groupId: user.groupId,
         branches: user.branches,
-        permissions: user.groupId.permissions
+        permissions: canonicalizePermissions(user.groupId.permissions)
       }
     });
   } catch (error) {
@@ -644,7 +662,7 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
         email: newUser.email,
         groupId: newUser.groupId,
         branches: newUser.branches,
-        permissions: newUser.groupId.permissions
+        permissions: canonicalizePermissions(newUser.groupId.permissions)
       }
     });
     
@@ -667,7 +685,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       email: user.email,
       groupId: user.groupId,
       branches: user.branches,
-      permissions: user.groupId.permissions
+      permissions: canonicalizePermissions(user.groupId.permissions)
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -3919,7 +3937,7 @@ app.get('/api/category-payments/next-voucher-number', authenticate, hasPermissio
 });
 
 // Get All Category Payments
-app.get('/api/category-payments', authenticate, hasPermission('category-voucher-list'), async (req, res) => {
+app.get('/api/category-payments', authenticate, hasPermission(['category-voucher-list', 'payment-dashboard', 'dashboard']), async (req, res) => {
   // CRITICAL: Set headers FIRST before anything else - MUST BE FIRST LINE
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');

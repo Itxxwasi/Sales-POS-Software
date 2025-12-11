@@ -13393,6 +13393,9 @@
             'payment-vouchers': ['payment-vouchers'],
             'payment-voucher-list': ['payment-voucher-list', 'category-voucher-list'],
             'payment-reports': ['payment-reports'],
+            // Category voucher permissions (explicit)
+            'category-voucher': ['category-voucher'],
+            'category-voucher-list': ['category-voucher-list'],
             
             // New sections
             'item-registration': ['items'],
@@ -13423,63 +13426,61 @@
         };
         
         // Check if user has permission for a section
-        function hasPermission(sectionId, permissions) {
+        // options: { allowAdminBypass: true|false, forVisibility: true|false }
+        function hasPermission(sectionId, permissions, options) {
+            options = options || {};
+            const allowAdminBypass = (options.allowAdminBypass === undefined) ? true : !!options.allowAdminBypass;
+
             // Validate sectionId first
             if (!sectionId || sectionId === 'null' || sectionId === 'undefined' || sectionId === '') {
                 console.error('❌ hasPermission called with invalid sectionId:', sectionId);
                 return false;
             }
-            
+
             // If permissions not provided, get from currentUser
-            if (!permissions) {
-                permissions = appData.currentUser?.permissions || [];
-            }
-            
-            if (!permissions || !Array.isArray(permissions)) {
-                console.warn('❌ hasPermission: Invalid permissions array:', permissions);
-                return false;
-            }
-            
-            // Normalize permissions to lowercase for robust checks
-            try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
+            if (!permissions) permissions = appData.currentUser?.permissions || [];
+            if (!permissions || !Array.isArray(permissions)) return false;
+
+            // Normalize permissions to lowercase and unique
+            try { permissions = (window.canonicalizePermissions ? window.canonicalizePermissions(permissions) : permissions.map(p => String(p).toLowerCase().trim())); } catch (_) {}
+
             const isAdmin = permissions.includes('admin') || permissions.includes('all');
             const requiredPerms = PERMISSION_MAP[sectionId];
             const hasAlias = permissions.includes(sectionId);
-            
+
+            // If no mapping exists, allow alias only
             if (!requiredPerms) {
-                console.warn('❌ No permission mapping found for sectionId:', sectionId);
-                return hasAlias || false;
+                return hasAlias;
             }
-            
-            // Debug logging for income-statement-report
-            if (sectionId === 'income-statement-report') {
-                console.log('🔍 Permission check for income-statement-report:', {
-                    sectionId: sectionId,
-                    isAdmin: isAdmin,
-                    requiredPerms: requiredPerms,
-                    userPermissions: permissions,
-                    hasRequiredPerm: requiredPerms.some(perm => permissions.includes(perm)),
-                    result: isAdmin || requiredPerms.some(perm => permissions.includes(perm)) || hasAlias
-                });
+
+            // If user has the high-level 'dashboard' permission, only grant access to the dashboard
+            // section itself (not to unrelated sections). This prevents 'dashboard' from implicitly
+            // granting many other sidebar items or widgets.
+            if (permissions.includes('dashboard')) {
+                if (sectionId === 'dashboard' || sectionId.startsWith('dashboard')) {
+                    return true;
+                }
+                // otherwise do not implicitly grant other sections
             }
-            
+
             // Payment sections: NO admin bypass
             if (sectionId.startsWith('payment-')) {
                 return requiredPerms.some(perm => permissions.includes(perm)) || hasAlias;
             }
-            
-            // Support sections: NO admin bypass (require explicit permission)
+
+            // Support sections: NO admin bypass
             if (sectionId === 'support-chat') {
                 return requiredPerms.some(perm => permissions.includes(perm)) || hasAlias;
             }
-            
+
             // Admin-only sections
             if (['groups', 'users', 'settings'].includes(sectionId)) {
-                return isAdmin;
+                return permissions.includes('admin');
             }
-            
-            // Other sections: admin bypass allowed
-            return isAdmin || requiredPerms.some(perm => permissions.includes(perm)) || hasAlias;
+
+            // Other sections: admin bypass allowed depending on option
+            if (allowAdminBypass && isAdmin) return true;
+            return requiredPerms.some(perm => permissions.includes(perm)) || hasAlias;
         }
         
         // Update sidebar based on user permissions
@@ -13597,43 +13598,31 @@
                 
                 // Check permission for regular sections
                 if (section) {
-                    // For sidebar visibility, check actual group permissions (no admin bypass)
-                    // This ensures menu items only show if the user's group has the permission
-                    let hasSectionPermission = false;
-                    const requiredPerms = PERMISSION_MAP[section];
-                    
-                    if (requiredPerms) {
-                        // Check if user has any of the required permissions in their group
-                        hasSectionPermission = requiredPerms.some(perm => permissions.includes(perm));
-                        
-                        // Special case: Admin-only sections (groups, users, settings) require 'admin' permission
-                        if (['groups', 'users', 'settings'].includes(section)) {
-                            hasSectionPermission = permissions.includes('admin');
-                        }
-                    }
-                    
-                    // Also check for permission- classes on nav-item
+                    // For sidebar visibility we require explicit group permission (no admin bypass)
+                    let hasSectionPermission = hasPermission(section, permissions, { allowAdminBypass: false, forVisibility: true });
+
+                    // Also check for permission- classes on nav-item (explicit overrides)
                     const permissionClasses = Array.from(navItem.classList).filter(cls => cls.startsWith('permission-'));
                     if (permissionClasses.length > 0) {
                         permissionClasses.forEach(permClass => {
                             const permName = permClass.replace('permission-', '');
-                            if (permissions.includes(permName) || isAdmin) {
+                            if (permissions.includes(permName)) {
                                 hasSectionPermission = true;
                             }
                         });
                     }
-                    
+
                     // Check admin-only class
                     if (navItem.classList.contains('admin-only')) {
-                        hasSectionPermission = isAdmin;
+                        hasSectionPermission = permissions.includes('admin');
                     }
-                    
+
                     if (navItem) {
                         navItem.style.display = hasSectionPermission ? 'block' : 'none';
                         // Ensure visibility is explicitly set
                         navItem.style.visibility = hasSectionPermission ? 'visible' : 'hidden';
                     }
-                    
+
                     if (hasSectionPermission && parentSection) {
                         sectionVisibility[parentSection] = true;
                     }
@@ -13729,18 +13718,18 @@
             // Supplier Voucher Tab - requires 'payment-vouchers' permission (admin bypass allowed)
             const supplierVoucherTab = document.getElementById('supplier-voucher-tab');
             if (supplierVoucherTab && supplierVoucherTab.parentElement) {
-                const hasSupplierVoucherPermission = isAdmin || permissions.includes('payment-vouchers');
+                const hasSupplierVoucherPermission = hasPermission('payment-vouchers', permissions, { allowAdminBypass: false });
                 supplierVoucherTab.parentElement.style.display = hasSupplierVoucherPermission ? '' : 'none';
             }
             
             // Category Voucher Tab - requires 'category-voucher' permission (admin bypass allowed)
             const categoryVoucherTab = document.getElementById('category-voucher-tab');
             if (categoryVoucherTab && categoryVoucherTab.parentElement) {
-                const hasCategoryVoucherPermission = isAdmin || permissions.includes('category-voucher');
+                const hasCategoryVoucherPermission = hasPermission('category-voucher', permissions, { allowAdminBypass: false });
                 categoryVoucherTab.parentElement.style.display = hasCategoryVoucherPermission ? '' : 'none';
                 
                 // If category voucher tab is hidden but supplier voucher is visible, make supplier tab active
-                if (!hasCategoryVoucherPermission && supplierVoucherTab && (isAdmin || permissions.includes('payment-vouchers'))) {
+                if (!hasCategoryVoucherPermission && supplierVoucherTab && hasPermission('payment-vouchers', permissions, { allowAdminBypass: false })) {
                     supplierVoucherTab.classList.add('active');
                     const supplierContent = document.getElementById('supplier-voucher-content');
                     if (supplierContent) supplierContent.classList.add('show', 'active');
@@ -13754,18 +13743,18 @@
             // Check for supplier voucher list tab (admin bypass allowed)
             const supplierVoucherListTab = document.querySelector('#voucherListTabs [data-bs-target="#supplier-voucher-list-content"]');
             if (supplierVoucherListTab && supplierVoucherListTab.parentElement) {
-                const hasPaymentVoucherListPermission = isAdmin || permissions.includes('payment-voucher-list');
+                const hasPaymentVoucherListPermission = hasPermission('payment-voucher-list', permissions, { allowAdminBypass: false });
                 supplierVoucherListTab.parentElement.style.display = hasPaymentVoucherListPermission ? '' : 'none';
             }
             
             // Check for category voucher list tab (inside voucher list section) (admin bypass allowed)
             const categoryVoucherListTabBtn = document.querySelector('#voucherListTabs [data-bs-target="#category-voucher-list-content"]');
             if (categoryVoucherListTabBtn && categoryVoucherListTabBtn.parentElement) {
-                const hasCategoryVoucherListPermission = isAdmin || permissions.includes('category-voucher-list');
+                const hasCategoryVoucherListPermission = hasPermission('category-voucher-list', permissions, { allowAdminBypass: false });
                 categoryVoucherListTabBtn.parentElement.style.display = hasCategoryVoucherListPermission ? '' : 'none';
                 
                 // If category voucher list tab is hidden but supplier voucher list is visible, make supplier tab active
-                if (!hasCategoryVoucherListPermission && supplierVoucherListTab && (isAdmin || permissions.includes('payment-voucher-list'))) {
+                if (!hasCategoryVoucherListPermission && supplierVoucherListTab && hasPermission('payment-voucher-list', permissions, { allowAdminBypass: false })) {
                     supplierVoucherListTab.classList.add('active');
                     const supplierListContent = document.getElementById('supplier-voucher-list-content');
                     if (supplierListContent) supplierListContent.classList.add('show', 'active');
@@ -13798,15 +13787,9 @@
                 const requiredPerms = reportTabPermissions[tabId];
                 
                 if (requiredPerms) {
-                    // All reports: admin bypass allowed
-                    if (tabId === 'payment-reports') {
-                        const hasPermission = isAdmin || permissions.includes('payment-reports');
-                        tab.style.display = hasPermission ? 'flex' : 'none';
-                    } else {
-                        // Other reports: admin bypass allowed
-                        const hasPermission = isAdmin || requiredPerms.some(perm => permissions.includes(perm));
-                        tab.style.display = hasPermission ? 'flex' : 'none';
-                    }
+                    // Use unified hasPermission check (no admin bypass for report tabs visibility)
+                    const allowed = hasPermission(tabId, permissions, { allowAdminBypass: false });
+                    tab.style.display = allowed ? 'flex' : 'none';
                 }
             });
             
@@ -18578,6 +18561,23 @@
         // Load payment details for dashboard
         async function loadDashboardPaymentDetails(tabPrefix = 'warehouse') {
             try {
+                // Load payment details if user has either `payment-dashboard` OR the high-level `dashboard` permission
+                // This allows a single `dashboard` permission to enable all dashboard widgets (cards + table).
+                const permissions = window.appData?.currentUser?.permissions || [];
+                if (!(hasPermission('payment-dashboard', permissions, { allowAdminBypass: true }) || hasPermission('dashboard', permissions, { allowAdminBypass: true }))) {
+                    // Clear or hide payment widgets/table and show access-denied message
+                    const totalSalesEl = document.getElementById(`${tabPrefix}DashboardPaymentTotalSales`);
+                    const totalCostEl = document.getElementById(`${tabPrefix}DashboardPaymentTotalCost`);
+                    const categoryPaymentsEl = document.getElementById(`${tabPrefix}DashboardPaymentCategoryPayments`);
+                    const balancePaymentEl = document.getElementById(`${tabPrefix}DashboardPaymentBalancePayment`);
+                    try { if (totalSalesEl) totalSalesEl.textContent = '0'; } catch(_){}
+                    try { if (totalCostEl) totalCostEl.textContent = '0'; } catch(_){}
+                    try { if (categoryPaymentsEl) categoryPaymentsEl.textContent = '0'; } catch(_){}
+                    try { if (balancePaymentEl) balancePaymentEl.textContent = '0'; } catch(_){}
+                    const tableContainer = document.getElementById(`${tabPrefix}DashboardPaymentTableContainer`);
+                    if (tableContainer) tableContainer.innerHTML = '<div class="text-center text-danger py-3">Access denied. You do not have permission to view payment details.</div>';
+                    return; // skip loading payment APIs
+                }
                 const branchId = document.getElementById(`${tabPrefix}DashboardPaymentBranchFilter`)?.value || '';
                 const categoryId = document.getElementById(`${tabPrefix}DashboardPaymentCategoryFilter`)?.value || '';
                 const dateFilter = document.getElementById(`${tabPrefix}DashboardPaymentDateFilter`)?.value || 'currentMonth';
@@ -22571,8 +22571,7 @@ sortedBranches.forEach(data => {
         // Edit sale
         function editSale(id) {
             const permissions = appData.currentUser?.permissions || [];
-            const isAdmin = permissions.includes('admin');
-            if (!isAdmin && !permissions.includes('sales-edit')) {
+            if (!hasPermission('sales-edit', permissions, { allowAdminBypass: true })) {
                 showNotification("You don't have permission to edit sales", 'error');
                 return;
             }
@@ -22636,8 +22635,7 @@ sortedBranches.forEach(data => {
         // Delete sale
         function deleteSale(id) {
             const permissions = appData.currentUser?.permissions || [];
-            const isAdmin = permissions.includes('admin');
-            if (!isAdmin && !permissions.includes('sales-delete')) {
+            if (!hasPermission('sales-delete', permissions, { allowAdminBypass: true })) {
                 showNotification("You don't have permission to delete sales", 'error');
                 return;
             }
@@ -24910,8 +24908,7 @@ sortedBranches.forEach(data => {
         // Edit Department Sale - Make globally accessible
         window.editDeptSale = function(id) {
             const permissions = appData.currentUser?.permissions || [];
-            const isAdmin = permissions.includes('admin');
-            if (!isAdmin && !permissions.includes('sales-edit')) {
+            if (!hasPermission('sales-edit', permissions, { allowAdminBypass: true })) {
                 showNotification("You don't have permission to edit department sales", 'error');
                 return;
             }
@@ -25088,8 +25085,7 @@ sortedBranches.forEach(data => {
         // Delete Department Sale - Make globally accessible
         window.deleteDeptSale = function(id) {
             const permissions = appData.currentUser?.permissions || [];
-            const isAdmin = permissions.includes('admin');
-            if (!isAdmin && !permissions.includes('sales-delete')) {
+            if (!hasPermission('sales-delete', permissions, { allowAdminBypass: true })) {
                 showNotification("You don't have permission to delete department sales", 'error');
                 return;
             }
@@ -25146,9 +25142,9 @@ sortedBranches.forEach(data => {
         // Show Payment Tab
         function showPaymentTab(tabName) {
             try {
-                // Permission guard: require exact permission for the tab
+                // Permission guard: require explicit permission for payment tabs
                 const permissions = appData.currentUser?.permissions || [];
-                if (tabName && tabName.startsWith('payment-') && !permissions.includes(tabName)) {
+                if (tabName && tabName.startsWith('payment-') && !hasPermission(tabName, permissions, { allowAdminBypass: false })) {
                     showNotification(`You don't have permission to access ${tabName}`, 'error');
                     return;
                 }
@@ -25810,7 +25806,7 @@ sortedBranches.forEach(data => {
             
             // Check permissions before making API call
             const permissions = appData.currentUser?.permissions || [];
-            if (!permissions.includes('admin') && !permissions.includes('payment-voucher-list')) {
+            if (!hasPermission('payment-voucher-list', permissions, { allowAdminBypass: false })) {
                 showNotification('Access denied. You do not have permission to view supplier voucher list.', 'error');
                 // Clear the table to show empty state
                 const tbody = document.querySelector('#payment-voucher-list-section table tbody');
@@ -27093,7 +27089,7 @@ sortedBranches.forEach(data => {
         function loadCategoryVoucherListTab() {
             // Check permissions before making API call
             const permissions = appData.currentUser?.permissions || [];
-            if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+            if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: false })) {
                 showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
                 // Clear the table to show empty state
                 const tbody = document.getElementById('categoryVoucherListTableBody');
@@ -27433,7 +27429,7 @@ sortedBranches.forEach(data => {
             
             // Check permissions before making API call
             const permissions = appData.currentUser?.permissions || [];
-            if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+            if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: false })) {
                 showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
                 // Clear the table to show empty state
                 const tbody = document.getElementById('categoryVoucherSimpleListTable');
@@ -27799,7 +27795,7 @@ sortedBranches.forEach(data => {
         function loadCategoryVoucherList() {
             // Check permissions before making API call
             const permissions = appData.currentUser?.permissions || [];
-            if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+            if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: false })) {
                 showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
                 // Clear the table to show empty state
                 const tbody = document.getElementById('categoryVoucherListTable');

@@ -13,7 +13,82 @@
       const form = section?.querySelector('#paymentVoucherForm'); if (form) { form.style.display = 'block'; form.style.visibility = 'visible'; }
       const cardBody = section?.querySelector('.card-body'); if (cardBody) { cardBody.style.display = 'block'; cardBody.style.visibility = 'visible'; }
       const header = section?.querySelector('.dashboard-header'); if (header) { header.style.display = 'block'; header.style.visibility = 'visible'; }
+      initializePaymentVoucherTabs();
     });
+  }
+
+  function initializePaymentVoucherTabs() {
+    const permissions = window.appData?.currentUser?.permissions || [];
+    // Permissions mapping
+    // Supplier Voucher -> 'payment-voucher-list' (general payment permission)
+    // Category Voucher -> 'category-voucher-list'
+    const hasSupplierPermission = hasPermission('payment-voucher-list', permissions, { allowAdminBypass: true });
+    const hasCategoryPermission = hasPermission('category-voucher-list', permissions, { allowAdminBypass: true });
+
+    const supplierTab = document.getElementById('supplier-voucher-tab');
+    const categoryTab = document.getElementById('category-voucher-tab');
+    const supplierContent = document.getElementById('supplier-voucher-content');
+    const categoryContent = document.getElementById('category-voucher-content');
+
+    // Handle Supplier Tab Visibility
+    if (supplierTab) {
+      if (hasSupplierPermission) {
+        supplierTab.parentElement.style.display = '';
+      } else {
+        supplierTab.parentElement.style.display = 'none';
+      }
+    }
+
+    // Handle Category Tab Visibility
+    if (categoryTab) {
+      if (hasCategoryPermission) {
+        categoryTab.parentElement.style.display = '';
+      } else {
+        categoryTab.parentElement.style.display = 'none';
+      }
+    }
+
+    // Handle Active Tab Logic
+    // If we are on a tab we don't have permission for, switch to one we do.
+    const isSupplierActive = supplierTab?.classList.contains('active');
+    const isCategoryActive = categoryTab?.classList.contains('active');
+
+    if (isCategoryActive && !hasCategoryPermission) {
+      // Current tab is Category, but no permission.
+      if (categoryTab) categoryTab.classList.remove('active');
+      if (categoryContent) {
+        categoryContent.classList.remove('show', 'active');
+        categoryContent.style.display = 'none'; // Ensure it's hidden
+      }
+      
+      if (hasSupplierPermission && supplierTab) {
+        // Switch to Supplier
+        const bsTab = new bootstrap.Tab(supplierTab);
+        bsTab.show();
+      }
+    } else if (isSupplierActive && !hasSupplierPermission) {
+       // Current tab is Supplier, but no permission.
+       if (supplierTab) supplierTab.classList.remove('active');
+       if (supplierContent) {
+          supplierContent.classList.remove('show', 'active');
+          supplierContent.style.display = 'none';
+       }
+
+       if (hasCategoryPermission && categoryTab) {
+         // Switch to Category
+         const bsTab = new bootstrap.Tab(categoryTab);
+         bsTab.show();
+       }
+    } else if (!isSupplierActive && !isCategoryActive) {
+      // No tab active (initial load?), activate first available
+      if (hasSupplierPermission && supplierTab) {
+         const bsTab = new bootstrap.Tab(supplierTab);
+         bsTab.show();
+      } else if (hasCategoryPermission && categoryTab) {
+         const bsTab = new bootstrap.Tab(categoryTab);
+         bsTab.show();
+      }
+    }
   }
 
   function generatePaymentVoucherNumber() {

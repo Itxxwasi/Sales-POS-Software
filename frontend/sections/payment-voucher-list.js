@@ -35,8 +35,13 @@
     const supplierTabPane = document.getElementById('supplier-voucher-list-content');
     const categoryTabPane = document.getElementById('category-voucher-list-content');
     
-    const hasSupplierPermission = permissions.includes('admin') || permissions.includes('payment-voucher-list');
-    const hasCategoryPermission = permissions.includes('admin') || permissions.includes('category-voucher-list');
+    // Use strict visibility checks: do NOT allow admin bypass for tab visibility
+    // This ensures tabs are shown only when the group explicitly has the permission.
+    const hasSupplierPermission = hasPermission('payment-voucher-list', permissions, { allowAdminBypass: false });
+    const hasCategoryPermission = hasPermission('category-voucher-list', permissions, { allowAdminBypass: false });
+
+    // Debug logs to help diagnose unexpected visibility
+    console.log('Voucher Tabs - permissions:', permissions, 'hasSupplier:', hasSupplierPermission, 'hasCategory:', hasCategoryPermission);
     
     // Show/hide supplier tab
     if (supplierTab && supplierTab.parentElement) {
@@ -93,7 +98,7 @@
     if (!categoryTabPane || !categoryTabPane.classList.contains('active')) return;
     
     const permissions = appData.currentUser?.permissions || [];
-    if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+    if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: true })) {
       showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
       const tbody = document.getElementById('categoryVoucherListTableBody');
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Access denied. You do not have permission to view category voucher list.</td></tr>';
@@ -172,10 +177,8 @@
     }
     
     const selectedIds = appData.categoryVoucherSelectedIds || [];
-    const canEditVoucher = (appData.currentUser?.permissions || []).includes('category-voucher-edit') || 
-                          (appData.currentUser?.permissions || []).includes('admin');
-    const canDeleteVoucher = (appData.currentUser?.permissions || []).includes('category-voucher-delete') || 
-                            (appData.currentUser?.permissions || []).includes('admin');
+    const canEditVoucher = hasPermission('category-voucher-edit', appData.currentUser?.permissions || [], { allowAdminBypass: true });
+    const canDeleteVoucher = hasPermission('category-voucher-delete', appData.currentUser?.permissions || [], { allowAdminBypass: true });
     
     vouchers.forEach(voucher => {
       const row = document.createElement('tr');
@@ -207,7 +210,7 @@
     const listSection = document.getElementById('payment-voucher-list-section');
     if (!listSection || listSection.style.display === 'none') return;
     const permissions = appData.currentUser?.permissions || [];
-    if (!permissions.includes('admin') && !permissions.includes('payment-voucher-list')) {
+    if (!hasPermission('payment-voucher-list', permissions, { allowAdminBypass: true })) {
       showNotification('Access denied. You do not have permission to view supplier voucher list.', 'error');
       const tbodyDenied = document.querySelector('#payment-voucher-list-section table tbody');
       if (tbodyDenied) tbodyDenied.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Access denied. You do not have permission to view supplier voucher list.</td></tr>';
@@ -261,8 +264,8 @@
     tbody.innerHTML = '';
     if (vouchers.length === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No vouchers found</td></tr>'; return; }
     const selectedIds = appData.paymentVoucherSelectedIds || [];
-    const canEditSupplierVoucher = (appData.currentUser?.permissions || []).includes('payment-edit') || (appData.currentUser?.permissions || []).includes('admin');
-    const canDeleteSupplierVoucher = (appData.currentUser?.permissions || []).includes('payment-delete') || (appData.currentUser?.permissions || []).includes('admin');
+    const canEditSupplierVoucher = hasPermission('payment-edit', appData.currentUser?.permissions || [], { allowAdminBypass: true });
+    const canDeleteSupplierVoucher = hasPermission('payment-delete', appData.currentUser?.permissions || [], { allowAdminBypass: true });
     vouchers.forEach(voucher => {
       const row = document.createElement('tr');
       const branchName = voucher.branchId?.name || 'Unknown';

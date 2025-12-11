@@ -10,6 +10,23 @@ function normalizePermissions(perms) {
   }
 }
 
+// Canonicalize permissions: lowercase, trim, unique
+function canonicalizePermissions(perms) {
+  if (!Array.isArray(perms)) return [];
+  try {
+    const set = new Set();
+    perms.forEach(p => {
+      if (p === undefined || p === null) return;
+      try {
+        const s = String(p).toLowerCase().trim();
+        if (s && s !== 'null' && s !== 'undefined') set.add(s);
+      } catch (e) {}
+    });
+    return Array.from(set);
+  } catch (_) {
+    return [];
+  }
+}
 function setupLoginForm() {
   const loginForm = document.getElementById('loginForm');
   const signupForm = document.getElementById('signupForm');
@@ -131,7 +148,7 @@ async function handleLogin(event) {
 
     window.appData.currentUser = {
       ...response.user,
-      permissions: normalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
+      permissions: canonicalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
     };
 
     showMainApp();
@@ -302,7 +319,7 @@ async function handleSignup(event) {
 
     window.appData.currentUser = {
       ...response.user,
-      permissions: normalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
+      permissions: canonicalizePermissions(response.user.permissions || response.user.groupId?.permissions || [])
     };
 
     showMainApp();
@@ -568,7 +585,7 @@ async function checkAuthStatus(retryAttempt = 0) {
       return;
     }
 
-    window.appData.currentUser = { ...user, permissions: normalizePermissions((user && Array.isArray(user.permissions) ? user.permissions : (user.groupId?.permissions || []))) };
+    window.appData.currentUser = { ...user, permissions: canonicalizePermissions((user && Array.isArray(user.permissions) ? user.permissions : (user.groupId?.permissions || []))) };
     // Main app already shown above when user was authenticated
     if (typeof loadInitialData === 'function') loadInitialData();
 
@@ -599,25 +616,8 @@ async function checkAuthStatus(retryAttempt = 0) {
       setTimeout(() => {
         const section = sectionToShow;
         const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
-        let hasPermission = false;
-        if (['groups', 'users', 'settings'].includes(section)) {
-          hasPermission = permissions.includes('admin') || permissions.includes('all');
-        } else {
-          const permissionMap = {
-             'purchase-return-entry': 'purchase-return',
-             'purchase-return-list': 'purchase-return',
-             'purchase-entry': 'purchase',
-             'sale-return-entry': 'sale-return',
-             'item-registration': 'items',
-             'whole-sale-entry': 'whole-sale',
-             'customer-payments': 'customer-payment',
-             'supplier-payments': 'supplier-payment',
-             'voucher-entry': 'voucher'
-          };
-          const requiredPerm = permissionMap[section] || section;
-          hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
-        }
-        if (hasPermission) {
+        const hasPerm = (typeof window.hasPermission === 'function') ? window.hasPermission(section, permissions, { allowAdminBypass: true }) : (permissions.includes('admin') || permissions.includes('all'));
+        if (hasPerm) {
           // Update URL hash to match the section being shown
           if (window.location.hash !== '#' + section) {
             window.history.replaceState(null, null, '#' + section);
@@ -687,25 +687,8 @@ async function checkAuthStatus(retryAttempt = 0) {
         setTimeout(() => {
           const section = currentHash;
           const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
-          let hasPermission = false;
-          if (['groups', 'users', 'settings'].includes(section)) {
-            hasPermission = permissions.includes('admin') || permissions.includes('all');
-          } else {
-            const permissionMap = {
-               'purchase-return-entry': 'purchase-return',
-               'purchase-return-list': 'purchase-return',
-               'purchase-entry': 'purchase',
-               'sale-return-entry': 'sale-return',
-               'item-registration': 'items',
-               'whole-sale-entry': 'whole-sale',
-               'customer-payments': 'customer-payment',
-               'supplier-payments': 'supplier-payment',
-               'voucher-entry': 'voucher'
-            };
-            const requiredPerm = permissionMap[section] || section;
-            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
-          }
-          if (hasPermission) {
+          const hasPerm = (typeof window.hasPermission === 'function') ? window.hasPermission(section, permissions, { allowAdminBypass: true }) : (permissions.includes('admin') || permissions.includes('all'));
+          if (hasPerm) {
             console.log('✅ Restoring section from URL hash (else block):', section);
             if (typeof showSection === 'function') showSection(section);
             document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
@@ -733,27 +716,10 @@ async function checkAuthStatus(retryAttempt = 0) {
             // No permission - try localStorage before dashboard
             try {
               const lastActiveSection = localStorage.getItem('lastActiveSection');
-              if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
-                const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
-                let hasPermissionForSaved = false;
-                if (['groups', 'users', 'settings'].includes(lastActiveSection)) {
-                  hasPermissionForSaved = permissions.includes('admin') || permissions.includes('all');
-                } else {
-                  const permissionMap = {
-                     'purchase-return-entry': 'purchase-return',
-                     'purchase-return-list': 'purchase-return',
-                     'purchase-entry': 'purchase',
-                     'sale-return-entry': 'sale-return',
-                     'item-registration': 'items',
-                     'whole-sale-entry': 'whole-sale',
-                     'customer-payments': 'customer-payment',
-                     'supplier-payments': 'supplier-payment',
-                     'voucher-entry': 'voucher'
-                  };
-                  const requiredPerm = permissionMap[lastActiveSection] || lastActiveSection;
-                  hasPermissionForSaved = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
-                }
-                if (hasPermissionForSaved) {
+                if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
+                  const permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
+                  const hasPermissionForSaved = (typeof window.hasPermission === 'function') ? window.hasPermission(lastActiveSection, permissions, { allowAdminBypass: true }) : (permissions.includes('admin') || permissions.includes('all'));
+                  if (hasPermissionForSaved) {
                   if (window.location.hash !== '#' + lastActiveSection) {
                     window.history.replaceState(null, null, '#' + lastActiveSection);
                   }
@@ -809,25 +775,8 @@ async function checkAuthStatus(retryAttempt = 0) {
         if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
           let permissions = (window.appData && window.appData.currentUser && Array.isArray(window.appData.currentUser.permissions)) ? window.appData.currentUser.permissions : (user.groupId?.permissions || []);
           try { permissions = permissions.map(p => String(p).toLowerCase()); } catch (_) {}
-          let hasPermission = false;
-          if (['groups', 'users', 'settings'].includes(lastActiveSection)) {
-            hasPermission = permissions.includes('admin') || permissions.includes('all');
-          } else {
-            const permissionMap = {
-               'purchase-return-entry': 'purchase-return',
-               'purchase-return-list': 'purchase-return',
-               'purchase-entry': 'purchase',
-               'sale-return-entry': 'sale-return',
-               'item-registration': 'items',
-               'whole-sale-entry': 'whole-sale',
-               'customer-payments': 'customer-payment',
-               'supplier-payments': 'supplier-payment',
-               'voucher-entry': 'voucher'
-            };
-            const requiredPerm = permissionMap[lastActiveSection] || lastActiveSection;
-            hasPermission = permissions.includes(requiredPerm) || permissions.includes('admin') || permissions.includes('all');
-          }
-          if (hasPermission) {
+          const hasPerm = (typeof window.hasPermission === 'function') ? window.hasPermission(lastActiveSection, permissions, { allowAdminBypass: true }) : (permissions.includes('admin') || permissions.includes('all'));
+          if (hasPerm) {
             // Update URL hash to match the section being restored
             if (window.location.hash !== '#' + lastActiveSection) {
               window.history.replaceState(null, null, '#' + lastActiveSection);
@@ -933,5 +882,7 @@ window.switchToSignup = switchToSignup;
 window.showLoginSection = showLoginSection;
 window.showMainApp = showMainApp;
 window.checkAuthStatus = checkAuthStatus;
+// expose canonicalize helper for other scripts
+window.canonicalizePermissions = canonicalizePermissions;
 
 export { setupLoginForm, unlockSignupAccess, handleLogin, handleSignup, switchToLogin, switchToSignup, showLoginSection, showMainApp, checkAuthStatus };

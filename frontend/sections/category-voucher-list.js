@@ -39,7 +39,7 @@
 
   function loadCategoryVoucherList() {
     const permissions = window.appData?.currentUser?.permissions || [];
-    if (!permissions.includes('admin') && !permissions.includes('category-voucher-list')) {
+    if (!hasPermission('category-voucher-list', permissions, { allowAdminBypass: true })) {
       showNotification('Access denied. You do not have permission to view category voucher list.', 'error');
       const tbody = document.getElementById('categoryVoucherListTable');
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Access denied. You do not have permission to view category voucher list.</td></tr>';

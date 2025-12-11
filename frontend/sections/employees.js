@@ -80,16 +80,11 @@
     
     // Check if user has employee-list permission or employees permission (which includes list access)
     const permissions = window.appData?.currentUser?.permissions || [];
-    const hasListPermission = permissions.includes('employee-list') || 
-                              permissions.includes('employees') || 
-                              permissions.includes('admin');
+    const hasListPermission = (typeof window.hasPermission === 'function') ? (hasPermission('employee-list', permissions, { allowAdminBypass: true }) || hasPermission('employees', permissions, { allowAdminBypass: true })) : (permissions.includes('employee-list') || permissions.includes('employees') || permissions.includes('admin'));
     
     console.log('Employee List Button Permission Check:', {
       permissions: permissions,
-      hasListPermission: hasListPermission,
-      hasEmployeeList: permissions.includes('employee-list'),
-      hasEmployees: permissions.includes('employees'),
-      hasAdmin: permissions.includes('admin')
+      hasListPermission: hasListPermission
     });
     
     if (hasListPermission) {
