@@ -11641,6 +11641,7 @@
          If you find duplicate code in this file that exists in section JS files,
          please comment it out to avoid conflicts.
     -->
+<<<<<<< HEAD
             <script>
                 // ========================================
                 // API SERVICE LAYER
@@ -11657,6 +11658,172 @@
 
                     // Get token from localStorage
                     getToken() {
+=======
+    <script>
+        // ========================================
+        // API SERVICE LAYER
+        // ========================================
+        
+            // API Service Layer with Authentication
+            // APIService class for handling API requests with Bearer token authentication
+            // Token is stored in localStorage and sent via Authorization header
+            class APIService {
+            constructor() {
+                this.baseURL = '/api';
+                // Token is stored in localStorage for Bearer token authentication
+            }
+            
+            // Decode JWT token to check expiration
+            decodeToken(token) {
+                try {
+                    if (!token) return null;
+                    const base64Url = token.split('.')[1];
+                    if (!base64Url) return null;
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+                    return JSON.parse(jsonPayload);
+                } catch (e) {
+                    console.error('Error decoding token:', e);
+                    return null;
+                }
+            }
+            
+            // Check if token is expired
+            isTokenExpired(token) {
+                try {
+                    const decoded = this.decodeToken(token);
+                    if (!decoded || !decoded.exp) return true;
+                    // Check if expiration time (in seconds) is less than current time
+                    return decoded.exp * 1000 < Date.now();
+                } catch (e) {
+                    return true; // If we can't decode, consider it expired
+                }
+            }
+            
+            // Get token from localStorage and validate expiration
+            getToken() {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token || token === 'null' || token === 'undefined') {
+                        return null;
+                    }
+                    
+                    // Check if token is expired
+                    if (this.isTokenExpired(token)) {
+                        console.warn('Token expired, clearing from storage');
+                        this.clearToken();
+                        return null;
+                    }
+                    
+                    return token;
+                } catch (e) {
+                    console.error('Error reading token from localStorage:', e);
+                    return null;
+                }
+            }
+            
+            // Set token in localStorage
+            setToken(token) {
+                try {
+                    if (token && token !== 'null' && token !== 'undefined') {
+                        localStorage.setItem('token', token);
+                    } else {
+                        this.clearToken();
+                    }
+                } catch (e) {
+                    console.error('Error saving token to localStorage:', e);
+                }
+            }
+            
+            // Clear authentication token from localStorage
+            clearToken() {
+                try {
+                    localStorage.removeItem('token');
+                } catch (e) {
+                    console.error('Error clearing token from localStorage:', e);
+                }
+            }
+            
+            // Check if user is authenticated (token exists and is not expired)
+            isAuthenticated() {
+                const token = this.getToken(); // This already checks expiration
+                return !!token;
+            }
+            
+            // Retry mechanism for failed requests
+            async requestWithRetry(endpoint, options = {}, maxRetries = 3) {
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        return await this.request(endpoint, options);
+                    } catch (error) {
+                        
+                        // Don't retry for authentication errors
+                        if (error.message.includes('Authentication failed') || 
+                            error.message.includes('401')) {
+                            throw error;
+                        }
+                        
+                        // Don't retry for client errors (4xx)
+                        if (error.message.includes('400') || 
+                            error.message.includes('403') || 
+                            error.message.includes('404')) {
+                            throw error;
+                        }
+                        
+                        // If this is the last attempt, throw the error
+                        if (attempt === maxRetries) {
+                            throw error;
+                        }
+                        
+                        // Wait before retrying
+                        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                    }
+                }
+            }
+            
+            async request(endpoint, options = {}) {
+                // Clean endpoint - ensure it starts with /
+                let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+                
+                // Add cache-busting parameter to prevent 304 responses
+                const separator = cleanEndpoint.includes('?') ? '&' : '?';
+                const url = `${this.baseURL}${cleanEndpoint}${separator}_t=${Date.now()}`;
+                
+                // Prepare headers
+                const headers = {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    ...options.headers
+                };
+                // Only set JSON Content-Type if not sending FormData
+                if (!(options.body instanceof FormData)) {
+                    headers['Content-Type'] = 'application/json';
+                }
+                
+                // Add Authorization header with Bearer token if token exists
+                const token = this.getToken();
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const mergedHeaders = { ...headers, ...(options.headers || {}) };
+                const config = {
+                    ...options,
+                    headers: mergedHeaders,
+                    // Include credentials for CORS
+                    credentials: 'include'
+                };
+                
+                try {
+                    const response = await fetch(url, config);
+                    
+                    // Handle 401 Unauthorized specifically
+                    if (response.status === 401) {
+                        // Try to get detailed error message
+                        let errorMsg = 'Authentication failed. Please login again.';
+>>>>>>> d88021530afc8863353136633cfac48839f24f49
                         try {
                             const token = localStorage.getItem('token');
                             return token && token !== 'null' && token !== 'undefined' ? token : null;
@@ -11760,10 +11927,1787 @@
                         try {
                             const response = await fetch(url, config);
 
+<<<<<<< HEAD
                             // Handle 401 Unauthorized specifically
                             if (response.status === 401) {
                                 // Try to get detailed error message
                                 let errorMsg = 'Authentication failed. Please login again.';
+=======
+            
+            
+            // Data Restore
+            async restoreData(backupData) {
+                return this.request('/admin/restore', {
+                    method: 'POST',
+                    body: JSON.stringify(backupData)
+                });
+            }
+            
+            // API Keys
+            async getApiKeys() {
+                return this.request('/api-keys');
+            }
+            
+            async createApiKey(apiKeyData) {
+                return this.request('/api-keys', {
+                    method: 'POST',
+                    body: JSON.stringify(apiKeyData)
+                });
+            }
+            
+            async updateApiKey(id, apiKeyData) {
+                return this.request(`/api-keys/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(apiKeyData)
+                });
+            }
+            
+            async deleteApiKey(id) {
+                return this.request(`/api-keys/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            async getApiKeyStats(id) {
+                return this.request(`/api-keys/${id}/stats`);
+            }
+            
+            // Branches
+            async getBranches() {
+                return this.requestWithRetry('/branches');
+            }
+            
+            async createBranch(branch) {
+                return this.request('/branches', {
+                    method: 'POST',
+                    body: JSON.stringify(branch)
+                });
+            }
+            
+            async updateBranch(id, branch) {
+                return this.request(`/branches/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(branch)
+                });
+            }
+            
+            async deleteBranch(id) {
+                return this.request(`/branches/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Categories
+            async getCategories() {
+                return this.request('/categories');
+            }
+            async getCategory(id) {
+                return this.request(`/categories/${id}`);
+            }
+            
+            async createCategory(category) {
+                return this.request('/categories', {
+                    method: 'POST',
+                    body: JSON.stringify(category)
+                });
+            }
+            
+            async updateCategory(id, category) {
+                return this.request(`/categories/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(category)
+                });
+            }
+            
+            async deleteCategory(id) {
+                return this.request(`/categories/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Suppliers
+            async getSuppliers() {
+                return this.request('/suppliers');
+            }
+            
+            async createSupplier(supplier) {
+                return this.request('/suppliers', {
+                    method: 'POST',
+                    body: JSON.stringify(supplier)
+                });
+            }
+            
+            async updateSupplier(id, supplier) {
+                return this.request(`/suppliers/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(supplier)
+                });
+            }
+            
+            async deleteSupplier(id) {
+                return this.request(`/suppliers/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Sales
+            async getSales(filters = {}) {
+                // Clean filters: remove undefined, null, empty or string 'undefined' values
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/sales${qs ? '?' + qs : ''}`);
+            }
+            
+            async createSale(sale) {
+                return this.request('/sales', {
+                    method: 'POST',
+                    body: JSON.stringify(sale)
+                });
+            }
+            
+            async updateSale(id, sale) {
+                return this.request(`/sales/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(sale)
+                });
+            }
+
+            async deleteSale(id) {
+                return this.request(`/sales/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Departments
+            async getDepartments(branchId = null) {
+                const endpoint = branchId ? `/departments?branchId=${branchId}` : '/departments';
+                return this.requestWithRetry(endpoint);
+            }
+            async getDepartmentsByBranch(branchId) {
+                return this.requestWithRetry(`/branches/${branchId}/departments`);
+            }
+            
+            async getDepartment(id) {
+                return this.request(`/departments/${id}`);
+            }
+            
+            async createDepartment(department) {
+                return this.request('/departments', {
+                    method: 'POST',
+                    body: JSON.stringify(department)
+                });
+            }
+            
+            async updateDepartment(id, department) {
+                return this.request(`/departments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(department)
+                });
+            }
+            
+            async deleteDepartment(id) {
+                return this.request(`/departments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Sub-Departments
+            async getSubDepartments(filters = {}) {
+                const queryParams = new URLSearchParams();
+                if (filters.departmentId) queryParams.append('departmentId', filters.departmentId);
+                if (filters.branchId) queryParams.append('branchId', filters.branchId);
+                const queryString = queryParams.toString();
+                return this.requestWithRetry(`/sub-departments${queryString ? '?' + queryString : ''}`);
+            }
+            
+            async getSubDepartmentsByDepartment(departmentId) {
+                return this.requestWithRetry(`/departments/${departmentId}/sub-departments`);
+            }
+            
+            async getSubDepartment(id) {
+                return this.request(`/sub-departments/${id}`);
+            }
+            
+            async createSubDepartment(subDepartment) {
+                return this.request('/sub-departments', {
+                    method: 'POST',
+                    body: JSON.stringify(subDepartment)
+                });
+            }
+            
+            async updateSubDepartment(id, subDepartment) {
+                return this.request(`/sub-departments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(subDepartment)
+                });
+            }
+            
+            async deleteSubDepartment(id) {
+                return this.request(`/sub-departments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Department Sales
+            async getDepartmentSales(filters = {}) {
+                // Clean filters: remove undefined, null, empty or string 'undefined' values
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/department-sales${qs ? '?' + qs : ''}`);
+            }
+            
+            async createDepartmentSale(sale) {
+                return this.request('/department-sales', {
+                    method: 'POST',
+                    body: JSON.stringify(sale)
+                });
+            }
+            
+            async updateDepartmentSale(id, sale) {
+                return this.request(`/department-sales/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(sale)
+                });
+            }
+            
+            async deleteDepartmentSale(id) {
+                return this.request(`/department-sales/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            async getDepartmentSale(id) {
+                return this.request(`/department-sales/${id}`);
+            }
+            
+            // Payments
+            async getPayments(url = '/payments') {
+                // If url already includes query parameters, use as-is
+                // Otherwise, just use the endpoint path
+                const endpoint = url.startsWith('/') ? url : `/${url}`;
+                return this.request(endpoint);
+            }
+            
+            // Category Payments API (SEPARATE)
+            async getCategoryPayments(filtersOrUrl = {}) {
+                // If it's a string (URL), use it directly (for backward compatibility)
+                if (typeof filtersOrUrl === 'string') {
+                    const url = filtersOrUrl;
+                    // Remove /api prefix if present (request() will add it via baseURL)
+                    let endpoint = url.startsWith('/api/') ? url.replace('/api', '') : url;
+                    endpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+                    console.log('📡 Calling category payments API:', endpoint);
+                    return this.request(endpoint);
+                }
+                
+                // If it's an object (filters), build query string like getSales does
+                const filters = filtersOrUrl || {};
+                // Clean filters: remove undefined, null, empty or string 'undefined' values
+                const cleaned = {};
+                Object.keys(filters).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                
+                const qp = new URLSearchParams(cleaned);
+                const queryString = qp.toString();
+                const endpoint = queryString ? `/category-payments?${queryString}` : '/category-payments';
+                console.log('📡 Calling category payments API with filters:', endpoint);
+                return this.request(endpoint);
+            }
+            
+            async getNextVoucherNumber() {
+                // Use full path to avoid route matching issues
+                return this.request('/payments/next-voucher-number', { method: 'GET' });
+            }
+            
+            async getNextCategoryVoucherNumber() {
+                return this.request('/category-payments/next-voucher-number', { method: 'GET' });
+            }
+            
+            async createPayment(payment) {
+                return this.request('/payments', {
+                    method: 'POST',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async createCategoryPayment(payment) {
+                return this.request('/category-payments', {
+                    method: 'POST',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async getCategoryPayment(id) {
+                return this.request(`/category-payments/${id}`);
+            }
+            
+            async updateCategoryPayment(id, payment) {
+                return this.request(`/category-payments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async deleteCategoryPayment(id) {
+                return this.request(`/category-payments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            async updatePayment(id, payment) {
+                return this.request(`/payments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async deletePayment(id) {
+                return this.request(`/payments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            async getPayment(id) {
+                return this.request(`/payments/${id}`);
+            }
+            
+            // Groups
+            async getGroups() {
+                return this.request('/groups');
+            }
+            
+            async createGroup(group) {
+                return this.request('/groups', {
+                    method: 'POST',
+                    body: JSON.stringify(group)
+                });
+            }
+            
+            async updateGroup(id, group) {
+                return this.request(`/groups/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(group)
+                });
+            }
+            
+            async deleteGroup(id) {
+                return this.request(`/groups/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Users
+            async getUsers() {
+                return this.request('/users');
+            }
+            
+            async createUser(user) {
+                return this.request('/users', {
+                    method: 'POST',
+                    body: JSON.stringify(user)
+                });
+            }
+            
+            async updateUser(id, user) {
+                return this.request(`/users/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(user)
+                });
+            }
+            
+            async deleteUser(id) {
+                return this.request(`/users/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Employees
+            async getEmployees() {
+                return this.request('/employees');
+            }
+            
+            async getEmployee(id) {
+                return this.request(`/employees/${id}`);
+            }
+            
+            async createEmployee(employee) {
+                return this.request('/employees', {
+                    method: 'POST',
+                    body: JSON.stringify(employee)
+                });
+            }
+            
+            async updateEmployee(id, employee) {
+                return this.request(`/employees/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(employee)
+                });
+            }
+            
+            async deleteEmployee(id) {
+                return this.request(`/employees/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Employee Departments
+            async getEmployeeDepartments() {
+                return this.request('/employee-departments');
+            }
+            
+            async getEmployeeDepartment(id) {
+                return this.request(`/employee-departments/${id}`);
+            }
+            
+            async createEmployeeDepartment(department) {
+                return this.request('/employee-departments', {
+                    method: 'POST',
+                    body: JSON.stringify(department)
+                });
+            }
+            
+            async updateEmployeeDepartment(id, department) {
+                return this.request(`/employee-departments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(department)
+                });
+            }
+            
+            async deleteEmployeeDepartment(id) {
+                return this.request(`/employee-departments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Employee Designations
+            async getEmployeeDesignations() {
+                return this.request('/employee-designations');
+            }
+            
+            async getEmployeeDesignation(id) {
+                return this.request(`/employee-designations/${id}`);
+            }
+            
+            async createEmployeeDesignation(designation) {
+                return this.request('/employee-designations', {
+                    method: 'POST',
+                    body: JSON.stringify(designation)
+                });
+            }
+            
+            async updateEmployeeDesignation(id, designation) {
+                return this.request(`/employee-designations/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(designation)
+                });
+            }
+            
+            async deleteEmployeeDesignation(id) {
+                return this.request(`/employee-designations/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Items
+            async getItems(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/items${qs ? '?' + qs : ''}`);
+            }
+            
+            async getItem(id) {
+                return this.request(`/items/${id}`);
+            }
+            
+            async searchItems(query) {
+                const qp = new URLSearchParams();
+                if (query.barcode) qp.append('barcode', query.barcode);
+                if (query.name) qp.append('name', query.name);
+                return this.request(`items/search?${qp.toString()}`);
+            }
+            
+            async getNextItemCode() {
+                return this.request('/items/next-code');
+            }
+            
+            async createItem(item) {
+                return this.request('/items', {
+                    method: 'POST',
+                    body: JSON.stringify(item)
+                });
+            }
+            
+            async updateItem(id, item) {
+                return this.request(`/items/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(item)
+                });
+            }
+            
+            async deleteItem(id) {
+                return this.request(`/items/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Companies
+            async getCompanies() {
+                return this.request('/companies');
+            }
+            
+            async createCompany(company) {
+                return this.request('/companies', {
+                    method: 'POST',
+                    body: JSON.stringify(company)
+                });
+            }
+            
+            async updateCompany(id, company) {
+                return this.request(`/companies/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(company)
+                });
+            }
+            
+            async deleteCompany(id) {
+                return this.request(`/companies/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Classes
+            async getClasses() {
+                return this.request('/classes');
+            }
+            
+            async createClass(classItem) {
+                return this.request('/classes', {
+                    method: 'POST',
+                    body: JSON.stringify(classItem)
+                });
+            }
+            
+            async updateClass(id, classItem) {
+                return this.request(`/classes/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(classItem)
+                });
+            }
+            
+            async deleteClass(id) {
+                return this.request(`/classes/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // SubClasses
+            async getSubClasses(filters = {}) {
+                const qp = new URLSearchParams();
+                if (filters.classId) qp.append('classId', filters.classId);
+                return this.request(`/sub-classes${qp.toString() ? '?' + qp.toString() : ''}`);
+            }
+            
+            async createSubClass(subClass) {
+                return this.request('/sub-classes', {
+                    method: 'POST',
+                    body: JSON.stringify(subClass)
+                });
+            }
+            
+            async updateSubClass(id, subClass) {
+                return this.request(`/sub-classes/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(subClass)
+                });
+            }
+            
+            async deleteSubClass(id) {
+                return this.request(`/sub-classes/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Customers
+            async getCustomers(filters = {}) {
+                const qp = new URLSearchParams();
+                if (filters.search) qp.append('search', filters.search);
+                return this.request(`/customers${qp.toString() ? '?' + qp.toString() : ''}`);
+            }
+            
+            async createCustomer(customer) {
+                return this.request('/customers', {
+                    method: 'POST',
+                    body: JSON.stringify(customer)
+                });
+            }
+            
+            async updateCustomer(id, customer) {
+                return this.request(`/customers/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(customer)
+                });
+            }
+            
+            async deleteCustomer(id) {
+                return this.request(`/customers/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Transporters
+            async getTransporters() {
+                return this.request('/transporters');
+            }
+            
+            async createTransporter(transporter) {
+                return this.request('/transporters', {
+                    method: 'POST',
+                    body: JSON.stringify(transporter)
+                });
+            }
+            
+            async updateTransporter(id, transporter) {
+                return this.request(`/transporters/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(transporter)
+                });
+            }
+            
+            async deleteTransporter(id) {
+                return this.request(`/transporters/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Accounts
+            async getAccounts() {
+                return this.request('/accounts');
+            }
+            
+            async createAccount(account) {
+                return this.request('/accounts', {
+                    method: 'POST',
+                    body: JSON.stringify(account)
+                });
+            }
+            
+            async updateAccount(id, account) {
+                return this.request(`/accounts/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(account)
+                });
+            }
+            
+            async deleteAccount(id) {
+                return this.request(`/accounts/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Whole Sales
+            async getWholeSales(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/whole-sales${qs ? '?' + qs : ''}`);
+            }
+            
+            async getNextWholeSaleInvoice() {
+                return this.request('/whole-sales/next-invoice');
+            }
+            
+            async createWholeSale(wholeSale) {
+                return this.request('/whole-sales', {
+                    method: 'POST',
+                    body: JSON.stringify(wholeSale)
+                });
+            }
+            
+            async updateWholeSale(id, wholeSale) {
+                return this.request(`/whole-sales/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(wholeSale)
+                });
+            }
+            
+            async deleteWholeSale(id) {
+                return this.request(`/whole-sales/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Sale Returns
+            async getSaleReturns(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/sale-returns${qs ? '?' + qs : ''}`);
+            }
+            
+            async createSaleReturn(saleReturn) {
+                return this.request('/sale-returns', {
+                    method: 'POST',
+                    body: JSON.stringify(saleReturn)
+                });
+            }
+            
+            async updateSaleReturn(id, saleReturn) {
+                return this.request(`/sale-returns/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(saleReturn)
+                });
+            }
+            
+            async deleteSaleReturn(id) {
+                return this.request(`/sale-returns/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Purchases
+            async getPurchases(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/purchases${qs ? '?' + qs : ''}`);
+            }
+            
+            async getUnpostedPurchases() {
+                return this.request('/purchases/unposted');
+            }
+            
+            async createPurchase(purchase) {
+                return this.request('/purchases', {
+                    method: 'POST',
+                    body: JSON.stringify(purchase)
+                });
+            }
+            
+            async updatePurchase(id, purchase) {
+                return this.request(`/purchases/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(purchase)
+                });
+            }
+            
+            async deletePurchase(id) {
+                return this.request(`/purchases/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Purchase Returns
+            async getPurchaseReturns(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/purchase-returns${qs ? '?' + qs : ''}`);
+            }
+            
+            async createPurchaseReturn(purchaseReturn) {
+                return this.request('/purchase-returns', {
+                    method: 'POST',
+                    body: JSON.stringify(purchaseReturn)
+                });
+            }
+            
+            async updatePurchaseReturn(id, purchaseReturn) {
+                return this.request(`/purchase-returns/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(purchaseReturn)
+                });
+            }
+            
+            async deletePurchaseReturn(id) {
+                return this.request(`/purchase-returns/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Customer Payments
+            async getCustomerPayments(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/customer-payments${qs ? '?' + qs : ''}`);
+            }
+            
+            async createCustomerPayment(payment) {
+                return this.request('/customer-payments', {
+                    method: 'POST',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async updateCustomerPayment(id, payment) {
+                return this.request(`/customer-payments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async deleteCustomerPayment(id) {
+                return this.request(`/customer-payments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Supplier Payments
+            async getSupplierPayments(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/supplier-payments${qs ? '?' + qs : ''}`);
+            }
+            
+            async createSupplierPayment(payment) {
+                return this.request('/supplier-payments', {
+                    method: 'POST',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async updateSupplierPayment(id, payment) {
+                return this.request(`/supplier-payments/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payment)
+                });
+            }
+            
+            async deleteSupplierPayment(id) {
+                return this.request(`/supplier-payments/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Vouchers
+            async getVouchers(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/vouchers${qs ? '?' + qs : ''}`);
+            }
+            
+            async getNextVoucher() {
+                return this.request('/vouchers/next-voucher');
+            }
+            
+            async createVoucher(voucher) {
+                return this.request('/vouchers', {
+                    method: 'POST',
+                    body: JSON.stringify(voucher)
+                });
+            }
+            
+            async updateVoucher(id, voucher) {
+                return this.request(`/vouchers/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(voucher)
+                });
+            }
+            
+            async deleteVoucher(id) {
+                return this.request(`/vouchers/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Damage Stocks
+            async getDamageStocks(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/damage-stocks${qs ? '?' + qs : ''}`);
+            }
+            
+            async createDamageStock(damageStock) {
+                return this.request('/damage-stocks', {
+                    method: 'POST',
+                    body: JSON.stringify(damageStock)
+                });
+            }
+            
+            async updateDamageStock(id, damageStock) {
+                return this.request(`/damage-stocks/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(damageStock)
+                });
+            }
+            
+            async deleteDamageStock(id) {
+                return this.request(`/damage-stocks/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // Stock Audits
+            async getStockAudits(filters = {}) {
+                const cleaned = {};
+                Object.keys(filters || {}).forEach(key => {
+                    const val = filters[key];
+                    if (val === undefined || val === null) return;
+                    if (typeof val === 'string' && (val.trim() === '' || val === 'undefined')) return;
+                    cleaned[key] = val;
+                });
+                const qp = new URLSearchParams(cleaned);
+                const qs = qp.toString();
+                return this.request(`/stock-audits${qs ? '?' + qs : ''}`);
+            }
+            
+            async getUnAuditStockAudits() {
+                return this.request('/stock-audits/un-audit');
+            }
+            
+            async getPostedStockAudits() {
+                return this.request('/stock-audits/posted');
+            }
+            
+            async createStockAudit(stockAudit) {
+                return this.request('/stock-audits', {
+                    method: 'POST',
+                    body: JSON.stringify(stockAudit)
+                });
+            }
+            
+            async postStockAudit(id) {
+                return this.request(`/stock-audits/${id}/post`, {
+                    method: 'POST'
+                });
+            }
+            
+            async updateStockAudit(id, stockAudit) {
+                return this.request(`/stock-audits/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(stockAudit)
+                });
+            }
+            
+            async deleteStockAudit(id) {
+                return this.request(`/stock-audits/${id}`, {
+                    method: 'DELETE'
+                });
+            }
+        }
+        
+        // Global API instance
+        const api = new APIService();
+        // Expose API to window for use in external scripts
+        window.api = api;
+        window.LOGIN_LOGO_URL = 'https://evil-plum-9kx4e3rsug.edgeone.app/dwatsonlogo.png';
+        
+        // Global data storage (NO localStorage)
+        let appData = {
+            sales: [],
+            branches: [],
+            categories: [],
+            suppliers: [],
+            groups: [],
+            users: [],
+            currentUser: null,
+            // view preference for recent sales: 'table' or 'cards'
+            salesView: 'table',
+            settings: {
+                companyName: 'D.Watson Group of Pharmacy',
+                currency: '',
+                dateFormat: 'DD/MM/YYYY',
+                itemsPerPage: 10,
+                defaultCostPercent: 70
+            }
+        };
+        // Expose appData to window for use in external scripts
+        window.appData = appData;
+        
+        // ========================================
+        // INITIALIZATION FUNCTIONS
+        // ========================================
+        
+        // Event listener cleanup map
+        const eventListeners = new Map();
+        
+        // Add event listener with cleanup tracking
+        function addEventListenerWithCleanup(element, event, handler) {
+            if (!element) return;
+            
+            element.addEventListener(event, handler);
+            
+            const key = `${element.id || 'anonymous'}_${event}`;
+            if (!eventListeners.has(key)) {
+                eventListeners.set(key, []);
+            }
+            eventListeners.get(key).push({ element, event, handler });
+        }
+        
+        // Clean up all event listeners
+        function cleanupEventListeners() {
+            eventListeners.forEach((listeners, key) => {
+                listeners.forEach(({ element, event, handler }) => {
+                    element.removeEventListener(event, handler);
+                });
+            });
+            eventListeners.clear();
+        }
+        
+        // Helper function to reset save button to create mode
+        function resetSaveButton(buttonId, createFunction) {
+            const saveBtn = document.getElementById(buttonId);
+            if (saveBtn) {
+                saveBtn.textContent = 'Save ' + buttonId.replace('save', '').replace('Btn', '');
+                // Remove any existing onclick handlers
+                saveBtn.onclick = null;
+                // Set new onclick handler
+                saveBtn.onclick = createFunction;
+                // Also remove any event listeners that might be attached
+                saveBtn.removeAttribute('onclick');
+                // Force the button to call the create function
+                saveBtn.setAttribute('onclick', createFunction.name + '()');
+            } else {
+                console.error('❌ Button not found:', buttonId);
+            }
+        }
+
+        // ========================================
+        // SECURITY: INACTIVITY AUTO-LOGOUT
+        // ========================================
+
+        let inactivityTimer = null;
+        let warningTimer = null;
+        const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutes (configurable)
+        const WARNING_BEFORE_MS = 60 * 1000;        // show warning 1 minute before
+
+        function startInactivityWatch() {
+            stopInactivityWatch();
+            scheduleWarning();
+            scheduleLogout();
+            bindActivityListeners();
+        }
+
+        function stopInactivityWatch() {
+            if (inactivityTimer) clearTimeout(inactivityTimer);
+            if (warningTimer) clearTimeout(warningTimer);
+            unbindActivityListeners();
+        }
+
+        function scheduleWarning() {
+            if (warningTimer) clearTimeout(warningTimer);
+            warningTimer = setTimeout(() => {
+                showNotification('You will be logged out in 1 minute due to inactivity', 'warning');
+            }, Math.max(0, INACTIVITY_LIMIT_MS - WARNING_BEFORE_MS));
+        }
+
+        function scheduleLogout() {
+            if (inactivityTimer) clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                logout();
+            }, INACTIVITY_LIMIT_MS);
+        }
+
+        const activityEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart', 'touchmove'];
+
+        function onUserActivity() {
+            // Reset timers on any activity
+            scheduleWarning();
+            scheduleLogout();
+        }
+
+        function bindActivityListeners() {
+            activityEvents.forEach(evt => document.addEventListener(evt, onUserActivity, { passive: true }));
+        }
+
+        function unbindActivityListeners() {
+            activityEvents.forEach(evt => document.removeEventListener(evt, onUserActivity));
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Clean up any existing listeners first
+            cleanupEventListeners();
+            
+            // Clear expired tokens immediately on page load
+            if (window.api && typeof window.api.getToken === 'function') {
+                // This will automatically clear expired tokens
+                window.api.getToken();
+            }
+            
+            // Initialize display state immediately to prevent login flash
+            if (typeof initializeDisplayState === 'function') {
+                initializeDisplayState();
+            }
+            
+            // Initialize theme first (before other initialization)
+            initTheme();
+            
+            // Check if user is already logged in
+            // Add small delay to ensure cookies are available after page load
+            setTimeout(() => {
+                checkAuthStatus();
+            }, 100);
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Handle report tabs visibility on page load (for page refresh)
+            setTimeout(() => {
+                const lastReportFromSidebar = localStorage.getItem('lastReportFromSidebar');
+                if (lastReportFromSidebar) {
+                    // User came from sidebar - hide all tabs except the stored one
+                    const reportTabsNav = document.querySelector('.report-tabs');
+                    if (reportTabsNav && reportTabsNav.style.display !== 'none') {
+                        document.querySelectorAll('.report-tab').forEach(tab => {
+                            const tabName = tab.getAttribute('data-tab');
+                            if (tabName === lastReportFromSidebar) {
+                                tab.style.display = 'flex';
+                                tab.classList.add('active');
+                            } else {
+                                tab.style.display = 'none';
+                                tab.classList.remove('active');
+                            }
+                        });
+                        // Ensure correct tab content is active
+                        document.querySelectorAll('.report-tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        const targetTabContent = document.getElementById(`tab-${lastReportFromSidebar}`);
+                        if (targetTabContent) {
+                            targetTabContent.classList.add('active');
+                        }
+                    }
+                }
+            }, 200);
+            
+            // Setup login form
+            setupLoginForm();
+            
+            // Set up save settings button click handler
+            setTimeout(function() {
+                const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+                if (saveSettingsBtn) {
+                    const newBtn = saveSettingsBtn.cloneNode(true);
+                    saveSettingsBtn.parentNode.replaceChild(newBtn, saveSettingsBtn);
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (typeof saveSettings === 'function') {
+                            saveSettings();
+                        } else if (typeof window.saveSettings === 'function') {
+                            window.saveSettings();
+                        }
+                    });
+                }
+            }, 500);
+        });
+        
+        // ========================================
+        // AUTHENTICATION FUNCTIONS
+        // ========================================
+        
+        // Setup login form
+        function setupLoginForm() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const loginToggle = document.getElementById('loginToggle');
+            const signupToggle = document.getElementById('signupToggle');
+            const secretAccessBtn = document.getElementById('secretAccessBtn');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+            
+            if (signupForm) {
+                signupForm.addEventListener('submit', handleSignup);
+            }
+            
+            if (loginToggle) {
+                loginToggle.addEventListener('click', () => switchToLogin());
+            }
+            
+            if (signupToggle) {
+                signupToggle.addEventListener('click', () => switchToSignup());
+            }
+            
+            // Secret access functionality
+            if (secretAccessBtn) {
+                let clickCount = 0;
+                let clickTimer = null;
+                
+                secretAccessBtn.addEventListener('click', () => {
+                    clickCount++;
+                    
+                    // Clear previous timer
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                    }
+                    
+                    // Reset counter after 3 seconds
+                    clickTimer = setTimeout(() => {
+                        clickCount = 0;
+                    }, 3000);
+                    
+                    // Check for secret combination (5 clicks)
+                    if (clickCount >= 5) {
+                        unlockSignupAccess();
+                        clickCount = 0;
+                    }
+                });
+            }
+            
+            // Alternative: Keyboard shortcut (Ctrl + Shift + S)
+            // SECRET ACCESS METHODS FOR ADMIN:
+            // 1. Click the small key icon 5 times within 3 seconds
+            // 2. Press Ctrl + Shift + S keyboard shortcut
+            // 3. Admin password for signup: 'admin123' (change this in the code)
+            document.addEventListener('keydown', (event) => {
+                if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+                    event.preventDefault();
+                    unlockSignupAccess();
+                }
+            });
+        }
+        
+        // Unlock signup access (admin only)
+        function unlockSignupAccess() {
+            const signupToggle = document.getElementById('signupToggle');
+            const secretAccessBtn = document.getElementById('secretAccessBtn');
+            
+            if (signupToggle) {
+                signupToggle.classList.remove('d-none');
+                signupToggle.style.opacity = '1';
+                signupToggle.style.transition = 'opacity 0.3s ease';
+            }
+            
+            if (secretAccessBtn) {
+                secretAccessBtn.style.opacity = '0.8';
+                secretAccessBtn.innerHTML = '<i class="fas fa-unlock"></i>';
+                secretAccessBtn.title = 'Signup access unlocked';
+            }
+            
+            // Show brief notification
+            showNotification('Admin access unlocked! Signup option is now available.', 'success');
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (signupToggle && !signupToggle.classList.contains('active')) {
+                    signupToggle.classList.add('d-none');
+                    signupToggle.style.opacity = '0';
+                }
+                if (secretAccessBtn) {
+                    secretAccessBtn.style.opacity = '0.3';
+                    secretAccessBtn.innerHTML = '<i class="fas fa-key"></i>';
+                    secretAccessBtn.title = '';
+                }
+            }, 10000);
+        }
+        
+        // Handle login form submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const usernameElement = document.getElementById('username');
+            const passwordElement = document.getElementById('password');
+            const errorElement = document.getElementById('loginError');
+            
+            if (!usernameElement || !passwordElement || !errorElement) {
+                console.error('Required login elements not found');
+                return;
+            }
+            
+            const username = usernameElement.value.trim();
+            const password = passwordElement.value;
+            
+            // Input validation
+            if (!username || username.length < 3) {
+                errorElement.textContent = 'Username must be at least 3 characters long';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            if (!password || password.length < 6) {
+                errorElement.textContent = 'Password must be at least 6 characters long';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Logging in...';
+                submitBtn.disabled = true;
+                
+                // Attempt login
+                const response = await api.login({ username, password });
+                
+                // Store user data with permissions properly extracted
+                appData.currentUser = {
+                    ...response.user,
+                    permissions: response.user.permissions || response.user.groupId?.permissions || []
+                };
+                
+                // Debug: Log user permissions
+                console.log('🔍 Login Debug - Full response.user:', response.user);
+                console.log('🔍 Login Debug - User permissions:', appData.currentUser.permissions);
+                console.log('🔍 Login Debug - User groupId:', appData.currentUser.groupId);
+                console.log('🔍 Login Debug - Is admin?', appData.currentUser.permissions.includes('admin'));
+                
+                // Show main app
+                showMainApp();
+                
+                // Load initial data
+                loadInitialData();
+                
+                // Hide error if it was shown
+                errorElement.classList.add('d-none');
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Show error message
+                errorElement.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorElement.classList.remove('d-none');
+                
+                // Reset button
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Login';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Handle signup form submission
+        async function handleSignup(event) {
+            event.preventDefault();
+            
+            const usernameElement = document.getElementById('signupUsername');
+            const fullNameElement = document.getElementById('signupFullName');
+            const emailElement = document.getElementById('signupEmail');
+            const passwordElement = document.getElementById('signupPassword');
+            const confirmPasswordElement = document.getElementById('signupConfirmPassword');
+            const adminPasswordElement = document.getElementById('adminPassword');
+            const errorElement = document.getElementById('signupError');
+            
+            if (!usernameElement || !fullNameElement || !emailElement || !passwordElement || 
+                !confirmPasswordElement || !adminPasswordElement || !errorElement) {
+                console.error('Required signup elements not found');
+                return;
+            }
+            
+            const username = usernameElement.value.trim();
+            const fullName = fullNameElement.value.trim();
+            const email = emailElement.value.trim();
+            const password = passwordElement.value;
+            const confirmPassword = confirmPasswordElement.value;
+            const adminPassword = adminPasswordElement.value;
+            
+            // Input validation
+            if (!username || username.length < 3) {
+                errorElement.textContent = 'Username must be at least 3 characters long';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            if (!fullName || fullName.length < 2) {
+                errorElement.textContent = 'Full name must be at least 2 characters long';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            if (!email || !email.includes('@')) {
+                errorElement.textContent = 'Please enter a valid email address';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            if (!password || password.length < 6) {
+                errorElement.textContent = 'Password must be at least 6 characters long';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorElement.textContent = 'Passwords do not match';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            // Validate admin password first
+            const expectedAdminPassword = 'admin123'; // You can change this to any password you want
+            if (adminPassword !== expectedAdminPassword) {
+                errorElement.textContent = 'Invalid admin access code. Access denied.';
+                errorElement.classList.remove('d-none');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Creating Account...';
+                submitBtn.disabled = true;
+                
+                // Attempt signup
+                const response = await api.signup({ 
+                    username, 
+                    fullName, 
+                    email, 
+                    password, 
+                    confirmPassword 
+                });
+                
+                // Store user data with permissions properly extracted
+                appData.currentUser = {
+                    ...response.user,
+                    permissions: response.user.permissions || response.user.groupId?.permissions || []
+                };
+                
+                // Debug: Log user permissions
+                console.log('🔍 Login Debug - Full response.user:', response.user);
+                console.log('🔍 Login Debug - User permissions:', appData.currentUser.permissions);
+                console.log('🔍 Login Debug - User groupId:', appData.currentUser.groupId);
+                console.log('🔍 Login Debug - Is admin?', appData.currentUser.permissions.includes('admin'));
+                
+                // Show main app
+                showMainApp();
+                
+                // Load initial data
+                loadInitialData();
+                
+                // Hide error if it was shown
+                errorElement.classList.add('d-none');
+                
+                // Show success message
+                showNotification('Account created successfully with admin privileges! Welcome to D.Watson Pharmacy Dashboard.');
+                
+            } catch (error) {
+                console.error('Signup error:', error);
+                
+                // Show error message
+                errorElement.textContent = error.message || 'Signup failed. Please try again.';
+                errorElement.classList.remove('d-none');
+                
+                // Reset button
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Sign Up';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Switch to login form
+        function switchToLogin() {
+            document.getElementById('loginForm').classList.remove('d-none');
+            document.getElementById('signupForm').classList.add('d-none');
+            document.getElementById('loginToggle').classList.add('active');
+            document.getElementById('signupToggle').classList.remove('active');
+            
+            // Clear error messages
+            document.getElementById('loginError').classList.add('d-none');
+            document.getElementById('signupError').classList.add('d-none');
+        }
+        
+        // Switch to signup form
+        function switchToSignup() {
+            document.getElementById('loginForm').classList.add('d-none');
+            document.getElementById('signupForm').classList.remove('d-none');
+            document.getElementById('loginToggle').classList.remove('active');
+            document.getElementById('signupToggle').classList.add('active');
+            
+            // Clear error messages
+            document.getElementById('loginError').classList.add('d-none');
+            document.getElementById('signupError').classList.add('d-none');
+        }
+        
+        // Show login section
+        function showLoginSection() {
+            const loginSection = document.getElementById('loginSection');
+            const mainApp = document.getElementById('mainApp');
+            if (loginSection) {
+                loginSection.style.display = 'flex';
+                loginSection.style.opacity = '1';
+            }
+            if (mainApp) {
+                mainApp.style.display = 'none';
+                mainApp.style.opacity = '0';
+            }
+        }
+        
+        // Show main app
+        function showMainApp() {
+            const loginSection = document.getElementById('loginSection');
+            const mainApp = document.getElementById('mainApp');
+            if (loginSection) {
+                loginSection.style.display = 'none';
+                loginSection.style.opacity = '0';
+            }
+            if (mainApp) {
+                mainApp.style.display = 'block';
+                mainApp.style.opacity = '1';
+            }
+            // Start inactivity watchdog after showing app
+            startInactivityWatch();
+            // Set default dates when main app is shown
+            setTimeout(() => {
+                setDefaultDates();
+            }, 100);
+        }
+        
+        // Retry mechanism with exponential backoff
+        let retryCount = 0;
+        const maxRetries = 5; // Increased retries
+        const baseDelay = 8000; // 8 seconds (increased to reduce rate limit issues)
+        
+        async function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Check authentication status
+        async function checkAuthStatus(retryAttempt = 0) {
+            try {
+                // If this is a fresh page load (no hash), check if we have a valid token
+                // If no token/cookie (implied by API failure), we should show login
+                
+                // MIGRATED: No longer checking localStorage for token
+                // Token is now in httpOnly cookie, automatically sent with requests
+                
+                // Get current user info with retry logic
+                // This will automatically include the httpOnly cookie if it exists
+                let user;
+                try {
+                    user = await api.getCurrentUser();
+                    // Reset retry count on success
+                    retryCount = 0;
+                } catch (error) {
+                    // Check for rate limiting error
+                    if (error.message && error.message.includes('Too many requests')) {
+                        console.warn(`Rate limit hit (attempt ${retryAttempt + 1}/${maxRetries}). Will retry with delay.`);
+                        
+                        // Implement exponential backoff retry
+                        if (retryAttempt < maxRetries) {
+                            const delayTime = baseDelay * Math.pow(2, retryAttempt); // Exponential backoff
+                            await delay(delayTime);
+                            return checkAuthStatus(retryAttempt + 1);
+                        } else {
+                            console.error('Max retries reached. Keeping user logged in.');
+                            // Keep user logged in even after max retries
+                            showMainApp();
+                            if (typeof loadDashboard === 'function') {
+                                const monthFilter = document.getElementById('dashboardMonthFilter');
+                                const selectedMonth = monthFilter ? monthFilter.value : null;
+                                loadDashboard(selectedMonth || null);
+                            }
+                            return;
+                        }
+                    }
+                    
+                    // Check for authentication errors first
+                    if (error.message.includes('401') || 
+                        error.message.includes('403') ||
+                        error.message.includes('Authentication failed') ||
+                        error.message.includes('Invalid token') ||
+                        error.message.includes('Access denied') ||
+                        error.message.includes('No token provided')) {
+                        // Authentication failed - show login page
+                        console.warn('Authentication failed, showing login page:', error.message);
+                        showLoginSection();
+                        return;
+                    }
+                    
+                    // If it's a network error or server error, check if user was previously authenticated
+                    // If user was authenticated before, keep them logged in (might be temporary network issue)
+                    if (error.message.includes('Failed to fetch') || 
+                        error.message.includes('NetworkError') ||
+                        error.message.includes('500') ||
+                        error.message.includes('503')) {
+                        // Check if user was previously authenticated (has user data in appData)
+                        if (appData.currentUser && appData.currentUser.id) {
+                            console.warn('Network error during auth check, but user was previously authenticated. Keeping session.');
+                            // User was authenticated before - keep them logged in (might be temporary network issue)
+                            showMainApp();
+                            return;
+                        }
+                        console.warn('Network error during auth check, showing login page:', error.message);
+                        // No previous authentication - show login page
+                        showLoginSection();
+                        return;
+                    }
+                    
+                    // Any other error - check if user was previously authenticated
+                    if (appData.currentUser && appData.currentUser.id) {
+                        console.warn('Error during auth check, but user was previously authenticated. Keeping session.');
+                        showMainApp();
+                        return;
+                    }
+                    console.warn('Unknown error during auth check, showing login page:', error.message);
+                    showLoginSection();
+                    return;
+                }
+                
+                // Debug: Log user permissions
+                
+                // Store user data with permissions properly extracted
+                appData.currentUser = {
+                    ...user,
+                    permissions: user.groupId?.permissions || []
+                };
+                
+                // Show main app
+                showMainApp();
+                
+                // Load initial data
+                loadInitialData();
+                
+                // Determine which section to show - ALWAYS prioritize URL hash first (most reliable for page refresh)
+                let sectionToShow = null;
+                
+                // Priority 1: Check URL hash FIRST (this is what's in the browser address bar)
+                // This ensures that when user refreshes, they stay on the same page
+                const hash = window.location.hash.replace('#', '').trim();
+                if (hash && hash !== '' && hash !== 'null' && hash !== 'undefined') {
+                    sectionToShow = hash;
+                    console.log('🔍 Restoring section from URL hash:', sectionToShow);
+                    // Save to localStorage for backup
+                    try {
+                        localStorage.setItem('lastActiveSection', sectionToShow);
+                    } catch (e) {
+                        console.warn('Could not save section to localStorage:', e);
+                    }
+                }
+                
+                // Priority 2: Only check localStorage if no hash exists
+                if (!sectionToShow) {
+                    try {
+                        // Removed logic that restored lastActiveSection from localStorage automatically
+                        // This prevents re-opening the last screen after a browser restart if no hash is present
+                        // const lastActiveSection = localStorage.getItem('lastActiveSection');
+                        // if (lastActiveSection && lastActiveSection !== 'null' && lastActiveSection !== 'undefined' && lastActiveSection !== '') {
+                        //     sectionToShow = lastActiveSection;
+                        //     console.log('🔍 Restoring section from localStorage:', sectionToShow);
+                        //     // Update URL hash to match
+                        //     if (window.location.hash !== '#' + sectionToShow) {
+                        //         window.history.replaceState(null, null, '#' + sectionToShow);
+                        //     }
+                        // }
+                    } catch (e) {
+                        console.warn('Could not read last active section from localStorage:', e);
+                    }
+                }
+                
+                if (sectionToShow && sectionToShow !== '') {
+                    // Delay slightly to ensure DOM is ready
+                    setTimeout(() => {
+                        const section = sectionToShow;
+                        
+                        // Validate section before proceeding
+                        if (!section || section === 'null' || section === 'undefined' || section === '') {
+                            console.error('❌ Invalid section:', section);
+                            // Only default to dashboard if section is truly invalid
+                            if (typeof loadDashboard === 'function') {
+                                const monthFilter = document.getElementById('dashboardMonthFilter');
+                                const selectedMonth = monthFilter ? monthFilter.value : null;
+                                loadDashboard(selectedMonth || null);
+                            }
+                            return;
+                        }
+                        
+                        const permissions = user.groupId?.permissions || [];
+                        
+                        // Check if user has permission for this section
+                        let hasPermission = false;
+                        if (['groups', 'users', 'settings'].includes(section)) {
+                            hasPermission = permissions.includes('admin');
+                        } else {
+                            hasPermission = permissions.includes(section) || permissions.includes('admin');
+                        }
+                        
+                        if (hasPermission) {
+                            // Update URL hash to match section being shown
+                            if (window.location.hash !== '#' + section) {
+                                window.history.replaceState(null, null, '#' + section);
+                            }
+                            
+                            console.log('✅ Showing section:', section);
+                            showSection(section);
+                            
+                            // Update active state
+                            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+                            const activeLink = document.querySelector(`.sidebar .nav-link[data-section="${section}"]`);
+                            if (activeLink) {
+                                activeLink.classList.add('active');
+                            }
+                            
+                            // Restore report tab if reports section
+                            if (section === 'reports' && typeof window.switchReportTab === 'function') {
+>>>>>>> d88021530afc8863353136633cfac48839f24f49
                                 try {
                                     const errorResponse = await response.clone().json();
                                     if (errorResponse && errorResponse.error) {

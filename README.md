@@ -49,6 +49,7 @@ Create a `.env` file in the server directory:
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_secret_key
 ADMIN_PASSWORD=admin123
+JWT_EXPIRES_IN=24h
 NODE_ENV=development
 PORT=5000
 ```
@@ -104,13 +105,14 @@ heroku open
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `MONGODB_URI` | MongoDB Atlas connection string | Yes |
-| `JWT_SECRET` | Secret key for JWT tokens | Yes |
-| `ADMIN_PASSWORD` | Admin password for promotions | Yes |
-| `NODE_ENV` | Environment (production/development) | No |
-| `PORT` | Server port | No |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `MONGODB_URI` | MongoDB Atlas connection string | Yes | - |
+| `JWT_SECRET` | Secret key for JWT tokens | Yes | - |
+| `ADMIN_PASSWORD` | Admin password for promotions | Yes | - |
+| `JWT_EXPIRES_IN` | JWT token expiration time (e.g., '24h', '7d', '30m') | No | `24h` |
+| `NODE_ENV` | Environment (production/development) | No | `production` |
+| `PORT` | Server port | No | `5000` |
 
 ## Project Structure
 
