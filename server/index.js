@@ -71,7 +71,7 @@ import { connectDB, checkDatabaseConnection } from './config/db.js';
 import { sanitizeInput, rateLimit } from './middlewares/util.js';
 import { authenticate, isAdmin, hasPermission } from './middlewares/auth.js';
 import { authenticateApiKey } from './middlewares/apiKey.js';
-import { Branch, Category, Group, User, Sale, DepartmentSale, Settings, Supplier, Payment, CategoryPayment, ApiKey, Department, SubDepartment, Employee, EmployeeDepartment, EmployeeDesignation, IncomeStatementReport, Item, Company, Class, SubClass, Customer, WholeSale, SaleReturn, Purchase, PurchaseReturn, CustomerPayment, SupplierPayment, Voucher, Account, DamageStock, StockAudit, Transporter } from './models/index.js';
+import { Branch, Category, Group, User, Sale, DepartmentSale, Settings, Supplier, Payment, CategoryPayment, ApiKey, Department, SubDepartment, Employee, EmployeeDepartment, EmployeeDesignation, IncomeStatementReport, Item, Company, Class, SubClass, Customer, WholeSale, SaleReturn, Purchase, PurchaseReturn, CustomerPayment, SupplierPayment, Voucher, Account, DamageStock, StockAudit, Transporter, City, CustomerCategory } from './models/index.js';
 
 // ========================================
 // SERVER INITIALIZATION AND CONFIGURATION
@@ -124,7 +124,7 @@ function canonicalizePermissions(perms) {
       try {
         const s = String(p).toLowerCase().trim();
         if (s && s !== 'null' && s !== 'undefined') set.add(s);
-      } catch (e) {}
+      } catch (e) { }
     });
     return Array.from(set);
   } catch (e) {
@@ -392,7 +392,7 @@ SubDepartmentSchema.index({ departmentId: 1, branchId: 1, name: 1 }, { unique: t
 app.post('/api/admin/promote-user', async (req, res) => {
   try {
     const { username, adminPassword } = req.body;
-    
+
     // Verify admin password
     const expectedPassword = process.env.ADMIN_PASSWORD;
     if (!expectedPassword) {
@@ -401,35 +401,35 @@ app.post('/api/admin/promote-user', async (req, res) => {
     if (adminPassword !== expectedPassword) {
       return res.status(403).json({ error: 'Invalid admin password' });
     }
-    
+
     if (!username) {
       return res.status(400).json({ error: 'Username is required' });
     }
-    
+
     // Find the user
     const user = await User.findOne({ username }).populate('groupId');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     // Find or create Admin group
     let adminGroup = await Group.findOne({ name: 'Admin' });
     if (!adminGroup) {
-        adminGroup = await Group.create({
-          name: 'Admin',
-          description: 'System administrators with full access',
-          permissions: ['admin', 'dashboard', 'categories', 'departments', 'suppliers', 'items', 'items-edit', 'items-delete', 'damage-stock', 'stock-audit', 'sales', 'sales-edit', 'sales-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-entry', 'purchase-return', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'reports', 'sales-report', 'sales-comparison-report', 'datewise-sales-report', 'department-wise-report', 'sub-department-wise-report', 'department-wise-sale-comparison', 'branch-wise-sale-comparison', 'income-statement-report', 'branches', 'groups', 'users', 'settings', 'employees', 'employee-list', 'support-chat'],
-          isDefault: true
-        });
+      adminGroup = await Group.create({
+        name: 'Admin',
+        description: 'System administrators with full access',
+        permissions: ['admin', 'dashboard', 'categories', 'departments', 'suppliers', 'items', 'items-edit', 'items-delete', 'damage-stock', 'stock-audit', 'sales', 'sales-edit', 'sales-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-entry', 'purchase-return', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'reports', 'sales-report', 'sales-comparison-report', 'datewise-sales-report', 'department-wise-report', 'sub-department-wise-report', 'department-wise-sale-comparison', 'branch-wise-sale-comparison', 'income-statement-report', 'branches', 'groups', 'users', 'settings', 'employees', 'employee-list', 'support-chat', 'customers'],
+        isDefault: true
+      });
     }
-    
+
     // Update user to Admin group
     user.groupId = adminGroup._id;
     await user.save();
-    
+
     // Populate the updated user
     await user.populate('groupId', 'name permissions');
-    
+
     res.json({
       message: `User ${username} has been promoted to admin`,
       user: {
@@ -441,7 +441,7 @@ app.post('/api/admin/promote-user', async (req, res) => {
         permissions: user.groupId.permissions
       }
     });
-    
+
   } catch (error) {
     console.error('Error promoting user to admin:', error);
     res.status(500).json({ error: 'Server error' });
@@ -452,12 +452,12 @@ app.post('/api/admin/promote-user', async (req, res) => {
 app.get('/api/users/username/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    
+
     const user = await User.findOne({ username }).populate('groupId', 'name permissions');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({
       id: user._id,
       username: user.username,
@@ -467,7 +467,7 @@ app.get('/api/users/username/:username', async (req, res) => {
       permissions: user.groupId.permissions,
       isActive: user.isActive
     });
-    
+
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Server error' });
@@ -476,8 +476,8 @@ app.get('/api/users/username/:username', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  const healthData = { 
-    ok: true, 
+  const healthData = {
+    ok: true,
     environment: process.env.NODE_ENV || 'development',
     port: port,
     timestamp: new Date().toISOString(),
@@ -496,8 +496,8 @@ app.get('/api/health', (req, res) => {
       activeConnections: rateLimitMap.size
     }
   };
-  
-  
+
+
   // Set appropriate status code based on database connection
   const statusCode = mongoose.connection.readyState === 1 ? 200 : 503;
   res.status(statusCode).json(healthData);
@@ -511,34 +511,34 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
-    
+
     const user = await User.findOne({ username }).populate('groupId');
-    
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     if (!user.isActive) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const isMatch = await bcrypt.compare(password, user.password);
-    
+
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();
-    
+
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: '7d' });
-    
+
     // Return user data and token in response body for Bearer token authentication
     res.json({
       ok: true,
@@ -570,32 +570,32 @@ app.post('/api/auth/logout', authenticate, (req, res) => {
 app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
   try {
     const { username, fullName, email, password, confirmPassword } = req.body;
-    
-    
+
+
     // Validation
     if (!username || !fullName || !email || !password || !confirmPassword) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    
+
     if (password !== confirmPassword) {
       return res.status(400).json({ error: 'Passwords do not match' });
     }
-    
+
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
-    
+
     // Check if database is connected
     if (mongoose.connection.readyState !== 1) {
       return res.status(500).json({ error: 'Database connection error' });
     }
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({
       $or: [
@@ -603,7 +603,7 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
         { email: email }
       ]
     });
-    
+
     if (existingUser) {
       if (existingUser.username === username) {
         return res.status(409).json({ error: 'Username already exists' });
@@ -612,7 +612,7 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
         return res.status(409).json({ error: 'Email already registered' });
       }
     }
-    
+
     // Get Admin group for new users (full rights)
     let adminGroup = await Group.findOne({ name: 'Admin' });
     if (!adminGroup) {
@@ -624,14 +624,14 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
         isDefault: true
       });
     }
-    
+
     // Get all branches for new user (or empty array if no branches exist)
     const allBranches = await Branch.find();
-    
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    
+
     // Create new user with admin privileges
     const newUser = new User({
       username: username.trim(),
@@ -642,15 +642,15 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
       branches: allBranches.map(b => b._id), // Assign all branches by default
       isActive: true
     });
-    
+
     await newUser.save();
-    
+
     // Populate group information for response
     await newUser.populate('groupId', 'name permissions');
-    
+
     // Generate JWT token
     const token = jwt.sign({ id: newUser._id }, env.JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.status(201).json({
       message: 'User registered successfully',
       ok: true,
@@ -665,7 +665,7 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
         permissions: canonicalizePermissions(newUser.groupId.permissions)
       }
     });
-    
+
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Server error during registration' });
@@ -677,7 +677,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
   try {
     // Fetch the user again to ensure we have the latest data
     const user = await User.findById(req.user._id).populate('groupId');
-    
+
     res.json({
       id: user._id,
       username: user.username,
@@ -722,10 +722,10 @@ app.put('/api/settings', authenticate, isAdmin, checkDatabaseConnection, async (
       defaultCostPercent: req.body.defaultCostPercent !== undefined ? Number(req.body.defaultCostPercent) : undefined,
       theme: req.body.theme ?? 'light'
     };
-    
+
     // Remove undefined to avoid overwriting with undefined
     Object.keys(update).forEach((k) => update[k] === undefined && delete update[k]);
-    
+
     const settings = await Settings.findOneAndUpdate({}, update, { new: true, upsert: true });
     res.json(settings);
   } catch (error) {
@@ -743,24 +743,24 @@ app.put('/api/settings', authenticate, isAdmin, checkDatabaseConnection, async (
 app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const backup = req.body;
-    
+
     // Validate backup structure
     if (!backup || typeof backup !== 'object') {
       return res.status(400).json({ error: 'Invalid backup data format' });
     }
-    
+
     // Optional: Validate timestamp exists
     if (!backup.timestamp) {
       console.warn('⚠️ Backup file missing timestamp');
     }
-    
+
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
       // Step 1: Clear existing data (in reverse dependency order to avoid foreign key issues)
       console.log('🗑️ Clearing existing data...');
-      
+
       await DepartmentSale.deleteMany({}).session(session);
       await Sale.deleteMany({}).session(session);
       await Payment.deleteMany({}).session(session);
@@ -774,10 +774,10 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
       await Group.deleteMany({}).session(session);
       await Settings.deleteMany({}).session(session);
       // Note: Not deleting ApiKeys to preserve API access
-      
+
       // Step 2: Restore data (in dependency order)
       console.log('📥 Restoring backup data...');
-      
+
       // Restore Settings
       if (backup.settingsData) {
         if (Array.isArray(backup.settingsData) && backup.settingsData.length > 0) {
@@ -786,7 +786,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
           await Settings.insertMany([backup.settingsData], { session });
         }
       }
-      
+
       // Restore Groups (needed before Users)
       if (backup.groupsData && Array.isArray(backup.groupsData)) {
         const groups = backup.groupsData.map(g => ({
@@ -797,7 +797,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
         }));
         await Group.insertMany(groups, { session });
       }
-      
+
       // Restore Branches (needed before Departments and Users)
       if (backup.branchesData && Array.isArray(backup.branchesData)) {
         const branches = backup.branchesData.map(b => ({
@@ -859,7 +859,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
           await SubDepartment.insertMany(subDepartments, { session });
         }
       }
-      
+
       // Restore Categories (needed before Sales)
       if (backup.categoriesData && Array.isArray(backup.categoriesData)) {
         const categories = backup.categoriesData.map(c => ({
@@ -900,7 +900,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
           await CategoryPayment.insertMany(docs, { session });
         }
       }
-      
+
       // Restore Suppliers (needed before Payments)
       if (backup.suppliersData && Array.isArray(backup.suppliersData)) {
         const suppliers = backup.suppliersData.map(s => ({
@@ -944,19 +944,19 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
           await Payment.insertMany(docs, { session });
         }
       }
-      
+
       // Restore Users (needs Groups and Branches to exist)
       if (backup.usersData && Array.isArray(backup.usersData)) {
         // First, get current Groups and Branches to map old IDs to new IDs
         const allGroups = await Group.find({}).session(session);
         const allBranches = await Branch.find({}).session(session);
-        
+
         const groupMap = new Map();
         allGroups.forEach(g => groupMap.set(g.name, g._id));
-        
+
         const branchMap = new Map();
         allBranches.forEach(b => branchMap.set(b.name, b._id));
-        
+
         const users = [];
         for (const u of backup.usersData) {
           // Find matching group by name
@@ -965,7 +965,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
             console.warn(`⚠️ Group not found for user ${u.username}, skipping`);
             continue;
           }
-          
+
           // Map branch names to IDs
           const branchIds = [];
           if (u.branches && Array.isArray(u.branches)) {
@@ -975,14 +975,14 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
               if (branch) branchIds.push(branch._id);
             }
           }
-          
+
           // Use existing password hash if available, otherwise hash a default
           let passwordHash = u.password;
           if (!passwordHash || passwordHash.length < 20) {
             // If password looks unhashed or invalid, hash a default
             passwordHash = await bcrypt.hash('password123', 10);
           }
-          
+
           users.push({
             username: u.username,
             fullName: u.fullName,
@@ -994,36 +994,36 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
             lastLogin: u.lastLogin || null
           });
         }
-        
+
         if (users.length > 0) {
           await User.insertMany(users, { session });
         }
       }
-      
+
       // Restore Sales (needs Branches and Categories)
       if (backup.salesData && Array.isArray(backup.salesData)) {
         const allBranches = await Branch.find({}).session(session);
         const allCategories = await Category.find({}).session(session);
-        
+
         const branchMap = new Map();
         allBranches.forEach(b => branchMap.set(b.name, b._id));
-        
+
         const categoryMap = new Map();
         allCategories.forEach(c => categoryMap.set(c.name, c._id));
-        
+
         const sales = [];
         for (const s of backup.salesData) {
           const branchName = s.branchId?.name || s.branch?.name || '';
           const categoryName = s.categoryId?.name || s.category || '';
-          
+
           const branch = allBranches.find(b => b.name === branchName);
           const category = allCategories.find(c => c.name === categoryName);
-          
+
           if (!branch || !category) {
             console.warn(`⚠️ Branch or Category not found for sale, skipping`);
             continue;
           }
-          
+
           sales.push({
             branchId: branch._id,
             categoryId: category._id,
@@ -1036,7 +1036,7 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
             notes: s.notes || ''
           });
         }
-        
+
         if (sales.length > 0) {
           await Sale.insertMany(sales, { session });
         }
@@ -1083,13 +1083,13 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
           await DepartmentSale.insertMany(depSales, { session });
         }
       }
-      
+
       // Commit transaction
       await session.commitTransaction();
       session.endSession();
-      
+
       console.log('✅ Data restored successfully');
-      
+
       res.json({
         success: true,
         message: 'Data restored successfully',
@@ -1109,19 +1109,19 @@ app.post('/api/admin/restore', authenticate, isAdmin, checkDatabaseConnection, a
         },
         timestamp: backup.timestamp || 'Unknown'
       });
-      
+
     } catch (error) {
       // Rollback transaction on error
       await session.abortTransaction();
       session.endSession();
       throw error;
     }
-    
+
   } catch (error) {
     console.error('❌ Error restoring data:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to restore data',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1138,7 +1138,7 @@ app.get('/api/branches', authenticate, checkDatabaseConnection, async (req, res)
     if (!req.user.groupId.permissions.includes('admin')) {
       filter._id = { $in: req.user.branches };
     }
-    
+
     const branches = await Branch.find(filter).sort({ createdAt: -1 });
     res.json(branches);
   } catch (error) {
@@ -1196,12 +1196,12 @@ app.put('/api/branches/:id', authenticate, isAdmin, checkDatabaseConnection, asy
         }
       }
     }
-    
+
     const updated = await Branch.findByIdAndUpdate(id, payload, { new: true });
     if (!updated) {
       return res.status(404).json({ error: 'Branch not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating branch:', error.message);
@@ -1285,18 +1285,18 @@ app.get('/api/categories/:id', authenticate, async (req, res) => {
 app.post('/api/categories', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, color } = req.body;
-    
+
     // Check if category with same name already exists
-    const existingCategory = await Category.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingCategory) {
-      return res.status(400).json({ 
-        error: `A category with the name "${name}" already exists. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A category with the name "${name}" already exists. Please choose a different name.`
       });
     }
-    
+
     let payload = { ...req.body };
     const hasSeq = Object.prototype.hasOwnProperty.call(payload, 'sequence');
     if (!hasSeq || payload.sequence === '' || payload.sequence === null || payload.sequence === undefined) {
@@ -1322,16 +1322,16 @@ app.put('/api/categories/:id', authenticate, isAdmin, checkDatabaseConnection, a
   try {
     const { name, description, color } = req.body;
     console.log('🟨 Update category request', { id: req.params.id, sequence: req.body?.sequence });
-    
+
     // Check if another category with the same name exists (excluding current category)
-    const existingCategory = await Category.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-      _id: { $ne: req.params.id } 
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      _id: { $ne: req.params.id }
     });
-    
+
     if (existingCategory) {
-      return res.status(400).json({ 
-        error: `A category with the name "${name}" already exists. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A category with the name "${name}" already exists. Please choose a different name.`
       });
     }
     const updateData = {};
@@ -1382,7 +1382,7 @@ app.get('/api/departments', authenticate, async (req, res) => {
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Database connection not available. Please try again later.',
         status: 'database_unavailable'
       });
@@ -1391,7 +1391,7 @@ app.get('/api/departments', authenticate, async (req, res) => {
     console.log('✅ GET /api/departments route hit - Query:', req.query);
     const { branchId } = req.query;
     const query = {};
-    
+
     if (branchId && branchId !== 'undefined' && branchId.trim() !== '') {
       // Validate and convert branchId to ObjectId
       if (!mongoose.Types.ObjectId.isValid(branchId)) {
@@ -1401,20 +1401,20 @@ app.get('/api/departments', authenticate, async (req, res) => {
       query.branchId = new mongoose.Types.ObjectId(branchId);
       console.log('🔍 Filtering departments by branchId:', branchId);
     }
-    
+
     console.log('🔍 Department query:', JSON.stringify(query, null, 2));
     const departments = await Department.find(query).populate('branchId', 'name').sort({ sequence: 1, name: 1 });
     console.log(`✅ Found ${departments.length} departments`);
-    
+
     if (departments.length === 0 && branchId) {
       console.warn(`⚠️ No departments found for branchId: ${branchId}`);
     }
-    
+
     res.json(departments);
   } catch (error) {
     console.error('❌ Error fetching departments:', error.message);
     console.error('❌ Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
       details: 'Failed to fetch departments from database'
     });
@@ -1427,7 +1427,7 @@ app.get('/api/branches/:branchId/departments', authenticate, async (req, res) =>
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Database connection not available. Please try again later.',
         status: 'database_unavailable'
       });
@@ -1435,28 +1435,28 @@ app.get('/api/branches/:branchId/departments', authenticate, async (req, res) =>
 
     const { branchId } = req.params;
     console.log('✅ GET /api/branches/:branchId/departments - branchId:', branchId);
-    
+
     // Validate branchId format
     if (!mongoose.Types.ObjectId.isValid(branchId)) {
       console.error('❌ Invalid branchId format:', branchId);
       return res.status(400).json({ error: 'Invalid branch ID format' });
     }
-    
+
     const departments = await Department.find({ branchId: new mongoose.Types.ObjectId(branchId) })
       .populate('branchId', 'name')
       .sort({ sequence: 1, name: 1 });
-    
+
     console.log(`✅ Found ${departments.length} departments for branchId: ${branchId}`);
-    
+
     if (departments.length === 0) {
       console.warn(`⚠️ No departments found for branchId: ${branchId}`);
     }
-    
+
     res.json(departments);
   } catch (error) {
     console.error('❌ Error fetching departments by branch:', error.message);
     console.error('❌ Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
       details: 'Failed to fetch departments from database'
     });
@@ -1492,42 +1492,42 @@ app.get('/api/departments/:id', authenticate, async (req, res) => {
 app.post('/api/departments', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, branchId, description } = req.body;
-    
+
     if (!branchId) {
       return res.status(400).json({ error: 'Branch ID is required' });
     }
-    
+
     // Check if branch exists
     const branch = await Branch.findById(branchId);
     if (!branch) {
       return res.status(404).json({ error: 'Branch not found' });
     }
-    
+
     // Check if department with same name already exists in this branch
-    const existingDepartment = await Department.findOne({ 
+    const existingDepartment = await Department.findOne({
       branchId,
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingDepartment) {
-      return res.status(400).json({ 
-        error: `A department with the name "${name}" already exists in this branch. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A department with the name "${name}" already exists in this branch. Please choose a different name.`
       });
     }
-    
+
     // Get max sequence for this branch to set default
     const maxSequence = await Department.findOne({ branchId }).sort({ sequence: -1 }).select('sequence');
     const defaultSequence = maxSequence && maxSequence.sequence !== undefined ? maxSequence.sequence + 1 : 0;
-    
-    const department = await Department.create({ 
-      name, 
-      branchId, 
+
+    const department = await Department.create({
+      name,
+      branchId,
       description: description || '',
       sequence: req.body.sequence !== undefined ? req.body.sequence : defaultSequence,
       marginDedPercent: req.body.marginDedPercent !== undefined ? req.body.marginDedPercent : 0,
       showInIncomeStatement: req.body.showInIncomeStatement !== undefined ? req.body.showInIncomeStatement : true
     });
-    
+
     await department.populate('branchId', 'name');
     res.status(201).json(department);
   } catch (error) {
@@ -1540,29 +1540,29 @@ app.post('/api/departments', authenticate, isAdmin, checkDatabaseConnection, asy
 app.put('/api/departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, branchId, description } = req.body;
-    
+
     const department = await Department.findById(req.params.id);
     if (!department) {
       return res.status(404).json({ error: 'Department not found' });
     }
-    
+
     const currentBranchId = branchId || department.branchId;
-    
+
     // Check if another department with the same name exists in the same branch (excluding current department)
     if (name) {
-      const existingDepartment = await Department.findOne({ 
+      const existingDepartment = await Department.findOne({
         branchId: currentBranchId,
-        name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-        _id: { $ne: req.params.id } 
+        name: { $regex: new RegExp(`^${name}$`, 'i') },
+        _id: { $ne: req.params.id }
       });
-      
+
       if (existingDepartment) {
-        return res.status(400).json({ 
-          error: `A department with the name "${name}" already exists in this branch. Please choose a different name.` 
+        return res.status(400).json({
+          error: `A department with the name "${name}" already exists in this branch. Please choose a different name.`
         });
       }
     }
-    
+
     const updateData = {};
     if (name) updateData.name = name;
     if (branchId) updateData.branchId = branchId;
@@ -1570,13 +1570,13 @@ app.put('/api/departments/:id', authenticate, isAdmin, checkDatabaseConnection, 
     if (req.body.sequence !== undefined) updateData.sequence = req.body.sequence;
     if (req.body.marginDedPercent !== undefined) updateData.marginDedPercent = req.body.marginDedPercent;
     if (req.body.showInIncomeStatement !== undefined) updateData.showInIncomeStatement = req.body.showInIncomeStatement;
-    
+
     const updatedDepartment = await Department.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     ).populate('branchId', 'name');
-    
+
     res.json(updatedDepartment);
   } catch (error) {
     console.error('Error updating department:', error.message);
@@ -1590,11 +1590,11 @@ app.delete('/api/departments/:id', authenticate, isAdmin, checkDatabaseConnectio
     // Check if department has sub-departments
     const subDepartmentCount = await SubDepartment.countDocuments({ departmentId: req.params.id });
     if (subDepartmentCount > 0) {
-      return res.status(400).json({ 
-        error: `Cannot delete department. It has ${subDepartmentCount} sub-department(s). Please delete sub-departments first.` 
+      return res.status(400).json({
+        error: `Cannot delete department. It has ${subDepartmentCount} sub-department(s). Please delete sub-departments first.`
       });
     }
-    
+
     const department = await Department.findByIdAndDelete(req.params.id);
     if (!department) {
       return res.status(404).json({ error: 'Department not found' });
@@ -1616,7 +1616,7 @@ app.get('/api/sub-departments', authenticate, async (req, res) => {
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Database connection not available. Please try again later.',
         status: 'database_unavailable'
       });
@@ -1625,7 +1625,7 @@ app.get('/api/sub-departments', authenticate, async (req, res) => {
     const { departmentId, branchId } = req.query;
     console.log('✅ GET /api/sub-departments - Query:', req.query);
     const query = {};
-    
+
     if (departmentId && departmentId !== 'undefined' && departmentId.trim() !== '') {
       if (!mongoose.Types.ObjectId.isValid(departmentId)) {
         console.error('❌ Invalid departmentId format:', departmentId);
@@ -1633,7 +1633,7 @@ app.get('/api/sub-departments', authenticate, async (req, res) => {
       }
       query.departmentId = new mongoose.Types.ObjectId(departmentId);
     }
-    
+
     if (branchId && branchId !== 'undefined' && branchId.trim() !== '') {
       if (!mongoose.Types.ObjectId.isValid(branchId)) {
         console.error('❌ Invalid branchId format:', branchId);
@@ -1641,24 +1641,24 @@ app.get('/api/sub-departments', authenticate, async (req, res) => {
       }
       query.branchId = new mongoose.Types.ObjectId(branchId);
     }
-    
+
     console.log('🔍 Sub-department query:', JSON.stringify(query, null, 2));
     const subDepartments = await SubDepartment.find(query)
       .populate('departmentId', 'name')
       .populate('branchId', 'name')
       .sort({ sequence: 1, name: 1 });
-    
+
     console.log(`✅ Found ${subDepartments.length} sub-departments`);
-    
+
     if (subDepartments.length === 0 && (departmentId || branchId)) {
       console.warn(`⚠️ No sub-departments found for filters:`, query);
     }
-    
+
     res.json(subDepartments);
   } catch (error) {
     console.error('❌ Error fetching sub-departments:', error.message);
     console.error('❌ Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
       details: 'Failed to fetch sub-departments from database'
     });
@@ -1671,11 +1671,11 @@ app.get('/api/sub-departments/:id', authenticate, async (req, res) => {
     const subDepartment = await SubDepartment.findById(req.params.id)
       .populate('departmentId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!subDepartment) {
       return res.status(404).json({ error: 'Sub-department not found' });
     }
-    
+
     res.json(subDepartment);
   } catch (error) {
     console.error('Error fetching sub-department:', error.message);
@@ -1689,7 +1689,7 @@ app.get('/api/departments/:departmentId/sub-departments', authenticate, async (r
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('❌ Database not connected. Connection state:', mongoose.connection.readyState);
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Database connection not available. Please try again later.',
         status: 'database_unavailable'
       });
@@ -1697,28 +1697,28 @@ app.get('/api/departments/:departmentId/sub-departments', authenticate, async (r
 
     const { departmentId } = req.params;
     console.log('✅ GET /api/departments/:departmentId/sub-departments - departmentId:', departmentId);
-    
+
     // Validate departmentId format
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
       console.error('❌ Invalid departmentId format:', departmentId);
       return res.status(400).json({ error: 'Invalid department ID format' });
     }
-    
+
     const subDepartments = await SubDepartment.find({ departmentId: new mongoose.Types.ObjectId(departmentId) })
       .populate('branchId', 'name')
       .sort({ sequence: 1, name: 1 });
-    
+
     console.log(`✅ Found ${subDepartments.length} sub-departments for departmentId: ${departmentId}`);
-    
+
     if (subDepartments.length === 0) {
       console.warn(`⚠️ No sub-departments found for departmentId: ${departmentId}`);
     }
-    
+
     res.json(subDepartments);
   } catch (error) {
     console.error('❌ Error fetching sub-departments:', error.message);
     console.error('❌ Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
       details: 'Failed to fetch sub-departments from database'
     });
@@ -1729,53 +1729,53 @@ app.get('/api/departments/:departmentId/sub-departments', authenticate, async (r
 app.post('/api/sub-departments', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, departmentId, branchId, description } = req.body;
-    
+
     if (!departmentId) {
       return res.status(400).json({ error: 'Department ID is required' });
     }
-    
+
     if (!branchId) {
       return res.status(400).json({ error: 'Branch ID is required' });
     }
-    
+
     // Check if department exists
     const department = await Department.findById(departmentId);
     if (!department) {
       return res.status(404).json({ error: 'Department not found' });
     }
-    
+
     // Verify branch matches department's branch
     if (department.branchId.toString() !== branchId) {
-      return res.status(400).json({ 
-        error: 'Branch ID must match the department\'s branch' 
+      return res.status(400).json({
+        error: 'Branch ID must match the department\'s branch'
       });
     }
-    
+
     // Check if sub-department with same name already exists in this department and branch
-    const existingSubDepartment = await SubDepartment.findOne({ 
+    const existingSubDepartment = await SubDepartment.findOne({
       departmentId,
       branchId,
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingSubDepartment) {
-      return res.status(400).json({ 
-        error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.`
       });
     }
-    
+
     // Get max sequence for this department to set default
     const maxSequence = await SubDepartment.findOne({ departmentId, branchId }).sort({ sequence: -1 }).select('sequence');
     const defaultSequence = maxSequence && maxSequence.sequence !== undefined ? maxSequence.sequence + 1 : 0;
-    
-    const subDepartment = await SubDepartment.create({ 
-      name, 
+
+    const subDepartment = await SubDepartment.create({
+      name,
       departmentId,
       branchId,
       description: description || '',
       sequence: req.body.sequence !== undefined ? req.body.sequence : defaultSequence
     });
-    
+
     await subDepartment.populate('departmentId', 'name');
     await subDepartment.populate('branchId', 'name');
     res.status(201).json(subDepartment);
@@ -1789,15 +1789,15 @@ app.post('/api/sub-departments', authenticate, isAdmin, checkDatabaseConnection,
 app.put('/api/sub-departments/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, departmentId, branchId, description } = req.body;
-    
+
     const subDepartment = await SubDepartment.findById(req.params.id);
     if (!subDepartment) {
       return res.status(404).json({ error: 'Sub-department not found' });
     }
-    
+
     const currentDepartmentId = departmentId || subDepartment.departmentId;
     const currentBranchId = branchId || subDepartment.branchId;
-    
+
     // If department is being changed, verify branch matches
     if (departmentId) {
       const department = await Department.findById(departmentId);
@@ -1805,43 +1805,43 @@ app.put('/api/sub-departments/:id', authenticate, isAdmin, checkDatabaseConnecti
         return res.status(404).json({ error: 'Department not found' });
       }
       if (department.branchId.toString() !== currentBranchId) {
-        return res.status(400).json({ 
-          error: 'Branch ID must match the department\'s branch' 
+        return res.status(400).json({
+          error: 'Branch ID must match the department\'s branch'
         });
       }
     }
-    
+
     // Check if another sub-department with the same name exists in the same department and branch (excluding current sub-department)
     if (name) {
-      const existingSubDepartment = await SubDepartment.findOne({ 
+      const existingSubDepartment = await SubDepartment.findOne({
         departmentId: currentDepartmentId,
         branchId: currentBranchId,
-        name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-        _id: { $ne: req.params.id } 
+        name: { $regex: new RegExp(`^${name}$`, 'i') },
+        _id: { $ne: req.params.id }
       });
-      
+
       if (existingSubDepartment) {
-        return res.status(400).json({ 
-          error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.` 
+        return res.status(400).json({
+          error: `A sub-department with the name "${name}" already exists in this department. Please choose a different name.`
         });
       }
     }
-    
+
     const updateData = {};
     if (name) updateData.name = name;
     if (departmentId) updateData.departmentId = departmentId;
     if (branchId) updateData.branchId = branchId;
     if (description !== undefined) updateData.description = description;
     if (req.body.sequence !== undefined) updateData.sequence = req.body.sequence;
-    
+
     const updatedSubDepartment = await SubDepartment.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     )
-    .populate('departmentId', 'name')
-    .populate('branchId', 'name');
-    
+      .populate('departmentId', 'name')
+      .populate('branchId', 'name');
+
     res.json(updatedSubDepartment);
   } catch (error) {
     console.error('Error updating sub-department:', error.message);
@@ -1867,15 +1867,15 @@ app.delete('/api/sub-departments/:id', authenticate, isAdmin, checkDatabaseConne
 app.put('/api/departments/sequences', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { sequences } = req.body; // Array of { id, sequence }
-    
+
     if (!Array.isArray(sequences)) {
       return res.status(400).json({ error: 'Sequences must be an array' });
     }
-    
-    const updatePromises = sequences.map(({ id, sequence }) => 
+
+    const updatePromises = sequences.map(({ id, sequence }) =>
       Department.findByIdAndUpdate(id, { sequence }, { new: true })
     );
-    
+
     await Promise.all(updatePromises);
     res.json({ ok: true, message: 'Sequences updated successfully' });
   } catch (error) {
@@ -1888,15 +1888,15 @@ app.put('/api/departments/sequences', authenticate, isAdmin, checkDatabaseConnec
 app.put('/api/sub-departments/sequences', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { sequences } = req.body; // Array of { id, sequence }
-    
+
     if (!Array.isArray(sequences)) {
       return res.status(400).json({ error: 'Sequences must be an array' });
     }
-    
-    const updatePromises = sequences.map(({ id, sequence }) => 
+
+    const updatePromises = sequences.map(({ id, sequence }) =>
       SubDepartment.findByIdAndUpdate(id, { sequence }, { new: true })
     );
-    
+
     await Promise.all(updatePromises);
     res.json({ ok: true, message: 'Sequences updated successfully' });
   } catch (error) {
@@ -1915,12 +1915,12 @@ app.get('/api/suppliers', authenticate, async (req, res) => {
     // console.log('✅ /api/suppliers route hit');
     // Ensure Content-Type is set to JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Check database connection
     if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({ error: 'Database not connected' });
     }
-    
+
     const suppliers = await Supplier.find().sort({ createdAt: -1 });
     // console.log(`✅ Returning ${suppliers.length} suppliers`);
     res.status(200).json(suppliers);
@@ -1936,18 +1936,18 @@ app.get('/api/suppliers', authenticate, async (req, res) => {
 app.post('/api/suppliers', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, contact, phone, email, address } = req.body;
-    
+
     // Check if supplier with same name already exists
-    const existingSupplier = await Supplier.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingSupplier = await Supplier.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingSupplier) {
-      return res.status(400).json({ 
-        error: `A supplier with the name "${name}" already exists. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A supplier with the name "${name}" already exists. Please choose a different name.`
       });
     }
-    
+
     const supplier = await Supplier.create(req.body);
     res.status(201).json(supplier);
   } catch (error) {
@@ -1960,19 +1960,19 @@ app.post('/api/suppliers', authenticate, isAdmin, checkDatabaseConnection, async
 app.put('/api/suppliers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, contact, phone, email, address } = req.body;
-    
+
     // Check if another supplier with the same name exists (excluding current supplier)
-    const existingSupplier = await Supplier.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-      _id: { $ne: req.params.id } 
+    const existingSupplier = await Supplier.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      _id: { $ne: req.params.id }
     });
-    
+
     if (existingSupplier) {
-      return res.status(400).json({ 
-        error: `A supplier with the name "${name}" already exists. Please choose a different name.` 
+      return res.status(400).json({
+        error: `A supplier with the name "${name}" already exists. Please choose a different name.`
       });
     }
-    
+
     const updated = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) {
       return res.status(404).json({ error: 'Supplier not found' });
@@ -1999,6 +1999,40 @@ app.delete('/api/suppliers/:id', authenticate, isAdmin, checkDatabaseConnection,
 });
 
 // ========================================
+// CITIES API ROUTES
+// ========================================
+
+// Get All Cities
+app.get('/api/cities', authenticate, async (req, res) => {
+  try {
+    const cities = await City.find().sort({ name: 1 });
+    res.json(cities);
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create New City
+app.post('/api/cities', authenticate, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'City name is required' });
+    }
+    const existingCity = await City.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+    if (existingCity) {
+      return res.status(400).json({ error: 'City already exists' });
+    }
+    const city = await City.create({ name });
+    res.status(201).json(city);
+  } catch (error) {
+    console.error('Error creating city:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
 // GROUPS API ROUTES
 // ========================================
 
@@ -2017,20 +2051,20 @@ app.get('/api/groups', authenticate, isAdmin, async (req, res) => {
 app.post('/api/groups', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, permissions } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
     }
-    
+
     // Check if group with same name already exists
     const existingGroup = await Group.findOne({ name });
     if (existingGroup) {
       return res.status(400).json({ error: 'Group with this name already exists' });
     }
-    
+
     const group = new Group({ name, description, permissions });
     await group.save();
-    
+
     res.status(201).json(group);
   } catch (error) {
     console.error('Error creating group:', error);
@@ -2042,41 +2076,41 @@ app.post('/api/groups', authenticate, isAdmin, checkDatabaseConnection, async (r
 app.put('/api/groups/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, permissions } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
     }
-    
+
     // Check if group with same name already exists (excluding current group)
-    const existingGroup = await Group.findOne({ 
-      name, 
-      _id: { $ne: req.params.id } 
+    const existingGroup = await Group.findOne({
+      name,
+      _id: { $ne: req.params.id }
     });
-    
+
     if (existingGroup) {
       return res.status(400).json({ error: 'Group with this name already exists' });
     }
-    
+
     // Find the current group to check if it's the Admin group
     const currentGroup = await Group.findById(req.params.id);
-    
+
     // If updating the Admin group, ensure 'admin' permission is always included
     if (currentGroup && (currentGroup.name.toLowerCase() === 'admin' || name.toLowerCase() === 'admin')) {
       if (!permissions.includes('admin')) {
         permissions.push('admin');
       }
     }
-    
+
     const group = await Group.findByIdAndUpdate(
       req.params.id,
       { name, description, permissions },
       { new: true }
     );
-    
+
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
-    
+
     res.json(group);
   } catch (error) {
     console.error('Error updating group:', error);
@@ -2088,17 +2122,17 @@ app.put('/api/groups/:id', authenticate, isAdmin, checkDatabaseConnection, async
 app.delete('/api/groups/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const group = await Group.findByIdAndDelete(req.params.id);
-    
+
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
-    
+
     // Update all users with this group to have no group
     await User.updateMany(
       { groupId: req.params.id },
       { $unset: { groupId: 1 } }
     );
-    
+
     res.json({ message: 'Group deleted successfully' });
   } catch (error) {
     console.error('Error deleting group:', error);
@@ -2127,11 +2161,11 @@ app.get('/api/users', authenticate, isAdmin, async (req, res) => {
 app.post('/api/users', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { username, fullName, email, password, groupId, branches } = req.body;
-    
+
     if (!username || !fullName || !email || !password || !groupId) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    
+
     // Check if user with same username or email already exists
     const existingUser = await User.findOne({
       $or: [
@@ -2139,15 +2173,15 @@ app.post('/api/users', authenticate, isAdmin, checkDatabaseConnection, async (re
         { email }
       ]
     });
-    
+
     if (existingUser) {
       return res.status(400).json({ error: 'User with this username or email already exists' });
     }
-    
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    
+
     const user = new User({
       username,
       fullName,
@@ -2156,12 +2190,12 @@ app.post('/api/users', authenticate, isAdmin, checkDatabaseConnection, async (re
       groupId,
       branches
     });
-    
+
     await user.save();
-    
+
     // Populate group for response
     await user.populate('groupId', 'name permissions');
-    
+
     res.status(201).json(user);
   } catch (error) {
     console.error('Error creating user:', error);
@@ -2173,11 +2207,11 @@ app.post('/api/users', authenticate, isAdmin, checkDatabaseConnection, async (re
 app.put('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { username, fullName, email, password, groupId, branches, isActive } = req.body;
-    
+
     if (!username || !fullName || !email || !groupId) {
       return res.status(400).json({ error: 'Username, full name, email, and group are required' });
     }
-    
+
     // Check if user with same username or email already exists (excluding current user)
     const existingUser = await User.findOne({
       $or: [
@@ -2186,11 +2220,11 @@ app.put('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, async 
       ],
       _id: { $ne: req.params.id }
     });
-    
+
     if (existingUser) {
       return res.status(400).json({ error: 'User with this username or email already exists' });
     }
-    
+
     const updateData = {
       username,
       fullName,
@@ -2199,23 +2233,23 @@ app.put('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, async 
       branches,
       isActive
     };
-    
+
     // Only update password if provided
     if (password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(password, salt);
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     ).populate('groupId', 'name permissions');
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
@@ -2230,13 +2264,13 @@ app.delete('/api/users/:id', authenticate, isAdmin, checkDatabaseConnection, asy
     if (req.user._id.toString() === req.params.id) {
       return res.status(400).json({ error: 'You cannot delete your own account' });
     }
-    
+
     const user = await User.findByIdAndDelete(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -2284,31 +2318,31 @@ app.get('/api/employees/:id', authenticate, hasPermission('employees'), async (r
 app.post('/api/employees', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const employeeData = req.body;
-    
+
     if (!employeeData.code || !employeeData.name) {
       return res.status(400).json({ error: 'Code and name are required' });
     }
-    
+
     // Check if employee with same code already exists
     const existingEmployee = await Employee.findOne({ code: employeeData.code });
     if (existingEmployee) {
       return res.status(400).json({ error: 'Employee with this code already exists' });
     }
-    
+
     // Convert date strings to Date objects
     if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
     if (employeeData.joiningDate) employeeData.joiningDate = new Date(employeeData.joiningDate);
     if (employeeData.issueDate) employeeData.issueDate = new Date(employeeData.issueDate);
     if (employeeData.expiryDate) employeeData.expiryDate = new Date(employeeData.expiryDate);
     if (employeeData.incrDate) employeeData.incrDate = new Date(employeeData.incrDate);
-    
+
     const employee = new Employee(employeeData);
     await employee.save();
-    
+
     await employee.populate('branchId', 'name');
     await employee.populate('departmentId', 'name');
     await employee.populate('designationId', 'name');
-    
+
     res.status(201).json(employee);
   } catch (error) {
     console.error('Error creating employee:', error);
@@ -2320,11 +2354,11 @@ app.post('/api/employees', authenticate, hasPermission('employees'), checkDataba
 app.put('/api/employees/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const employeeData = req.body;
-    
+
     if (!employeeData.code || !employeeData.name) {
       return res.status(400).json({ error: 'Code and name are required' });
     }
-    
+
     // Check if employee with same code already exists (excluding current employee)
     const existingEmployee = await Employee.findOne({
       code: employeeData.code,
@@ -2333,14 +2367,14 @@ app.put('/api/employees/:id', authenticate, hasPermission('employees'), checkDat
     if (existingEmployee) {
       return res.status(400).json({ error: 'Employee with this code already exists' });
     }
-    
+
     // Convert date strings to Date objects
     if (employeeData.dob) employeeData.dob = new Date(employeeData.dob);
     if (employeeData.joiningDate) employeeData.joiningDate = new Date(employeeData.joiningDate);
     if (employeeData.issueDate) employeeData.issueDate = new Date(employeeData.issueDate);
     if (employeeData.expiryDate) employeeData.expiryDate = new Date(employeeData.expiryDate);
     if (employeeData.incrDate) employeeData.incrDate = new Date(employeeData.incrDate);
-    
+
     const employee = await Employee.findByIdAndUpdate(
       req.params.id,
       employeeData,
@@ -2349,11 +2383,11 @@ app.put('/api/employees/:id', authenticate, hasPermission('employees'), checkDat
       .populate('branchId', 'name')
       .populate('departmentId', 'name')
       .populate('designationId', 'name');
-    
+
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    
+
     res.json(employee);
   } catch (error) {
     console.error('Error updating employee:', error);
@@ -2365,11 +2399,11 @@ app.put('/api/employees/:id', authenticate, hasPermission('employees'), checkDat
 app.delete('/api/employees/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const employee = await Employee.findByIdAndDelete(req.params.id);
-    
+
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    
+
     res.json({ message: 'Employee deleted successfully' });
   } catch (error) {
     console.error('Error deleting employee:', error);
@@ -2411,25 +2445,25 @@ app.get('/api/employee-departments/:id', authenticate, hasPermission('employees'
 app.post('/api/employee-departments', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, isActive } = req.body;
-    
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Department name is required' });
     }
-    
+
     // Check if department with same name already exists
-    const existingDepartment = await EmployeeDepartment.findOne({ 
-      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    const existingDepartment = await EmployeeDepartment.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
     });
     if (existingDepartment) {
       return res.status(400).json({ error: 'Department with this name already exists' });
     }
-    
+
     const department = new EmployeeDepartment({
       name: name.trim(),
       description: description || '',
       isActive: isActive !== undefined ? isActive : true
     });
-    
+
     await department.save();
     res.status(201).json(department);
   } catch (error) {
@@ -2442,20 +2476,20 @@ app.post('/api/employee-departments', authenticate, hasPermission('employees'), 
 app.put('/api/employee-departments/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, isActive } = req.body;
-    
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Department name is required' });
     }
-    
+
     // Check if department with same name already exists (excluding current)
-    const existingDepartment = await EmployeeDepartment.findOne({ 
+    const existingDepartment = await EmployeeDepartment.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
       _id: { $ne: req.params.id }
     });
     if (existingDepartment) {
       return res.status(400).json({ error: 'Department with this name already exists' });
     }
-    
+
     const department = await EmployeeDepartment.findByIdAndUpdate(
       req.params.id,
       {
@@ -2465,11 +2499,11 @@ app.put('/api/employee-departments/:id', authenticate, hasPermission('employees'
       },
       { new: true, runValidators: true }
     );
-    
+
     if (!department) {
       return res.status(404).json({ error: 'Employee department not found' });
     }
-    
+
     res.json(department);
   } catch (error) {
     console.error('Error updating employee department:', error);
@@ -2481,11 +2515,11 @@ app.put('/api/employee-departments/:id', authenticate, hasPermission('employees'
 app.delete('/api/employee-departments/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const department = await EmployeeDepartment.findByIdAndDelete(req.params.id);
-    
+
     if (!department) {
       return res.status(404).json({ error: 'Employee department not found' });
     }
-    
+
     res.json({ message: 'Employee department deleted successfully' });
   } catch (error) {
     console.error('Error deleting employee department:', error);
@@ -2527,25 +2561,25 @@ app.get('/api/employee-designations/:id', authenticate, hasPermission('employees
 app.post('/api/employee-designations', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, isActive } = req.body;
-    
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Designation name is required' });
     }
-    
+
     // Check if designation with same name already exists
-    const existingDesignation = await EmployeeDesignation.findOne({ 
-      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+    const existingDesignation = await EmployeeDesignation.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
     });
     if (existingDesignation) {
       return res.status(400).json({ error: 'Designation with this name already exists' });
     }
-    
+
     const designation = new EmployeeDesignation({
       name: name.trim(),
       description: description || '',
       isActive: isActive !== undefined ? isActive : true
     });
-    
+
     await designation.save();
     res.status(201).json(designation);
   } catch (error) {
@@ -2558,20 +2592,20 @@ app.post('/api/employee-designations', authenticate, hasPermission('employees'),
 app.put('/api/employee-designations/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, isActive } = req.body;
-    
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Designation name is required' });
     }
-    
+
     // Check if designation with same name already exists (excluding current)
-    const existingDesignation = await EmployeeDesignation.findOne({ 
+    const existingDesignation = await EmployeeDesignation.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
       _id: { $ne: req.params.id }
     });
     if (existingDesignation) {
       return res.status(400).json({ error: 'Designation with this name already exists' });
     }
-    
+
     const designation = await EmployeeDesignation.findByIdAndUpdate(
       req.params.id,
       {
@@ -2581,11 +2615,11 @@ app.put('/api/employee-designations/:id', authenticate, hasPermission('employees
       },
       { new: true, runValidators: true }
     );
-    
+
     if (!designation) {
       return res.status(404).json({ error: 'Employee designation not found' });
     }
-    
+
     res.json(designation);
   } catch (error) {
     console.error('Error updating employee designation:', error);
@@ -2597,11 +2631,11 @@ app.put('/api/employee-designations/:id', authenticate, hasPermission('employees
 app.delete('/api/employee-designations/:id', authenticate, hasPermission('employees'), checkDatabaseConnection, async (req, res) => {
   try {
     const designation = await EmployeeDesignation.findByIdAndDelete(req.params.id);
-    
+
     if (!designation) {
       return res.status(404).json({ error: 'Employee designation not found' });
     }
-    
+
     res.json({ message: 'Employee designation deleted successfully' });
   } catch (error) {
     console.error('Error deleting employee designation:', error);
@@ -2617,16 +2651,16 @@ app.delete('/api/employee-designations/:id', authenticate, hasPermission('employ
 app.get('/api/sales', authenticate, async (req, res) => {
   try {
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
       filter.categoryId = req.query.categoryId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -2636,7 +2670,7 @@ app.get('/api/sales', authenticate, async (req, res) => {
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     // If user is not admin, filter by user's assigned branches
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
@@ -2649,19 +2683,19 @@ app.get('/api/sales', authenticate, async (req, res) => {
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     const sales = await Sale.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     res.json(sales);
   } catch (error) {
     console.error('Error fetching sales:', error.message);
@@ -2691,7 +2725,7 @@ app.post('/api/sales', authenticate, checkDatabaseConnection, async (req, res) =
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const saleBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(saleBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2720,7 +2754,7 @@ app.put('/api/sales/:id', authenticate, hasPermission('sales-edit'), checkDataba
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(updateBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2729,11 +2763,11 @@ app.put('/api/sales/:id', authenticate, hasPermission('sales-edit'), checkDataba
     const updated = await Sale.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Sale not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating sale:', error.message);
@@ -2749,13 +2783,13 @@ app.delete('/api/sales/:id', authenticate, hasPermission('sales-delete'), checkD
     if (!sale) {
       return res.status(404).json({ error: 'Sale not found' });
     }
-    
+
     // Check if user has access to this sale's branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const saleBranchId = sale.branchId?._id ? sale.branchId._id.toString() : sale.branchId?.toString() || sale.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(saleBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2778,14 +2812,14 @@ app.get('/api/department-sales', authenticate, async (req, res) => {
   try {
     // console.log('✅ GET /api/department-sales - Query:', req.query);
     const filter = {};
-    
+
     // If user is not admin, filter by user's assigned branches
     let userAllowedBranches = null;
     if (!req.user.groupId.permissions.includes('admin')) {
       userAllowedBranches = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
       console.log('🔒 Non-admin user, allowed branches:', userAllowedBranches);
     }
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       // If user is not admin, validate that the requested branch is in their allowed branches
@@ -2798,15 +2832,15 @@ app.get('/api/department-sales', authenticate, async (req, res) => {
       // If no branchId provided but user is not admin, filter by user's assigned branches
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     if (req.query.departmentId && req.query.departmentId !== 'undefined' && req.query.departmentId.trim() !== '') {
       filter.departmentId = req.query.departmentId;
     }
-    
+
     if (req.query.subDepartmentId && req.query.subDepartmentId !== 'undefined' && req.query.subDepartmentId.trim() !== '') {
       filter.subDepartmentId = req.query.subDepartmentId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -2818,9 +2852,9 @@ app.get('/api/department-sales', authenticate, async (req, res) => {
         console.log('📅 Date filter to:', req.query.to, '->', filter.date.$lte);
       }
     }
-    
+
     console.log('🔍 Final filter:', JSON.stringify(filter, null, 2));
-    
+
     const departmentSales = await DepartmentSale.find(filter)
       .populate('branchId', 'name')
       .populate({
@@ -2833,7 +2867,7 @@ app.get('/api/department-sales', authenticate, async (req, res) => {
         select: 'name sequence',
         model: 'SubDepartment'
       });
-    
+
     // Sort by department sequence, then sub-department sequence, then date
     departmentSales.sort((a, b) => {
       const deptSeqA = a.departmentId?.sequence ?? 0;
@@ -2848,7 +2882,7 @@ app.get('/api/department-sales', authenticate, async (req, res) => {
       }
       return new Date(b.date) - new Date(a.date);
     });
-    
+
     console.log(`✅ Found ${departmentSales.length} department sales`);
     res.json(departmentSales);
   } catch (error) {
@@ -2862,7 +2896,7 @@ app.post('/api/department-sales', authenticate, checkDatabaseConnection, async (
   try {
     console.log('📝 POST /api/department-sales - Request received');
     console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
-    
+
     // Copy request data
     const data = { ...req.body };
 
@@ -2871,7 +2905,7 @@ app.post('/api/department-sales', authenticate, checkDatabaseConnection, async (
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const saleBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(saleBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2909,21 +2943,21 @@ app.get('/api/department-sales/:id', authenticate, async (req, res) => {
       .populate('branchId', 'name')
       .populate('departmentId', 'name')
       .populate('subDepartmentId', 'name');
-    
+
     if (!departmentSale) {
       return res.status(404).json({ error: 'Department sale not found' });
     }
-    
+
     // Check if user has access to this sale's branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       const saleBranchId = departmentSale.branchId?._id ? departmentSale.branchId._id.toString() : departmentSale.branchId?.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(saleBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
     }
-    
+
     res.json(departmentSale);
   } catch (error) {
     console.error('Error fetching department sale:', error.message);
@@ -2939,7 +2973,7 @@ app.put('/api/department-sales/:id', authenticate, hasPermission('sales-edit'), 
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(updateBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2949,11 +2983,11 @@ app.put('/api/department-sales/:id', authenticate, hasPermission('sales-edit'), 
       .populate('branchId', 'name')
       .populate('departmentId', 'name')
       .populate('subDepartmentId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Department sale not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating department sale:', error.message);
@@ -2969,13 +3003,13 @@ app.delete('/api/department-sales/:id', authenticate, hasPermission('sales-delet
     if (!departmentSale) {
       return res.status(404).json({ error: 'Department sale not found' });
     }
-    
+
     // Check if user has access to this sale's branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const saleBranchId = departmentSale.branchId?._id ? departmentSale.branchId._id.toString() : departmentSale.branchId?.toString() || departmentSale.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(saleBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -2998,17 +3032,17 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
     const now = new Date();
     const from = req.query.from ? new Date(req.query.from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const to = req.query.to ? new Date(req.query.to) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
+
     // Set time to start/end of day for proper date range
     from.setHours(0, 0, 0, 0);
     to.setHours(23, 59, 59, 999);
-    
+
     console.log('📅 Date range:', { from: from.toISOString(), to: to.toISOString() });
     console.log('📋 Query params:', req.query);
-    
+
     // Build match filter
     const match = { date: { $gte: from, $lte: to } };
-    
+
     // Handle branchId filter
     if (req.query.branchId && req.query.branchId.trim() !== '') {
       const branchId = req.query.branchId.trim();
@@ -3033,7 +3067,7 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       match.branchId = { $in: userBranchObjectIds };
       console.log('🏢 Branch filter (user branches):', req.user.branches.map(b => b._id || b));
     }
-    
+
     // Handle departmentId filter (Section)
     if (req.query.departmentId && req.query.departmentId.trim() !== '') {
       const deptId = req.query.departmentId.trim();
@@ -3045,13 +3079,13 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       }
       console.log('📁 Department filter:', match.departmentId);
     }
-    
+
     // Get branch info if branchId is specified
     let branch = null;
     let branchObjectId = null;
     if (req.query.branchId && req.query.branchId.trim() !== '') {
-      branchObjectId = mongoose.Types.ObjectId.isValid(req.query.branchId.trim()) 
-        ? new mongoose.Types.ObjectId(req.query.branchId.trim()) 
+      branchObjectId = mongoose.Types.ObjectId.isValid(req.query.branchId.trim())
+        ? new mongoose.Types.ObjectId(req.query.branchId.trim())
         : req.query.branchId.trim();
       branch = await Branch.findById(branchObjectId).select('name').lean();
     } else if (!req.user.groupId.permissions.includes('admin') && req.user.branches.length > 0) {
@@ -3062,23 +3096,23 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       }
       branch = await Branch.findById(branchObjectId).select('name').lean();
     }
-    
+
     // STEP 1: Load ALL departments and sub-departments for the branch (regardless of sales data)
     if (!branchObjectId) {
-      return res.json({ 
-        items: [], 
-        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+      return res.json({
+        items: [],
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 },
         branch: null,
-        meta: { from, to, branchId: null, departmentId: null } 
+        meta: { from, to, branchId: null, departmentId: null }
       });
     }
-    
+
     console.log('📁 STEP 1: Loading departments and sub-departments for branch:', branchObjectId.toString());
-    
+
     // Get all departments for this branch (only those that should show in income statement)
     // Include departments where showInIncomeStatement is true OR where the field doesn't exist (backward compatibility)
-    let departmentFilter = { 
-      branchId: branchObjectId, 
+    let departmentFilter = {
+      branchId: branchObjectId,
       $or: [
         { showInIncomeStatement: true },
         { showInIncomeStatement: { $exists: false } }
@@ -3092,18 +3126,18 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
         departmentFilter._id = deptId;
       }
     }
-    
+
     const departments = await Department.find(departmentFilter)
       .select('name _id showInIncomeStatement sequence marginDedPercent')
       .sort({ sequence: 1, name: 1 })
       .lean();
     console.log('✅ Found', departments.length, 'departments with showInIncomeStatement: true or undefined');
     console.log('📋 Department names:', departments.map(d => d.name).join(', '));
-    
+
     // Check total departments for this branch (for debugging)
     const totalDeptsForBranch = await Department.countDocuments({ branchId: branchObjectId });
     console.log('📊 Total departments for branch:', totalDeptsForBranch, '| Showing in income statement:', departments.length);
-    
+
     // Get all sub-departments for this branch
     // IMPORTANT: Only get sub-departments whose parent departments have showInIncomeStatement: true or undefined
     let subDeptFilter = { branchId: branchObjectId };
@@ -3120,41 +3154,41 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       if (explicitlyHidden.length === allDeptsForBranch.length && allDeptsForBranch.length > 0) {
         console.log('⚠️ All departments are set to showInIncomeStatement: false');
       }
-      return res.json({ 
-        items: [], 
-        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+      return res.json({
+        items: [],
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 },
         branch: branch ? { _id: branch._id, name: branch.name } : null,
-        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null }
       });
     }
     if (req.query.departmentId && req.query.departmentId.trim() !== '') {
       const deptId = req.query.departmentId.trim();
       // Verify this department has showInIncomeStatement: true
-      const deptCheck = await Department.findOne({ 
+      const deptCheck = await Department.findOne({
         _id: mongoose.Types.ObjectId.isValid(deptId) ? new mongoose.Types.ObjectId(deptId) : deptId,
-        showInIncomeStatement: true 
+        showInIncomeStatement: true
       });
       if (!deptCheck) {
         console.log('⚠️ Requested department does not have showInIncomeStatement: true');
-        return res.json({ 
-          items: [], 
-          summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+        return res.json({
+          items: [],
+          summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 },
           branch: branch ? { _id: branch._id, name: branch.name } : null,
-          meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+          meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null }
         });
       }
-      subDeptFilter.departmentId = mongoose.Types.ObjectId.isValid(deptId) 
-        ? new mongoose.Types.ObjectId(deptId) 
+      subDeptFilter.departmentId = mongoose.Types.ObjectId.isValid(deptId)
+        ? new mongoose.Types.ObjectId(deptId)
         : deptId;
     }
-    
+
     // Get sub-departments - only those whose parent departments have showInIncomeStatement: true or field doesn't exist
     // Note: We already filtered departments above, so we can safely get sub-departments
     let subDepartments = await SubDepartment.find(subDeptFilter)
       .populate('departmentId', 'name showInIncomeStatement sequence marginDedPercent')
       .select('name departmentId branchId sequence')
       .lean();
-    
+
     // Filter sub-departments to only include those whose parent departments should show in income statement
     // (showInIncomeStatement: true OR field doesn't exist for backward compatibility)
     subDepartments = subDepartments.filter(sd => {
@@ -3163,7 +3197,7 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       // Include if showInIncomeStatement is true OR if field doesn't exist (backward compatibility)
       return dept.showInIncomeStatement === true || dept.showInIncomeStatement === undefined;
     });
-    
+
     // Sort sub-departments by department sequence, then department name, then sub-department sequence, then sub-department name
     subDepartments.sort((a, b) => {
       const deptSeqA = a.departmentId?.sequence ?? 0;
@@ -3185,60 +3219,60 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       const subDeptNameB = b.name || '';
       return subDeptNameA.localeCompare(subDeptNameB);
     });
-    
+
     console.log('✅ Found', subDepartments.length, 'sub-departments (filtered by showInIncomeStatement and sorted by sequence)');
-    
+
     // If still no sub-departments found, return empty but log for debugging
     if (subDepartments.length === 0) {
       console.log('⚠️ No sub-departments found for branch');
       const totalSubDepts = await SubDepartment.countDocuments({});
       const totalForBranch = await SubDepartment.countDocuments({ branchId: branchObjectId });
       console.log('📊 Database check - Total sub-departments:', totalSubDepts, '| For this branch:', totalForBranch);
-      
-      return res.json({ 
-        items: [], 
-        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 }, 
+
+      return res.json({
+        items: [],
+        summary: { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 },
         branch: branch ? { _id: branch._id, name: branch.name } : null,
-        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+        meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null }
       });
     }
-    
+
     console.log('✅ STEP 1 Complete: Loaded', subDepartments.length, 'sub-departments');
-    
+
     // STEP 2: Load sales data for those sub-departments (if any exists)
     console.log('📊 STEP 2: Loading sales data for', subDepartments.length, 'sub-departments');
-    
+
     const subDeptIds = subDepartments.map(s => s._id);
     const salesMatch = {
       ...match,
       subDepartmentId: { $in: subDeptIds }
     };
-    
+
     console.log('📊 Date range:', from.toISOString(), 'to', to.toISOString());
     console.log('📊 Sales match query - branchId:', salesMatch.branchId?.toString() || salesMatch.branchId);
     console.log('📊 Sales match query - subDepartmentIds:', subDeptIds.length, 'sub-departments');
-    
+
     const totalCount = await DepartmentSale.countDocuments(salesMatch);
     console.log('✅ Found', totalCount, 'DepartmentSale records matching criteria');
-    
+
     // Aggregate department sales by sub-department
     const agg = await DepartmentSale.aggregate([
       { $match: salesMatch },
-      { 
-        $group: { 
-          _id: '$subDepartmentId', 
-          sales: { $sum: '$grossSale' }, 
-          returns: { $sum: '$returnAmount' }, 
-          gst: { $sum: '$gst' }, 
-          netSale: { $sum: '$netSale' }, 
-          discountAmount: { $sum: '$discountAmount' }, 
+      {
+        $group: {
+          _id: '$subDepartmentId',
+          sales: { $sum: '$grossSale' },
+          returns: { $sum: '$returnAmount' },
+          gst: { $sum: '$gst' },
+          netSale: { $sum: '$netSale' },
+          discountAmount: { $sum: '$discountAmount' },
           cost: { $sum: '$cost' }
-        } 
+        }
       }
     ]);
-    
+
     console.log('✅ Aggregated sales data for', agg.length, 'sub-departments');
-    
+
     // Create a map of sales data by sub-department ID
     const salesMap = {};
     agg.forEach(a => {
@@ -3246,46 +3280,46 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
         salesMap[a._id.toString()] = a;
       }
     });
-    
+
     console.log('✅ STEP 2 Complete: Sales data loaded');
-    
+
     const settings = await Settings.findOne({});
     const defaultCostPercent = settings?.defaultCostPercent || 70;
-    
+
     // STEP 3: Create items for ALL sub-departments (even if no sales data)
     console.log('📋 STEP 3: Creating items for', subDepartments.length, 'sub-departments');
     console.log('📊 Sales data available for', Object.keys(salesMap).length, 'sub-departments');
-    
+
     const items = subDepartments.map(subDept => {
       const subDeptId = subDept._id.toString();
       const salesData = salesMap[subDeptId] || {};
-      
+
       const net = salesData.netSale || 0;
       const actualCost = salesData.cost || 0;
       const sales = salesData.sales || 0;
       const discountAmount = salesData.discountAmount || 0;
-      
+
       // Calculate discount percentage: (Discount Value / Sales) × 100
       const discountPercent = sales > 0 ? (discountAmount * 100 / sales) : 0;
-      
-      const item = { 
+
+      const item = {
         subDepartment: { _id: subDept._id, name: subDept.name, sequence: subDept.sequence || 0 },
         departmentId: subDept.departmentId?._id || subDept.departmentId,
         departmentName: subDept.departmentId?.name || '',
         departmentSequence: subDept.departmentId?.sequence || 0,
         departmentMarginDedPercent: subDept.departmentId?.marginDedPercent || 0,
-        sales: sales, 
-        returns: salesData.returns || 0, 
-        gst: salesData.gst || 0, 
-        netSale: net, 
-        discountAmount: discountAmount, 
-        discountPercent: discountPercent, 
+        sales: sales,
+        returns: salesData.returns || 0,
+        gst: salesData.gst || 0,
+        netSale: net,
+        discountAmount: discountAmount,
+        discountPercent: discountPercent,
         cost: actualCost
       };
-      
+
       return item;
     });
-    
+
     console.log('📊 Items created:', items.length);
     if (items.length > 0) {
       console.log('📊 Sample item:', {
@@ -3295,7 +3329,7 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
         netSale: items[0].netSale
       });
     }
-    
+
     // Sort by department sequence, then department name, then sub-department sequence, then sub-department name
     // First, we need to get department and sub-department sequences from the subDepartments array
     const deptSeqMap = {};
@@ -3308,25 +3342,25 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
         subDeptSeqMap[sd._id.toString()] = sd.sequence ?? 0;
       }
     });
-    
+
     items.sort((a, b) => {
       const deptIdA = a.departmentId?.toString() || '';
       const deptIdB = b.departmentId?.toString() || '';
       const deptSeqA = deptSeqMap[deptIdA] ?? 0;
       const deptSeqB = deptSeqMap[deptIdB] ?? 0;
-      
+
       // First sort by department sequence
       if (deptSeqA !== deptSeqB) {
         return deptSeqA - deptSeqB;
       }
-      
+
       // Then by department name (if sequences are equal)
       const deptA = a.departmentName || '';
       const deptB = b.departmentName || '';
       if (deptA !== deptB) {
         return deptA.localeCompare(deptB);
       }
-      
+
       // Then by sub-department sequence
       const subDeptIdA = a.subDepartment?._id?.toString() || '';
       const subDeptIdB = b.subDepartment?._id?.toString() || '';
@@ -3335,13 +3369,13 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       if (subDeptSeqA !== subDeptSeqB) {
         return subDeptSeqA - subDeptSeqB;
       }
-      
+
       // Finally by sub-department name
       const nameA = a.subDepartment?.name || '';
       const nameB = b.subDepartment?.name || '';
       return nameA.localeCompare(nameB);
     });
-    
+
     const summary = items.reduce((acc, it) => {
       acc.totalSale += it.sales;
       acc.totalReturns += it.returns;
@@ -3350,20 +3384,20 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
       acc.grossProfit += (it.netSale - (it.cost || 0));
       return acc;
     }, { totalSale: 0, totalReturns: 0, netSales: 0, cost: 0, grossProfit: 0, expenses: 0, shortCash: 0, netProfit: 0 });
-    
+
     summary.netProfit = summary.grossProfit;
-    
+
     console.log('✅ Final response - Items count:', items.length);
     console.log('✅ Final response - Summary:', summary);
     console.log('✅ Final response - Branch:', branch ? branch.name : 'null');
-    
-    const response = { 
-      items, 
-      summary, 
+
+    const response = {
+      items,
+      summary,
       branch: branch ? { _id: branch._id, name: branch.name } : null,
-      meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null } 
+      meta: { from, to, branchId: req.query.branchId || null, departmentId: req.query.departmentId || null }
     };
-    
+
     console.log('✅ Sending response with', response.items.length, 'items');
     res.json(response);
   } catch (error) {
@@ -3380,11 +3414,11 @@ app.get('/api/reports/income-statement', authenticate, async (req, res) => {
 app.post('/api/reports/income-statement/save', authenticate, async (req, res) => {
   try {
     const { items, summary, branch, meta, expenses, shortCash, notes } = req.body;
-    
+
     if (!items || !summary || !branch || !meta) {
       return res.status(400).json({ error: 'Missing required fields: items, summary, branch, and meta are required.' });
     }
-    
+
     // Update summary with expenses and shortCash from input
     const updatedSummary = {
       ...summary,
@@ -3392,7 +3426,7 @@ app.post('/api/reports/income-statement/save', authenticate, async (req, res) =>
       shortCash: shortCash || 0,
       netProfit: (summary.grossProfit || 0) - (expenses || 0) - (shortCash || 0)
     };
-    
+
     const report = await IncomeStatementReport.create({
       branchId: branch._id,
       departmentId: meta.departmentId || null,
@@ -3405,12 +3439,12 @@ app.post('/api/reports/income-statement/save', authenticate, async (req, res) =>
       savedBy: req.user._id,
       notes: notes || ''
     });
-    
+
     const populatedReport = await IncomeStatementReport.findById(report._id)
       .populate('branchId', 'name')
       .populate('savedBy', 'username')
       .populate('departmentId', 'name');
-    
+
     res.status(201).json(populatedReport);
   } catch (error) {
     console.error('Error saving income statement report:', error);
@@ -3425,7 +3459,7 @@ app.get('/api/reports/income-statement/list', authenticate, async (req, res) => 
     const { from, to, branchId } = req.query;
     console.log('📋 Query params:', { from, to, branchId });
     const filter = {};
-    
+
     // Filter by date range if provided
     if (from || to) {
       filter.reportDate = {};
@@ -3437,12 +3471,12 @@ app.get('/api/reports/income-statement/list', authenticate, async (req, res) => 
         filter.reportDate.$lte.setHours(23, 59, 59, 999);
       }
     }
-    
+
     // Filter by branch
     if (branchId && branchId.trim() !== '') {
       filter.branchId = branchId;
     }
-    
+
     // If user is not admin, filter by user's branches
     if (!req.user.groupId.permissions.includes('admin')) {
       const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
@@ -3454,14 +3488,14 @@ app.get('/api/reports/income-statement/list', authenticate, async (req, res) => 
         filter.branchId = { $in: req.user.branches };
       }
     }
-    
+
     const reports = await IncomeStatementReport.find(filter)
       .populate('branchId', 'name')
       .populate('savedBy', 'username')
       .populate('departmentId', 'name')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     res.json(reports);
   } catch (error) {
     console.error('Error fetching income statement reports:', error);
@@ -3476,17 +3510,17 @@ app.get('/api/reports/income-statement/:id', authenticate, async (req, res) => {
     if (req.params.id === 'list' || req.params.id === 'save') {
       return res.status(404).json({ error: 'Report not found' });
     }
-    
+
     const report = await IncomeStatementReport.findById(req.params.id)
       .populate('branchId', 'name')
       .populate('savedBy', 'username')
       .populate('departmentId', 'name')
       .lean();
-    
+
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
-    
+
     // Check user access to branch
     if (!req.user.groupId.permissions.includes('admin')) {
       const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
@@ -3495,7 +3529,7 @@ app.get('/api/reports/income-statement/:id', authenticate, async (req, res) => {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this report.' });
       }
     }
-    
+
     res.json(report);
   } catch (error) {
     console.error('Error fetching income statement report:', error);
@@ -3507,11 +3541,11 @@ app.get('/api/reports/income-statement/:id', authenticate, async (req, res) => {
 app.delete('/api/reports/income-statement/:id', authenticate, async (req, res) => {
   try {
     const report = await IncomeStatementReport.findById(req.params.id);
-    
+
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
-    
+
     // Check user access
     if (!req.user.groupId.permissions.includes('admin')) {
       const userBranchIds = req.user.branches.map(b => (b._id ? b._id.toString() : b.toString()));
@@ -3520,7 +3554,7 @@ app.delete('/api/reports/income-statement/:id', authenticate, async (req, res) =
         return res.status(403).json({ error: 'Access denied. You do not have permission to delete this report.' });
       }
     }
-    
+
     await IncomeStatementReport.findByIdAndDelete(req.params.id);
     res.json({ message: 'Report deleted successfully' });
   } catch (error) {
@@ -3537,16 +3571,16 @@ app.delete('/api/reports/income-statement/:id', authenticate, async (req, res) =
 app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), async (req, res) => {
   try {
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.supplierId && req.query.supplierId !== 'undefined' && req.query.supplierId.trim() !== '') {
       filter.supplierId = req.query.supplierId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -3556,7 +3590,7 @@ app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), as
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     // If user is not admin, filter by user's assigned branches
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
@@ -3569,19 +3603,19 @@ app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), as
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     const payments = await Payment.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('supplierId', 'name');
-    
+
     res.json(payments);
   } catch (error) {
     console.error('Error fetching payments:', error.message);
@@ -3597,20 +3631,20 @@ app.get('/api/payments', authenticate, hasPermission('payment-voucher-list'), as
 app.get('/api/payments/next-voucher-number', authenticate, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     console.log('✅ GET /api/payments/next-voucher-number called');
-    
+
     // Logic to generate next voucher number
     const prefix = 'PV';
     const lastPayment = await Payment.findOne().sort({ voucherNumber: -1 });
-    
+
     let nextNumber = 1001;
     if (lastPayment && lastPayment.voucherNumber) {
       const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
       nextNumber = lastNum + 1;
     }
-    
+
     const nextVoucherNumber = `${prefix}${nextNumber}`;
     res.status(200).json({ voucherNumber: nextVoucherNumber });
   } catch (error) {
@@ -3624,10 +3658,10 @@ app.get('/api/payments/next-voucher-number', authenticate, async (req, res) => {
 app.post('/api/payments', authenticate, checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     console.log('✅ POST /api/payments called (Supplier voucher)');
-    
+
     // Copy request data
     const data = { ...req.body };
 
@@ -3669,7 +3703,7 @@ app.post('/api/payments', authenticate, checkDatabaseConnection, async (req, res
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -3688,9 +3722,9 @@ app.post('/api/payments', authenticate, checkDatabaseConnection, async (req, res
   } catch (error) {
     console.error('❌ Error creating supplier payment:', error.message);
     // ALWAYS return JSON even on error
-    res.status(400).json({ 
+    res.status(400).json({
       error: 'Bad Request',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -3704,75 +3738,75 @@ app.post('/api/payments', authenticate, checkDatabaseConnection, async (req, res
 app.get('/api/payments/:id', authenticate, checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     // CRITICAL: Validate ObjectId BEFORE database query to prevent CastError
     // This prevents routes like /next-voucher-number from being treated as IDs
     // Also reject known non-ID paths explicitly
     if (req.params.id === 'next-voucher-number') {
       console.error(`❌ Route mismatch detected: /payments/:id matched "next-voucher-number". This should not happen!`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Endpoint not found',
         message: 'The requested endpoint was not found. Please ensure the route is correctly defined.'
       });
     }
-    
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       console.log(`⚠️ Invalid Payment ID format attempted: "${req.params.id}"`);
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid Payment ID format',
         message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`,
         providedId: req.params.id
       });
     }
-    
+
     // Ensure Content-Type is JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     const payment = await Payment.findById(req.params.id)
       .populate('branchId', 'name')
       .populate('supplierId', 'name');
-    
+
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
-    
+
     // Check permissions: user needs payment-edit OR payment-voucher-list OR reports permission to view/edit
     // Reports permission grants access to view payment data for reporting purposes
-    const hasPaymentPermission = req.user.groupId.permissions.includes('payment-edit') || 
-                                  req.user.groupId.permissions.includes('payment-voucher-list') ||
-                                  req.user.groupId.permissions.includes('reports') ||
-                                  req.user.groupId.permissions.includes('admin');
-    
+    const hasPaymentPermission = req.user.groupId.permissions.includes('payment-edit') ||
+      req.user.groupId.permissions.includes('payment-voucher-list') ||
+      req.user.groupId.permissions.includes('reports') ||
+      req.user.groupId.permissions.includes('admin');
+
     if (!hasPaymentPermission) {
       return res.status(403).json({ error: 'Access denied. You do not have permission to access supplier vouchers.' });
     }
-    
+
     // Check if user has access to this payment's branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = payment.branchId?._id ? payment.branchId._id.toString() : payment.branchId?.toString() || payment.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
     }
-    
+
     res.json(payment);
   } catch (error) {
     console.error('Error fetching payment by ID:', error);
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Handle cases where req.params.id is not a valid ObjectId format
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid Payment ID format',
         message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`,
         providedId: req.params.id
       });
     }
-    
+
     res.status(500).json({ error: 'Server error', message: error.message });
   }
 });
@@ -3781,20 +3815,20 @@ app.get('/api/payments/:id', authenticate, checkDatabaseConnection, async (req, 
 app.put('/api/payments/:id', authenticate, hasPermission('payment-edit'), checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST (checkDatabaseConnection already sets it, but being explicit)
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid Payment ID format' });
     }
-    
+
     // Check if user has access to this branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(updateBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -3813,24 +3847,24 @@ app.put('/api/payments/:id', authenticate, hasPermission('payment-edit'), checkD
     const updated = await Payment.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name')
       .populate('supplierId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Payment not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating payment:', error);
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Handle cases where req.params.id is not a valid ObjectId format
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid Payment ID format',
         message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`
       });
     }
-    
+
     res.status(400).json({ error: error.message });
   }
 });
@@ -3839,9 +3873,9 @@ app.put('/api/payments/:id', authenticate, hasPermission('payment-edit'), checkD
 app.delete('/api/payments/:id', authenticate, hasPermission('payment-delete'), checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST (checkDatabaseConnection already sets it, but being explicit)
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid Payment ID format' });
@@ -3851,13 +3885,13 @@ app.delete('/api/payments/:id', authenticate, hasPermission('payment-delete'), c
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
-    
+
     // Check branch access (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = payment.branchId?._id ? payment.branchId._id.toString() : payment.branchId?.toString() || payment.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -3868,15 +3902,15 @@ app.delete('/api/payments/:id', authenticate, hasPermission('payment-delete'), c
   } catch (error) {
     console.error('Error deleting payment:', error);
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Handle cases where req.params.id is not a valid ObjectId format
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid Payment ID format',
         message: `The provided ID "${req.params.id}" is not a valid MongoDB ObjectId format.`
       });
     }
-    
+
     res.status(400).json({ error: error.message });
   }
 });
@@ -3890,8 +3924,8 @@ app.delete('/api/payments/:id', authenticate, hasPermission('payment-delete'), c
 app.get('/api/test-category-payments', (req, res) => {
   console.log('✅ TEST ENDPOINT HIT: /api/test-category-payments');
   res.setHeader('Content-Type', 'application/json');
-  res.status(200).json({ 
-    success: true, 
+  res.status(200).json({
+    success: true,
     message: 'Category payments API is accessible',
     timestamp: new Date().toISOString()
   });
@@ -3902,24 +3936,24 @@ app.get('/api/category-payments/next-voucher-number', authenticate, hasPermissio
   // CRITICAL: Set headers FIRST before anything else
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   try {
     console.log('✅ GET /api/category-payments/next-voucher-number called');
-    
+
     // Verify CategoryPayment model exists
     if (!CategoryPayment) {
       throw new Error('CategoryPayment model not defined');
     }
-    
+
     const prefix = 'PV';
     const lastPayment = await CategoryPayment.findOne().sort({ voucherNumber: -1 });
-    
+
     let nextNumber = 1001;
     if (lastPayment && lastPayment.voucherNumber) {
       const lastNum = parseInt(lastPayment.voucherNumber.replace(prefix, '')) || 1000;
       nextNumber = lastNum + 1;
     }
-    
+
     const nextVoucherNumber = `${prefix}${nextNumber}`;
     console.log('✅ Generated next category voucher number:', nextVoucherNumber);
     res.status(200).json({ voucherNumber: nextVoucherNumber });
@@ -3928,7 +3962,7 @@ app.get('/api/category-payments/next-voucher-number', authenticate, hasPermissio
     console.error('❌ Error stack:', error.stack);
     // ALWAYS return JSON even on error - don't let Express default to HTML
     if (!res.headersSent) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to generate next voucher number',
         details: error.message
       });
@@ -3941,7 +3975,7 @@ app.get('/api/category-payments', authenticate, hasPermission(['category-voucher
   // CRITICAL: Set headers FIRST before anything else - MUST BE FIRST LINE
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   try {
     console.log('🎯 ========== CATEGORY PAYMENTS ROUTE HIT ==========');
     console.log('✅ GET /api/category-payments called');
@@ -3949,23 +3983,23 @@ app.get('/api/category-payments', authenticate, hasPermission(['category-voucher
     console.log('✅ Path:', req.path);
     console.log('✅ Query:', JSON.stringify(req.query));
     console.log('✅ User authenticated:', req.user ? req.user.username : 'NO USER');
-    
+
     // Verify CategoryPayment model exists
     if (!CategoryPayment) {
       throw new Error('CategoryPayment model not defined');
     }
-    
+
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
       filter.categoryId = req.query.categoryId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -3975,7 +4009,7 @@ app.get('/api/category-payments', authenticate, hasPermission(['category-voucher
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     // If user is not admin, filter by user's assigned branches
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
@@ -3988,21 +4022,21 @@ app.get('/api/category-payments', authenticate, hasPermission(['category-voucher
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     console.log('✅ Filter:', JSON.stringify(filter));
-    
+
     const categoryPayments = await CategoryPayment.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     console.log(`✅ Found ${categoryPayments.length} category payments`);
     res.status(200).json(categoryPayments);
   } catch (error) {
@@ -4010,7 +4044,7 @@ app.get('/api/category-payments', authenticate, hasPermission(['category-voucher
     console.error('❌ Error stack:', error.stack);
     // ALWAYS return JSON even on error - don't let Express default to HTML
     if (!res.headersSent) {
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal Server Error',
         details: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
@@ -4024,16 +4058,16 @@ app.post('/api/category-payments', authenticate, hasPermission('category-voucher
   // CRITICAL: Set headers FIRST before anything else
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+
   try {
     console.log('✅ POST /api/category-payments called (Category voucher)');
     console.log('✅ Request data:', JSON.stringify(req.body));
-    
+
     // Verify CategoryPayment model exists
     if (!CategoryPayment) {
       throw new Error('CategoryPayment model not defined');
     }
-    
+
     const data = { ...req.body };
 
     // Generate voucher number if not provided
@@ -4068,7 +4102,7 @@ app.post('/api/category-payments', authenticate, hasPermission('category-voucher
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = data.branchId._id ? data.branchId._id.toString() : data.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -4089,9 +4123,9 @@ app.post('/api/category-payments', authenticate, hasPermission('category-voucher
     console.error('❌ Error stack:', error.stack);
     // ALWAYS return JSON even on error - don't let Express default to HTML
     if (!res.headersSent) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: 'Bad Request',
-        details: error.message 
+        details: error.message
       });
     }
   }
@@ -4101,54 +4135,54 @@ app.post('/api/category-payments', authenticate, hasPermission('category-voucher
 app.get('/api/category-payments/:id', authenticate, checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
+
     const categoryPayment = await CategoryPayment.findById(req.params.id)
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     if (!categoryPayment) {
       return res.status(404).json({ error: 'Category payment not found' });
     }
-    
+
     // Check permissions: user needs category-voucher-edit OR category-voucher-list OR reports permission to view/edit
     // Reports permission grants access to view category payment data for reporting purposes
-    const hasCategoryPermission = req.user.groupId.permissions.includes('category-voucher-edit') || 
-                                   req.user.groupId.permissions.includes('category-voucher-list') ||
-                                   req.user.groupId.permissions.includes('reports') ||
-                                   req.user.groupId.permissions.includes('admin');
-    
+    const hasCategoryPermission = req.user.groupId.permissions.includes('category-voucher-edit') ||
+      req.user.groupId.permissions.includes('category-voucher-list') ||
+      req.user.groupId.permissions.includes('reports') ||
+      req.user.groupId.permissions.includes('admin');
+
     if (!hasCategoryPermission) {
       return res.status(403).json({ error: 'Access denied. You do not have permission to access category vouchers.' });
     }
-    
+
     // Check if user has access to this payment's branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = categoryPayment.branchId?._id ? categoryPayment.branchId._id.toString() : categoryPayment.branchId?.toString() || categoryPayment.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
     }
-    
+
     res.status(200).json(categoryPayment);
   } catch (error) {
     console.error('Error fetching category payment by ID:', error);
     // ALWAYS return JSON even on error
-    
+
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Internal Server Error',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -4157,18 +4191,18 @@ app.get('/api/category-payments/:id', authenticate, checkDatabaseConnection, asy
 app.put('/api/category-payments/:id', authenticate, hasPermission('category-voucher-edit'), checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
+
     // Check if user has access to this branch (only if not admin)
     if (!req.user.groupId.permissions.includes('admin') && req.body.branchId) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const updateBranchId = req.body.branchId._id ? req.body.branchId._id.toString() : req.body.branchId.toString();
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(updateBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -4187,23 +4221,23 @@ app.put('/api/category-payments/:id', authenticate, hasPermission('category-vouc
     const updated = await CategoryPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Category payment not found' });
     }
-    
+
     res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating category payment:', error);
     // ALWAYS return JSON even on error
-    
+
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
-    res.status(400).json({ 
+
+    res.status(400).json({
       error: 'Bad Request',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -4212,24 +4246,24 @@ app.put('/api/category-payments/:id', authenticate, hasPermission('category-vouc
 app.delete('/api/category-payments/:id', authenticate, hasPermission('category-voucher-delete'), checkDatabaseConnection, async (req, res) => {
   // ALWAYS set Content-Type to JSON FIRST
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
+
     // Check if user has access to this payment's branch
     const categoryPayment = await CategoryPayment.findById(req.params.id);
     if (!categoryPayment) {
       return res.status(404).json({ error: 'Category payment not found' });
     }
-    
+
     // Check branch access (only if not admin)
     if (!req.user.groupId.permissions.includes('admin')) {
       // Convert branchId to string for comparison (handle both ObjectId and populated object)
       const paymentBranchId = categoryPayment.branchId?._id ? categoryPayment.branchId._id.toString() : categoryPayment.branchId?.toString() || categoryPayment.branchId;
       const userBranchIds = req.user.branches.map(b => b._id ? b._id.toString() : b.toString());
-      
+
       if (!userBranchIds.includes(paymentBranchId)) {
         return res.status(403).json({ error: 'Access denied. You do not have permission to access this branch.' });
       }
@@ -4240,14 +4274,14 @@ app.delete('/api/category-payments/:id', authenticate, hasPermission('category-v
   } catch (error) {
     console.error('Error deleting category payment:', error);
     // ALWAYS return JSON even on error
-    
+
     if (error.name === 'CastError' && error.kind === 'ObjectId') {
       return res.status(400).json({ error: 'Invalid Category Payment ID format' });
     }
-    
-    res.status(400).json({ 
+
+    res.status(400).json({
       error: 'Bad Request',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -4262,11 +4296,11 @@ app.post('/api/admin/delete', checkDatabaseConnection, async (req, res) => {
     const { resource, id, password } = req.body || {};
     const expected = String(process.env.ADMIN_PASSWORD || '');
     const provided = String(password || '');
-    
+
     if (!expected) {
       return res.status(500).json({ error: 'Admin password not configured on server' });
     }
-    
+
     if (provided.trim() !== expected.trim()) {
       console.warn('Admin delete auth failed');
       return res.status(403).json({ error: 'Invalid admin password' });
@@ -4311,7 +4345,7 @@ app.post('/api/admin/delete', checkDatabaseConnection, async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ error: 'Record not found' });
     }
-    
+
     return res.json({ ok: true });
   } catch (error) {
     console.error('Admin delete error:', error.message);
@@ -4325,12 +4359,12 @@ app.post('/api/admin/update', checkDatabaseConnection, async (req, res) => {
     const { resource, id, payload, password } = req.body || {};
     const expected = String(process.env.ADMIN_PASSWORD || '');
     const provided = String(password || '');
-    
+
     if (!expected) {
       console.error('Admin password not configured on server');
       return res.status(500).json({ error: 'Admin password not configured on server' });
     }
-    
+
     if (provided.trim() !== expected.trim()) {
       console.warn('Admin auth failed (update)');
       return res.status(403).json({ error: 'Invalid admin password' });
@@ -4375,7 +4409,7 @@ app.post('/api/admin/update', checkDatabaseConnection, async (req, res) => {
     if (!updated) {
       return res.status(404).json({ error: 'Record not found' });
     }
-    
+
     return res.json(updated);
   } catch (error) {
     console.error('Admin update error:', error.message);
@@ -4394,7 +4428,7 @@ app.get('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async (
       .populate('createdBy', 'username fullName')
       .sort({ createdAt: -1 })
       .select('-apiSecret'); // Don't return the secret hash
-    
+
     res.json(apiKeys);
   } catch (error) {
     console.error('Error fetching API keys:', error);
@@ -4406,19 +4440,19 @@ app.get('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async (
 app.post('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, expiresAt } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'API key name is required' });
     }
-    
+
     // Generate unique API key and secret
     const apiKey = `dw_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
     const apiSecret = `${Math.random().toString(36).substring(2, 15)}${Date.now()}${Math.random().toString(36).substring(2, 15)}`;
-    
+
     // Hash the secret before storing
     const salt = await bcrypt.genSalt(10);
     const hashedSecret = await bcrypt.hash(apiSecret, salt);
-    
+
     // Create API key record
     const apiKeyRecord = await ApiKey.create({
       name: name.trim(),
@@ -4429,7 +4463,7 @@ app.post('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async 
       createdBy: req.user._id,
       expiresAt: expiresAt ? new Date(expiresAt) : null
     });
-    
+
     // Return the API key and secret (only shown once!)
     res.status(201).json({
       id: apiKeyRecord._id,
@@ -4452,27 +4486,27 @@ app.post('/api/api-keys', authenticate, isAdmin, checkDatabaseConnection, async 
 app.put('/api/api-keys/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, description, isActive, expiresAt } = req.body;
-    
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid API key ID format' });
     }
-    
+
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
-    
+
     const updated = await ApiKey.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     ).populate('createdBy', 'username fullName').select('-apiSecret');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'API key not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating API key:', error);
@@ -4486,13 +4520,13 @@ app.delete('/api/api-keys/:id', authenticate, isAdmin, checkDatabaseConnection, 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid API key ID format' });
     }
-    
+
     const deleted = await ApiKey.findByIdAndDelete(req.params.id);
-    
+
     if (!deleted) {
       return res.status(404).json({ error: 'API key not found' });
     }
-    
+
     res.json({ ok: true, message: 'API key deleted successfully' });
   } catch (error) {
     console.error('Error deleting API key:', error);
@@ -4506,13 +4540,13 @@ app.get('/api/api-keys/:id/stats', authenticate, isAdmin, checkDatabaseConnectio
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid API key ID format' });
     }
-    
+
     const apiKey = await ApiKey.findById(req.params.id).select('-apiSecret');
-    
+
     if (!apiKey) {
       return res.status(404).json({ error: 'API key not found' });
     }
-    
+
     res.json({
       id: apiKey._id,
       name: apiKey.name,
@@ -4536,7 +4570,7 @@ app.get('/api/api-keys/:id/stats', authenticate, isAdmin, checkDatabaseConnectio
 app.get('/api/items', authenticate, hasPermission('items'), async (req, res) => {
   try {
     const filter = {};
-    
+
     if (req.query.search) {
       filter.$or = [
         { itemCode: { $regex: req.query.search, $options: 'i' } },
@@ -4544,14 +4578,14 @@ app.get('/api/items', authenticate, hasPermission('items'), async (req, res) => 
         { givenPcsBarCode: { $regex: req.query.search, $options: 'i' } }
       ];
     }
-    
+
     if (req.query.companyId) filter.companyId = req.query.companyId;
     if (req.query.categoryId) filter.categoryId = req.query.categoryId;
     if (req.query.classId) filter.classId = req.query.classId;
     if (req.query.subclassId) filter.subclassId = req.query.subclassId;
     if (req.query.supplierId) filter.supplierId = req.query.supplierId;
     if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
-    
+
     const items = await Item.find(filter)
       .populate('companyId', 'name')
       .populate('categoryId', 'name')
@@ -4559,7 +4593,7 @@ app.get('/api/items', authenticate, hasPermission('items'), async (req, res) => 
       .populate('subclassId', 'name')
       .populate('supplierId', 'name')
       .sort({ sequence: 1, createdAt: -1 });
-    
+
     res.json(items);
   } catch (error) {
     console.error('Error fetching items:', error.message);
@@ -4572,10 +4606,10 @@ app.get('/api/items/next-code', authenticate, hasPermission('items'), async (req
   try {
     // Next itemCode (string, numeric sequence)
     const lastCodeItem = await Item.findOne().sort({ itemCode: -1 });
-    const nextCode = lastCodeItem && lastCodeItem.itemCode && !isNaN(lastCodeItem.itemCode) 
-      ? String(parseInt(lastCodeItem.itemCode) + 1) 
+    const nextCode = lastCodeItem && lastCodeItem.itemCode && !isNaN(lastCodeItem.itemCode)
+      ? String(parseInt(lastCodeItem.itemCode) + 1)
       : '1000';
-      
+
     res.json({ nextCode });
   } catch (error) {
     console.error('Error getting next item code:', error);
@@ -4588,24 +4622,24 @@ app.get('/api/items/search', authenticate, hasPermission('items'), async (req, r
   try {
     const { barcode, name } = req.query;
     const filter = {};
-    
+
     if (barcode) {
       filter.$or = [
         { itemCode: barcode },
         { givenPcsBarCode: barcode }
       ];
     }
-    
+
     if (name) {
       filter.itemName = { $regex: name, $options: 'i' };
     }
-    
+
     const items = await Item.find(filter)
       .populate('companyId', 'name')
       .populate('categoryId', 'name')
       .populate('supplierId', 'name')
       .limit(50);
-    
+
     res.json(items);
   } catch (error) {
     console.error('Error searching items:', error.message);
@@ -4620,11 +4654,11 @@ app.get('/api/items/:id', authenticate, hasPermission('items'), async (req, res)
       .populate('companyId', 'name')
       .populate('categoryId', 'name')
       .populate('supplierId', 'name');
-      
+
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
     res.json(item);
   } catch (error) {
     console.error('Error getting item:', error);
@@ -4657,7 +4691,7 @@ app.post('/api/items', authenticate, hasPermission('items'), checkDatabaseConnec
       .populate('classId', 'name')
       .populate('subclassId', 'name')
       .populate('supplierId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     console.error('Error creating item:', error.message);
@@ -4681,11 +4715,11 @@ app.put('/api/items/:id', authenticate, hasPermission('items-edit'), checkDataba
       .populate('classId', 'name')
       .populate('subclassId', 'name')
       .populate('supplierId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating item:', error.message);
@@ -4828,34 +4862,58 @@ app.delete('/api/sub-classes/:id', authenticate, isAdmin, checkDatabaseConnectio
 });
 
 // Customers
-app.get('/api/customers', authenticate, async (req, res) => {
+app.get('/api/customers', authenticate, hasPermission('customers'), async (req, res) => {
   try {
     const filter = { isActive: true };
     if (req.query.search) {
       filter.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
-        { contactNo: { $regex: req.query.search, $options: 'i' } }
+        { phoneNo: { $regex: req.query.search, $options: 'i' } },
+        { mobileNo: { $regex: req.query.search, $options: 'i' } }
       ];
     }
-    const customers = await Customer.find(filter).sort({ name: 1 });
+    
+    // Filter by user's assigned branches if not admin
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    if (!isSuperAdmin && req.user.branches && req.user.branches.length > 0) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const customers = await Customer.find(filter)
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name')
+      .sort({ name: 1 });
     res.json(customers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/customers', authenticate, hasPermission('whole-sale'), checkDatabaseConnection, async (req, res) => {
+app.post('/api/customers', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
+    // Generate code if not provided
+    if (!req.body.code) {
+      const count = await Customer.countDocuments();
+      req.body.code = (120100000 + count + 1).toString();
+    }
     const customer = await Customer.create(req.body);
-    res.status(201).json(customer);
+    const populated = await Customer.findById(customer._id)
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name');
+    res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-app.put('/api/customers/:id', authenticate, hasPermission('whole-sale'), checkDatabaseConnection, async (req, res) => {
+app.put('/api/customers/:id', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
-    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name');
     if (!updated) return res.status(404).json({ error: 'Customer not found' });
     res.json(updated);
   } catch (error) {
@@ -4863,12 +4921,22 @@ app.put('/api/customers/:id', authenticate, hasPermission('whole-sale'), checkDa
   }
 });
 
-app.delete('/api/customers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+app.delete('/api/customers/:id', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
     await Customer.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/customers/next-code', authenticate, hasPermission('customers'), async (req, res) => {
+  try {
+    const count = await Customer.countDocuments();
+    const nextCode = (120100000 + count + 1).toString();
+    res.json({ code: nextCode });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -4956,7 +5024,7 @@ app.delete('/api/accounts/:id', authenticate, isAdmin, checkDatabaseConnection, 
 app.get('/api/whole-sales', authenticate, hasPermission('whole-sale'), async (req, res) => {
   try {
     const filter = {};
-    
+
     if (req.query.branchId) filter.branchId = req.query.branchId;
     if (req.query.customerId) filter.customerId = req.query.customerId;
     if (req.query.from || req.query.to) {
@@ -4970,7 +5038,7 @@ app.get('/api/whole-sales', authenticate, hasPermission('whole-sale'), async (re
         filter.date.$lte = toDate;
       }
     }
-    
+
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
     console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
@@ -4982,19 +5050,19 @@ app.get('/api/whole-sales', authenticate, hasPermission('whole-sale'), async (re
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     const wholeSales = await WholeSale.find(filter)
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(wholeSales);
   } catch (error) {
     console.error('Error fetching whole sales:', error.message);
@@ -5007,7 +5075,7 @@ app.get('/api/whole-sales/next-invoice', authenticate, hasPermission('whole-sale
   try {
     const lastSale = await WholeSale.findOne().sort({ invoiceNo: -1 });
     let nextInvoice = 'WS-0001';
-    
+
     if (lastSale && lastSale.invoiceNo) {
       const match = lastSale.invoiceNo.match(/(\d+)$/);
       if (match) {
@@ -5015,7 +5083,7 @@ app.get('/api/whole-sales/next-invoice', authenticate, hasPermission('whole-sale
         nextInvoice = `WS-${String(lastNum + 1).padStart(4, '0')}`;
       }
     }
-    
+
     res.json({ nextInvoice });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5027,10 +5095,10 @@ app.post('/api/whole-sales', authenticate, hasPermission('whole-sale'), checkDat
   try {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
       const wholeSale = await WholeSale.create([req.body], { session });
-      
+
       // Update customer balance
       if (req.body.customerId) {
         await Customer.findByIdAndUpdate(
@@ -5039,7 +5107,7 @@ app.post('/api/whole-sales', authenticate, hasPermission('whole-sale'), checkDat
           { session }
         );
       }
-      
+
       // Update item stock
       if (req.body.items && Array.isArray(req.body.items)) {
         for (const item of req.body.items) {
@@ -5055,13 +5123,13 @@ app.post('/api/whole-sales', authenticate, hasPermission('whole-sale'), checkDat
           }
         }
       }
-      
+
       await session.commitTransaction();
-      
+
       const populated = await WholeSale.findById(wholeSale[0]._id)
         .populate('customerId', 'name contactNo')
         .populate('branchId', 'name');
-      
+
       res.status(201).json(populated);
     } catch (error) {
       await session.abortTransaction();
@@ -5081,11 +5149,11 @@ app.put('/api/whole-sales/:id', authenticate, hasPermission('whole-sale-edit'), 
     const updated = await WholeSale.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name');
-    
+
     if (!updated) {
       return res.status(404).json({ error: 'Whole sale not found' });
     }
-    
+
     res.json(updated);
   } catch (error) {
     console.error('Error updating whole sale:', error.message);
@@ -5118,7 +5186,7 @@ app.get('/api/sale-returns', authenticate, hasPermission('sale-return'), async (
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
     console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
@@ -5130,20 +5198,20 @@ app.get('/api/sale-returns', authenticate, hasPermission('sale-return'), async (
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     const saleReturns = await SaleReturn.find(filter)
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name')
       .populate('transporterId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(saleReturns);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5157,7 +5225,7 @@ app.post('/api/sale-returns', authenticate, hasPermission('sale-return'), checkD
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name')
       .populate('transporterId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5170,7 +5238,7 @@ app.put('/api/sale-returns/:id', authenticate, hasPermission('sale-return'), che
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name')
       .populate('transporterId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Sale return not found' });
     res.json(updated);
   } catch (error) {
@@ -5208,7 +5276,7 @@ app.get('/api/purchases', authenticate, hasPermission(['purchase', 'purchase-ent
         filter.date.$lte = toDate;
       }
     }
-    
+
     // Debug permissions
     const isSuperAdmin = req.user.groupId.permissions.includes('admin');
     console.log(`[DEBUG] User: ${req.user.username}, Group: ${req.user.groupId.name}, IsAdmin: ${isSuperAdmin}`);
@@ -5220,23 +5288,23 @@ app.get('/api/purchases', authenticate, hasPermission(['purchase', 'purchase-ent
       if (req.user.branches && req.user.branches.length > 0) {
         filter.branchId = { $in: req.user.branches };
       } else {
-         // Fallback: If no branches assigned, maybe show nothing or show all? 
-         // Usually if no branches are assigned, they shouldn't see anything.
-         // But let's log this to be sure.
-         console.log('[DEBUG] User has no branches assigned:', req.user.username);
-         filter.branchId = { $in: [] }; 
+        // Fallback: If no branches assigned, maybe show nothing or show all? 
+        // Usually if no branches are assigned, they shouldn't see anything.
+        // But let's log this to be sure.
+        console.log('[DEBUG] User has no branches assigned:', req.user.username);
+        filter.branchId = { $in: [] };
       }
     }
-    
+
     console.log('[DEBUG] Purchases Query:', JSON.stringify(filter));
-    
+
     const purchases = await Purchase.find(filter)
       .populate('supplierId', 'name')
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     console.log('[DEBUG] Purchases Found:', purchases.length);
-    
+
     res.json(purchases);
   } catch (error) {
     console.error('[ERROR] Purchases API:', error);
@@ -5250,12 +5318,12 @@ app.get('/api/purchases/unposted', authenticate, hasPermission(['purchase', 'pur
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const purchases = await Purchase.find(filter)
       .populate('supplierId', 'name')
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(purchases);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5272,19 +5340,19 @@ app.get('/api/purchases/:id', authenticate, hasPermission(['purchase', 'purchase
 
     // Check if id is valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        console.log('[DEBUG] Invalid ID format:', req.params.id);
-        return res.status(400).json({ error: 'Invalid ID format' });
+      console.log('[DEBUG] Invalid ID format:', req.params.id);
+      return res.status(400).json({ error: 'Invalid ID format' });
     }
 
     const purchase = await Purchase.findById(req.params.id)
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!purchase) {
-        console.log('[DEBUG] Purchase not found in DB for ID:', req.params.id);
-        return res.status(404).json({ error: 'Purchase not found' });
+      console.log('[DEBUG] Purchase not found in DB for ID:', req.params.id);
+      return res.status(404).json({ error: 'Purchase not found' });
     }
-    
+
     console.log('[DEBUG] Purchase found:', purchase.invoiceNo);
     res.json(purchase);
   } catch (error) {
@@ -5299,7 +5367,7 @@ app.post('/api/purchases', authenticate, hasPermission(['purchase', 'purchase-en
     const populated = await Purchase.findById(purchase._id)
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5311,7 +5379,7 @@ app.put('/api/purchases/:id', authenticate, hasPermission(['purchase-edit', 'pur
     const updated = await Purchase.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Purchase not found' });
     res.json(updated);
   } catch (error) {
@@ -5342,16 +5410,16 @@ app.get('/api/purchase-returns', authenticate, hasPermission('purchase-return'),
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const purchaseReturns = await PurchaseReturn.find(filter)
       .populate('supplierId', 'name')
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(purchaseReturns);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5366,7 +5434,7 @@ app.get('/api/purchase-returns/:id', authenticate, hasPermission('purchase-retur
     const purchaseReturn = await PurchaseReturn.findById(req.params.id)
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!purchaseReturn) return res.status(404).json({ error: 'Purchase return not found' });
     res.json(purchaseReturn);
   } catch (error) {
@@ -5380,7 +5448,7 @@ app.post('/api/purchase-returns', authenticate, hasPermission('purchase-return')
     const populated = await PurchaseReturn.findById(purchaseReturn._id)
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5392,7 +5460,7 @@ app.put('/api/purchase-returns/:id', authenticate, hasPermission('purchase-retur
     const updated = await PurchaseReturn.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Purchase return not found' });
     res.json(updated);
   } catch (error) {
@@ -5423,17 +5491,17 @@ app.get('/api/customer-payments', authenticate, hasPermission('customer-payment'
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const payments = await CustomerPayment.find(filter)
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name')
       .populate('cashAccountId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(payments);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5443,7 +5511,7 @@ app.get('/api/customer-payments', authenticate, hasPermission('customer-payment'
 app.post('/api/customer-payments', authenticate, hasPermission('customer-payment'), checkDatabaseConnection, async (req, res) => {
   try {
     const payment = await CustomerPayment.create(req.body);
-    
+
     // Update customer balance
     if (req.body.customerId) {
       await Customer.findByIdAndUpdate(
@@ -5451,11 +5519,11 @@ app.post('/api/customer-payments', authenticate, hasPermission('customer-payment
         { $inc: { balance: req.body.type === 'Received' ? -req.body.amount : req.body.amount } }
       );
     }
-    
+
     const populated = await CustomerPayment.findById(payment._id)
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5467,7 +5535,7 @@ app.put('/api/customer-payments/:id', authenticate, hasPermission('customer-paym
     const updated = await CustomerPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('customerId', 'name contactNo')
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Payment not found' });
     res.json(updated);
   } catch (error) {
@@ -5498,17 +5566,17 @@ app.get('/api/supplier-payments', authenticate, hasPermission('supplier-payment'
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const payments = await SupplierPayment.find(filter)
       .populate('supplierId', 'name')
       .populate('branchId', 'name')
       .populate('cashAccountId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(payments);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5518,7 +5586,7 @@ app.get('/api/supplier-payments', authenticate, hasPermission('supplier-payment'
 app.post('/api/supplier-payments', authenticate, hasPermission('supplier-payment'), checkDatabaseConnection, async (req, res) => {
   try {
     const payment = await SupplierPayment.create(req.body);
-    
+
     // Update supplier balance
     if (req.body.supplierId) {
       await Supplier.findByIdAndUpdate(
@@ -5526,11 +5594,11 @@ app.post('/api/supplier-payments', authenticate, hasPermission('supplier-payment
         { $inc: { balance: req.body.type === 'Pay' ? -req.body.amount : req.body.amount } }
       );
     }
-    
+
     const populated = await SupplierPayment.findById(payment._id)
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5542,7 +5610,7 @@ app.put('/api/supplier-payments/:id', authenticate, hasPermission('supplier-paym
     const updated = await SupplierPayment.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('supplierId', 'name')
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Payment not found' });
     res.json(updated);
   } catch (error) {
@@ -5572,16 +5640,16 @@ app.get('/api/vouchers', authenticate, hasPermission('voucher'), async (req, res
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const vouchers = await Voucher.find(filter)
       .populate('branchId', 'name')
       .populate('entries.accountId', 'name code')
       .sort({ date: -1 });
-    
+
     res.json(vouchers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5593,7 +5661,7 @@ app.get('/api/vouchers/next-voucher', authenticate, hasPermission('voucher'), as
     const lastVoucher = await Voucher.findOne().sort({ voucherSr: -1 });
     let nextSr = 1;
     let nextNo = 'VCH-0001';
-    
+
     if (lastVoucher) {
       nextSr = (lastVoucher.voucherSr || 0) + 1;
       const match = lastVoucher.voucherNo?.match(/(\d+)$/);
@@ -5604,7 +5672,7 @@ app.get('/api/vouchers/next-voucher', authenticate, hasPermission('voucher'), as
         nextNo = `VCH-${String(nextSr).padStart(4, '0')}`;
       }
     }
-    
+
     res.json({ voucherSr: nextSr, voucherNo: nextNo });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5616,16 +5684,16 @@ app.post('/api/vouchers', authenticate, hasPermission('voucher'), checkDatabaseC
     // Validate debit = credit
     const totalDebit = req.body.entries?.reduce((sum, e) => sum + (e.debit || 0), 0) || 0;
     const totalCredit = req.body.entries?.reduce((sum, e) => sum + (e.credit || 0), 0) || 0;
-    
+
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return res.status(400).json({ error: 'Total debit must equal total credit' });
     }
-    
+
     const voucher = await Voucher.create(req.body);
     const populated = await Voucher.findById(voucher._id)
       .populate('branchId', 'name')
       .populate('entries.accountId', 'name code');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5637,15 +5705,15 @@ app.put('/api/vouchers/:id', authenticate, hasPermission('voucher-edit'), checkD
     // Validate debit = credit
     const totalDebit = req.body.entries?.reduce((sum, e) => sum + (e.debit || 0), 0) || 0;
     const totalCredit = req.body.entries?.reduce((sum, e) => sum + (e.credit || 0), 0) || 0;
-    
+
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return res.status(400).json({ error: 'Total debit must equal total credit' });
     }
-    
+
     const updated = await Voucher.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name')
       .populate('entries.accountId', 'name code');
-    
+
     if (!updated) return res.status(404).json({ error: 'Voucher not found' });
     res.json(updated);
   } catch (error) {
@@ -5675,15 +5743,15 @@ app.get('/api/damage-stocks', authenticate, hasPermission('damage-stock'), async
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const damageStocks = await DamageStock.find(filter)
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(damageStocks);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5694,10 +5762,10 @@ app.post('/api/damage-stocks', authenticate, hasPermission('damage-stock'), chec
   try {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
       const damageStock = await DamageStock.create([req.body], { session });
-      
+
       // Update item stock
       if (req.body.items && Array.isArray(req.body.items)) {
         for (const item of req.body.items) {
@@ -5713,12 +5781,12 @@ app.post('/api/damage-stocks', authenticate, hasPermission('damage-stock'), chec
           }
         }
       }
-      
+
       await session.commitTransaction();
-      
+
       const populated = await DamageStock.findById(damageStock[0]._id)
         .populate('branchId', 'name');
-      
+
       res.status(201).json(populated);
     } catch (error) {
       await session.abortTransaction();
@@ -5735,7 +5803,7 @@ app.put('/api/damage-stocks/:id', authenticate, hasPermission('damage-stock'), c
   try {
     const updated = await DamageStock.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Damage stock not found' });
     res.json(updated);
   } catch (error) {
@@ -5766,15 +5834,15 @@ app.get('/api/stock-audits', authenticate, hasPermission('stock-audit'), async (
       if (req.query.from) filter.date.$gte = new Date(req.query.from);
       if (req.query.to) filter.date.$lte = new Date(req.query.to);
     }
-    
+
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const audits = await StockAudit.find(filter)
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(audits);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5787,11 +5855,11 @@ app.get('/api/stock-audits/un-audit', authenticate, hasPermission('stock-audit')
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const audits = await StockAudit.find(filter)
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(audits);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5804,11 +5872,11 @@ app.get('/api/stock-audits/posted', authenticate, hasPermission('stock-audit'), 
     if (!req.user.groupId.permissions.includes('admin')) {
       filter.branchId = { $in: req.user.branches };
     }
-    
+
     const audits = await StockAudit.find(filter)
       .populate('branchId', 'name')
       .sort({ date: -1 });
-    
+
     res.json(audits);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -5820,7 +5888,7 @@ app.post('/api/stock-audits', authenticate, hasPermission('stock-audit'), checkD
     const audit = await StockAudit.create(req.body);
     const populated = await StockAudit.findById(audit._id)
       .populate('branchId', 'name');
-    
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -5831,14 +5899,14 @@ app.post('/api/stock-audits/:id/post', authenticate, hasPermission('stock-audit'
   try {
     const session = await mongoose.startSession();
     session.startTransaction();
-    
+
     try {
       const audit = await StockAudit.findById(req.params.id);
       if (!audit) {
         await session.abortTransaction();
         return res.status(404).json({ error: 'Stock audit not found' });
       }
-      
+
       // Update item stock
       if (audit.items && Array.isArray(audit.items)) {
         for (const item of audit.items) {
@@ -5854,15 +5922,15 @@ app.post('/api/stock-audits/:id/post', authenticate, hasPermission('stock-audit'
           }
         }
       }
-      
+
       audit.status = 'posted';
       await audit.save({ session });
-      
+
       await session.commitTransaction();
-      
+
       const populated = await StockAudit.findById(audit._id)
         .populate('branchId', 'name');
-      
+
       res.json(populated);
     } catch (error) {
       await session.abortTransaction();
@@ -5879,7 +5947,7 @@ app.put('/api/stock-audits/:id', authenticate, hasPermission('stock-audit'), che
   try {
     const updated = await StockAudit.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('branchId', 'name');
-    
+
     if (!updated) return res.status(404).json({ error: 'Stock audit not found' });
     res.json(updated);
   } catch (error) {
@@ -5904,16 +5972,16 @@ app.delete('/api/stock-audits/:id', authenticate, hasPermission('stock-audit'), 
 app.get('/api/public/sales', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
       filter.categoryId = req.query.categoryId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -5923,12 +5991,12 @@ app.get('/api/public/sales', authenticateApiKey, checkDatabaseConnection, async 
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     const sales = await Sale.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     res.json({
       success: true,
       count: sales.length,
@@ -5944,16 +6012,16 @@ app.get('/api/public/sales', authenticateApiKey, checkDatabaseConnection, async 
 app.get('/api/public/payments', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.supplierId && req.query.supplierId !== 'undefined' && req.query.supplierId.trim() !== '') {
       filter.supplierId = req.query.supplierId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -5963,12 +6031,12 @@ app.get('/api/public/payments', authenticateApiKey, checkDatabaseConnection, asy
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     const payments = await Payment.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('supplierId', 'name');
-    
+
     res.json({
       success: true,
       count: payments.length,
@@ -5984,16 +6052,16 @@ app.get('/api/public/payments', authenticateApiKey, checkDatabaseConnection, asy
 app.get('/api/public/category-payments', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const filter = {};
-    
+
     // Build filter from query parameters
     if (req.query.branchId && req.query.branchId !== 'undefined' && req.query.branchId.trim() !== '') {
       filter.branchId = req.query.branchId;
     }
-    
+
     if (req.query.categoryId && req.query.categoryId !== 'undefined' && req.query.categoryId.trim() !== '') {
       filter.categoryId = req.query.categoryId;
     }
-    
+
     if (req.query.from || req.query.to) {
       filter.date = {};
       if (req.query.from) {
@@ -6003,12 +6071,12 @@ app.get('/api/public/category-payments', authenticateApiKey, checkDatabaseConnec
         filter.date.$lte = new Date(req.query.to);
       }
     }
-    
+
     const categoryPayments = await CategoryPayment.find(filter)
       .sort({ date: -1 })
       .populate('branchId', 'name')
       .populate('categoryId', 'name');
-    
+
     res.json({
       success: true,
       count: categoryPayments.length,
@@ -6024,7 +6092,7 @@ app.get('/api/public/category-payments', authenticateApiKey, checkDatabaseConnec
 app.get('/api/public/branches', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const branches = await Branch.find().sort({ createdAt: -1 });
-    
+
     res.json({
       success: true,
       count: branches.length,
@@ -6040,7 +6108,7 @@ app.get('/api/public/branches', authenticateApiKey, checkDatabaseConnection, asy
 app.get('/api/public/categories', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const categories = await Category.find().sort({ createdAt: -1 });
-    
+
     res.json({
       success: true,
       count: categories.length,
@@ -6056,7 +6124,7 @@ app.get('/api/public/categories', authenticateApiKey, checkDatabaseConnection, a
 app.get('/api/public/suppliers', authenticateApiKey, checkDatabaseConnection, async (req, res) => {
   try {
     const suppliers = await Supplier.find().sort({ createdAt: -1 });
-    
+
     res.json({
       success: true,
       count: suppliers.length,
@@ -6074,7 +6142,7 @@ app.get('/api/public/dashboard', authenticateApiKey, checkDatabaseConnection, as
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
-    
+
     // Build date filter if provided
     const dateFilter = {};
     if (req.query.from || req.query.to) {
@@ -6082,32 +6150,32 @@ app.get('/api/public/dashboard', authenticateApiKey, checkDatabaseConnection, as
       if (req.query.from) dateFilter.date.$gte = new Date(req.query.from);
       if (req.query.to) dateFilter.date.$lte = new Date(req.query.to);
     }
-    
+
     // Get sales totals
     const allSales = await Sale.find(dateFilter);
     const totalSales = allSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
     const totalProfit = allSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-    
+
     // Get monthly sales
-    const monthlySales = await Sale.find({ 
+    const monthlySales = await Sale.find({
       ...dateFilter,
       date: { $gte: startOfMonth }
     });
     const monthlyTotal = monthlySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-    
+
     // Get payment totals
     const allPayments = await Payment.find(dateFilter);
     const totalPayments = allPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
+
     // Get category payment totals
     const allCategoryPayments = await CategoryPayment.find(dateFilter);
     const totalCategoryPayments = allCategoryPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
+
     // Get counts
     const branchCount = await Branch.countDocuments();
     const categoryCount = await Category.countDocuments();
     const supplierCount = await Supplier.countDocuments();
-    
+
     res.json({
       success: true,
       data: {
@@ -6141,11 +6209,11 @@ app.get('/api/public/dashboard', authenticateApiKey, checkDatabaseConnection, as
 
 // Seed default data - Creates initial data for the system
 async function seedDefaultData() {
-  
+
   try {
     // Seed branches
     const branchCount = await Branch.estimatedDocumentCount();
-    
+
     if (branchCount === 0) {
       const defaultBranches = [
         { name: 'D WATSON PWD', address: '' },
@@ -6170,7 +6238,7 @@ async function seedDefaultData() {
       ];
       await Category.insertMany(defaultCategories);
     }
-    
+
     // Seed groups - FIXED to ensure admin permissions are set correctly
     const groupCount = await Group.estimatedDocumentCount();
     if (groupCount === 0) {
@@ -6178,86 +6246,95 @@ async function seedDefaultData() {
         {
           name: 'Admin',
           description: 'System administrators with full access',
-          permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-edit', 'payment-delete', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'employees', 'employee-list', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit'],
+          permissions: ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-edit', 'payment-delete', 'payment-reports', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'employees', 'employee-list', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit', 'customers'],
           isDefault: true
         },
         {
           name: 'Sales',
           description: 'Sales staff with access to sales entry and reports',
-          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'purchase-return', 'customer-payment'],
+          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'purchase-return', 'customer-payment', 'customers'],
           isDefault: true
         },
         {
           name: 'Manager',
           description: 'Branch managers with access to dashboard and reports only',
-          permissions: ['dashboard', 'reports'],
+          permissions: ['dashboard', 'reports', 'customers'],
           isDefault: true
         }
       ];
       await Group.insertMany(defaultGroups);
     } else {
-      
+
       // Check if admin group exists and has correct permissions
       const adminGroup = await Group.findOne({ name: 'Admin' });
       if (adminGroup) {
         let needsUpdate = false;
-        const requiredPermissions = ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'sales-edit', 'sales-delete', 'payment-edit', 'payment-delete', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit'];
-        
+        const requiredPermissions = ['admin', 'dashboard', 'categories', 'departments', 'sales', 'payments', 'payment-dashboard', 'payment-vouchers', 'payment-voucher-list', 'payment-reports', 'sales-edit', 'sales-delete', 'payment-edit', 'payment-delete', 'category-voucher', 'category-voucher-list', 'category-voucher-edit', 'category-voucher-delete', 'reports', 'branches', 'groups', 'users', 'settings', 'suppliers', 'items', 'items-edit', 'items-delete', 'whole-sale', 'whole-sale-edit', 'whole-sale-delete', 'sale-return', 'purchase', 'purchase-edit', 'purchase-return', 'customer-payment', 'supplier-payment', 'voucher', 'voucher-edit', 'damage-stock', 'stock-audit', 'customers'];
+
         requiredPermissions.forEach(perm => {
           if (!adminGroup.permissions.includes(perm)) {
             adminGroup.permissions.push(perm);
             needsUpdate = true;
           }
         });
-        
+
         if (needsUpdate) {
           await adminGroup.save();
           console.log('✅ Updated Admin group with new payment permissions');
         }
       }
-      
+
       const managerGroup = await Group.findOne({ name: 'Manager' });
       if (managerGroup) {
-        const correctManagerPermissions = ['dashboard', 'reports'];
+        const correctManagerPermissions = ['dashboard', 'reports', 'customers'];
         const needsUpdate = JSON.stringify(managerGroup.permissions.sort()) !== JSON.stringify(correctManagerPermissions.sort());
-        
+
         if (needsUpdate) {
           managerGroup.permissions = correctManagerPermissions;
-          managerGroup.description = 'Branch managers with access to dashboard and reports only';
+          managerGroup.description = 'Branch managers with access to dashboard, reports, and customer management';
           await managerGroup.save();
+          console.log('✅ Updated Manager group with customers permission');
         }
       }
 
       // Update Sales group with new permissions
       const salesGroup = await Group.findOne({ name: 'Sales' });
       if (salesGroup) {
-         if (!salesGroup.permissions.includes('purchase-return')) {
-             salesGroup.permissions.push('purchase-return');
-             await salesGroup.save();
-             console.log('✅ Updated Sales group with purchase-return permission');
-         }
+        let needsUpdate = false;
+        if (!salesGroup.permissions.includes('purchase-return')) {
+          salesGroup.permissions.push('purchase-return');
+          needsUpdate = true;
+        }
+        if (!salesGroup.permissions.includes('customers')) {
+          salesGroup.permissions.push('customers');
+          needsUpdate = true;
+        }
+        if (needsUpdate) {
+          await salesGroup.save();
+          console.log('✅ Updated Sales group with new permissions');
+        }
       }
     }
-    
+
     // Seed admin user - FIXED to ensure it references the admin group
     const userCount = await User.estimatedDocumentCount();
     if (userCount === 0) {
-      
+
       // Find the admin group
       const adminGroup = await Group.findOne({ name: 'Admin' });
       if (!adminGroup) {
         return;
       }
-      
+
       // Get all branches
       const allBranches = await Branch.find();
       if (allBranches.length === 0) {
         return;
       }
-      
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('admin123', salt);
-      
+
       const adminUser = new User({
         username: 'admin',
         fullName: 'System Administrator',
@@ -6266,22 +6343,22 @@ async function seedDefaultData() {
         groupId: adminGroup._id,
         branches: allBranches.map(b => b._id)
       });
-      
+
       await adminUser.save();
     } else {
-      
+
       // Check if admin user exists and has correct group
       const adminUser = await User.findOne({ username: 'admin' }).populate('groupId');
       if (adminUser) {
-        
+
         // Ensure admin user has admin permission
         if (!adminUser.groupId.permissions.includes('admin')) {
-          adminUser.groupId.permissions.push('admin');          
+          adminUser.groupId.permissions.push('admin');
           await adminUser.groupId.save();
         }
       }
     }
-    
+
   } catch (error) {
     console.error('Seed error:', error.message);
   }
@@ -6315,7 +6392,7 @@ app.use((req, res, next) => {
   // Check originalUrl FIRST (before any path modification)
   // Extract path from originalUrl (remove query string)
   const originalPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
-  
+
   // If it's an API route, skip static serving and continue to API routes
   if (originalPath.startsWith('/api/') || req.path.startsWith('/api/')) {
     // console.log('🔵 API Route Detected - Bypassing static files:', req.method, 'Path:', req.path, '| Original:', req.originalUrl);
@@ -6358,6 +6435,51 @@ app.use((req, res, next) => {
 });
 
 // ========================================
+// CUSTOMER MANAGEMENT API ROUTES
+// ========================================
+
+// --- Cities ---
+app.get('/api/cities', authenticate, async (req, res) => {
+  try {
+    const cities = await City.find({ isActive: true }).sort('name');
+    res.json(cities);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/cities', authenticate, async (req, res) => {
+  try {
+    const city = new City(req.body);
+    await city.save();
+    res.status(201).json(city);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// --- Customer Categories ---
+app.get('/api/customer-categories', authenticate, async (req, res) => {
+  try {
+    const categories = await CustomerCategory.find({ isActive: true }).sort('name');
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/customer-categories', authenticate, async (req, res) => {
+  try {
+    const category = new CustomerCategory(req.body);
+    await category.save();
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// ========================================
 // SERVER STARTUP
 // ========================================
 
@@ -6366,10 +6488,10 @@ app.listen(port, () => {
   console.log(`\n✅ ========================================`);
   console.log(`✅ Server listening on port ${port}`);
   console.log(`✅ ========================================\n`);
-  
+
   // Log all registered API routes
   // logRegisteredRoutes();
-  
+
   console.log(`✅ Expected Category Payment Routes:`);
   console.log(`   - GET  /api/category-payments`);
   console.log(`   - POST /api/category-payments`);
@@ -6410,14 +6532,14 @@ app.use('*', (req, res) => {
   console.log('🔴 Query string:', req.query);
   console.log('🔴 Original URL:', req.originalUrl);
   console.log('🔴 Headers:', JSON.stringify(req.headers, null, 2));
-  
+
   // ALWAYS set Content-Type to JSON for API routes - DO THIS FIRST
   if (req.path.startsWith('/api/') || req.originalUrl.startsWith('/api/')) {
     console.log('🔴 API 404 - returning JSON:', req.path);
     console.log('🔴 Checking if /api/departments route exists...');
     res.setHeader('Content-Type', 'application/json');
-    res.status(404).json({ 
-      error: 'API endpoint not found', 
+    res.status(404).json({
+      error: 'API endpoint not found',
       path: req.path,
       originalUrl: req.originalUrl,
       method: req.method,

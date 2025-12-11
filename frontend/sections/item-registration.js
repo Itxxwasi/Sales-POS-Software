@@ -1,4 +1,4 @@
-;(function() {
+; (function () {
   if (!window.appData) {
     window.appData = {
       branches: [],
@@ -68,7 +68,7 @@
         window.api.getSuppliers().catch(() => [])
       ]).then(([branches, categories, companies, classes, subClasses, suppliers]) => {
         appData.branches = branches;
-        (async function ensureDefaultStore(){
+        (async function ensureDefaultStore() {
           try {
             const existing = (appData.branches || []).find(b => (b.name || '').toLowerCase() === 'shop');
             if (!existing && window.api && typeof window.api.createBranch === 'function') {
@@ -78,7 +78,7 @@
             } else if (existing) {
               appData.defaultStoreId = existing._id; appData.defaultStoreName = existing.name;
             }
-          } catch(e) { console.error('Error ensuring default store:', e); }
+          } catch (e) { console.error('Error ensuring default store:', e); }
         })();
         appData.categories = categories;
         appData.companies = companies;
@@ -129,6 +129,13 @@
       });
     }
 
+    function populateSearchByName() {
+      // Logic to initialize or populate any search-by-name datalist or similar if needed
+      // Currently, searchByName uses an event listener for input, so this might not be strictly needed
+      // but is called in loadMasterData. We'll define it to be safe.
+      // If there's a specific datalist element, we could populate it here.
+    }
+
     function searchItemByName(name) {
       if (!window.api || !window.api.searchItems) {
         console.error('API not available');
@@ -141,7 +148,7 @@
             // If we have exactly one match, load it
             if (items.length === 1) {
               loadItemData(items[0]);
-            } 
+            }
             // If multiple matches, show a dropdown or handle as needed
             else {
               // For now, just load the first match
@@ -164,7 +171,7 @@
         appData.suppliers = suppliers;
         const activeSuppliers = (suppliers || []).filter(s => s.isActive !== false);
         populateDropdown('supplierId', activeSuppliers, 'name');
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // ---------- Quick add modals & save handlers ----------
@@ -197,8 +204,8 @@
 
     function openCompanyModal() {
       const input = document.getElementById('itemCompanyNameInput'); if (input) input.value = '';
-      document.getElementById('companyModalId')?.setAttribute('value','');
-      document.getElementById('companyCodeDisplay')?.setAttribute('value','');
+      document.getElementById('companyModalId')?.setAttribute('value', '');
+      document.getElementById('companyCodeDisplay')?.setAttribute('value', '');
       const modal = getBootstrapModal('itemCompanyModal'); if (modal) modal.show();
       if (window.api) {
         window.api.getCompanies().then(companies => {
@@ -206,12 +213,12 @@
           const search = document.getElementById('companyModalSearch');
           const render = () => {
             const q = (search?.value || '').toLowerCase();
-            const data = !q ? companies : companies.filter(c => (c.name||'').toLowerCase().includes(q));
+            const data = !q ? companies : companies.filter(c => (c.name || '').toLowerCase().includes(q));
             tbody.innerHTML = '';
             data.forEach((c, idx) => {
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td>${c.sequence || idx+1}</td>
+                <td>${c.sequence || idx + 1}</td>
                 <td>${c.name || ''}</td>
                 <td>${c.isActive ? 'true' : 'false'}</td>
                 <td class="text-end"><button class="btn btn-sm btn-warning" onclick="editCompanyInModal('${c._id}')">Edit</button></td>
@@ -226,8 +233,8 @@
 
     function openCategoryModal() {
       const input = document.getElementById('itemCategoryNameInput'); if (input) input.value = '';
-      document.getElementById('categoryModalId')?.setAttribute('value','');
-      document.getElementById('categoryCodeDisplay')?.setAttribute('value','');
+      document.getElementById('categoryModalId')?.setAttribute('value', '');
+      document.getElementById('categoryCodeDisplay')?.setAttribute('value', '');
       const modal = getBootstrapModal('itemCategoryModal'); if (modal) modal.show();
       if (window.api) {
         window.api.getCategories().then(categories => {
@@ -235,12 +242,12 @@
           const search = document.getElementById('categoryModalSearch');
           const render = () => {
             const q = (search?.value || '').toLowerCase();
-            const data = !q ? categories : categories.filter(c => (c.name||'').toLowerCase().includes(q));
+            const data = !q ? categories : categories.filter(c => (c.name || '').toLowerCase().includes(q));
             tbody.innerHTML = '';
             data.forEach((c, idx) => {
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td>${c.sequence || idx+1}</td>
+                <td>${c.sequence || idx + 1}</td>
                 <td>${c.name || ''}</td>
                 <td>${c.isActive !== false ? 'true' : 'false'}</td>
                 <td class="text-end"><button class="btn btn-sm btn-warning" onclick="editCategoryInModal('${c._id}')">Edit</button></td>
@@ -255,8 +262,8 @@
 
     function openClassModal() {
       const input = document.getElementById('itemClassNameInput'); if (input) input.value = '';
-      document.getElementById('classModalId')?.setAttribute('value','');
-      document.getElementById('classCodeDisplay')?.setAttribute('value','');
+      document.getElementById('classModalId')?.setAttribute('value', '');
+      document.getElementById('classCodeDisplay')?.setAttribute('value', '');
       const modal = getBootstrapModal('itemClassModal'); if (modal) modal.show();
       if (window.api) {
         window.api.getClasses().then(classes => {
@@ -264,12 +271,12 @@
           const search = document.getElementById('classModalSearch');
           const render = () => {
             const q = (search?.value || '').toLowerCase();
-            const data = !q ? classes : classes.filter(c => (c.name||'').toLowerCase().includes(q));
+            const data = !q ? classes : classes.filter(c => (c.name || '').toLowerCase().includes(q));
             tbody.innerHTML = '';
             data.forEach((c, idx) => {
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td>${c.sequence || idx+1}</td>
+                <td>${c.sequence || idx + 1}</td>
                 <td>${c.name || ''}</td>
                 <td>${c.isActive !== false ? 'true' : 'false'}</td>
                 <td class="text-end"><button class="btn btn-sm btn-warning" onclick="editClassInModal('${c._id}')">Edit</button></td>
@@ -286,8 +293,8 @@
       const nameInput = document.getElementById('itemSubClassNameInput');
       const classSelect = document.getElementById('itemSubClassClassSelect');
       if (nameInput) nameInput.value = '';
-      document.getElementById('subclassModalId')?.setAttribute('value','');
-      document.getElementById('subclassCodeDisplay')?.setAttribute('value','');
+      document.getElementById('subclassModalId')?.setAttribute('value', '');
+      document.getElementById('subclassCodeDisplay')?.setAttribute('value', '');
       if (classSelect) {
         classSelect.innerHTML = '<option value="">Select Class</option>';
         (appData.classes || []).forEach(cls => {
@@ -301,13 +308,13 @@
           const search = document.getElementById('subclassModalSearch');
           const render = () => {
             const q = (search?.value || '').toLowerCase();
-            const data = !q ? subs : subs.filter(s => (s.name||'').toLowerCase().includes(q));
+            const data = !q ? subs : subs.filter(s => (s.name || '').toLowerCase().includes(q));
             tbody.innerHTML = '';
             data.forEach((s, idx) => {
               const clsName = s.classId?.name || (appData.classes.find(c => c._id === (s.classId?._id || s.classId))?.name || '');
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td>${s.sequence || idx+1}</td>
+                <td>${s.sequence || idx + 1}</td>
                 <td>${s.name || ''}</td>
                 <td>${clsName}</td>
                 <td>${s.isActive !== false ? 'true' : 'false'}</td>
@@ -322,8 +329,8 @@
     }
 
     function openSupplierModal() {
-      document.getElementById('supplierModalId')?.setAttribute('value','');
-      ['itemSupplierNameInput','itemSupplierEmailInput','itemSupplierPhoneInput','itemSupplierAddressInput'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+      document.getElementById('supplierModalId')?.setAttribute('value', '');
+      ['itemSupplierNameInput', 'itemSupplierEmailInput', 'itemSupplierPhoneInput', 'itemSupplierAddressInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       const modal = getBootstrapModal('itemSupplierModal'); if (modal) modal.show();
       if (window.api) {
         window.api.getSuppliers().then(suppliers => {
@@ -331,12 +338,12 @@
           const search = document.getElementById('supplierModalSearch');
           const render = () => {
             const q = (search?.value || '').toLowerCase();
-            const data = !q ? suppliers : suppliers.filter(s => (s.name||'').toLowerCase().includes(q));
+            const data = !q ? suppliers : suppliers.filter(s => (s.name || '').toLowerCase().includes(q));
             tbody.innerHTML = '';
             data.forEach((s, idx) => {
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td>${s.sequence || idx+1}</td>
+                <td>${s.sequence || idx + 1}</td>
                 <td>${s.name || ''}</td>
                 <td>${s.email || ''}</td>
                 <td>${s.phone || ''}</td>
@@ -362,7 +369,7 @@
         await loadMasterData();
         const select = document.getElementById('companyId'); if (select) select.value = company._id || id;
         openCompanyModal();
-      } catch (err) {}
+      } catch (err) { }
     }
 
     async function saveQuickCategory() {
@@ -441,13 +448,13 @@
       const searchByBarcode = document.getElementById('searchByBarcode');
       if (searchByBarcode) {
         searchByBarcode.addEventListener('change', handleBarcodeSearch);
-        searchByBarcode.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); const val = (searchByBarcode.value||'').trim(); if (val) searchItemByBarcode(val); } });
-        searchByBarcode.addEventListener('blur', function(){ const val = (searchByBarcode.value||'').trim(); if (val) searchItemByBarcode(val); });
+        searchByBarcode.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); const val = (searchByBarcode.value || '').trim(); if (val) searchItemByBarcode(val); } });
+        searchByBarcode.addEventListener('blur', function () { const val = (searchByBarcode.value || '').trim(); if (val) searchItemByBarcode(val); });
       }
 
       const searchByName = document.getElementById('searchByName');
       if (searchByName) {
-        searchByName.addEventListener('keydown', function(e) {
+        searchByName.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') {
             e.preventDefault();
             const val = (searchByName.value || '').trim();
@@ -456,10 +463,10 @@
             }
           }
         });
-        
+
         // Optional: Add debounce for better performance
         let searchTimeout;
-        searchByName.addEventListener('input', function(e) {
+        searchByName.addEventListener('input', function (e) {
           const val = (e.target.value || '').trim();
           if (val.length >= 2) { // Only search if at least 2 characters
             clearTimeout(searchTimeout);
@@ -555,7 +562,7 @@
       window.api.getItem(itemId).then(item => { loadItemData(item); });
     }
 
-    function searchItemByBarcode(barcode){
+    function searchItemByBarcode(barcode) {
       // Try local cache first
       const local = (window.appData.items || []).find(i => String(i.itemCode) === String(barcode) || String(i.givenPcsBarCode) === String(barcode));
       if (local) { loadItemData(local); return; }
@@ -563,16 +570,16 @@
       window.api.searchItems({ barcode }).then(items => { if (items && items.length) loadItemData(items[0]); });
     }
 
-    function searchItemByName(name){
-      const q = (name||'').toLowerCase();
+    function searchItemByName(name) {
+      const q = (name || '').toLowerCase();
       // Try local cache first
-      const local = (window.appData.items || []).find(i => (i.itemName||'').toLowerCase() === q) || (window.appData.items || []).find(i => (i.itemName||'').toLowerCase().includes(q));
+      const local = (window.appData.items || []).find(i => (i.itemName || '').toLowerCase() === q) || (window.appData.items || []).find(i => (i.itemName || '').toLowerCase().includes(q));
       if (local) { loadItemData(local); return; }
       if (!window.api || typeof window.api.searchItems !== 'function') return;
       window.api.searchItems({ name }).then(items => {
         if (!items || !items.length) return;
         // Prefer exact match, otherwise first
-        const exact = items.find(i => (i.itemName||'').toLowerCase() === q);
+        const exact = items.find(i => (i.itemName || '').toLowerCase() === q);
         loadItemData(exact || items[0]);
       });
     }
@@ -596,7 +603,7 @@
       document.getElementById('companyId').value = item.companyId?._id || item.companyId || '';
       document.getElementById('categoryId').value = item.categoryId?._id || item.categoryId || '';
       document.getElementById('classId').value = item.classId?._id || item.classId || '';
-      (function() {
+      (function () {
         const clsVal = document.getElementById('classId').value;
         const filtered = (appData.subClasses || []).filter(sc => {
           const cid = sc.classId && (sc.classId._id || sc.classId);
@@ -642,7 +649,7 @@
           const sel = row.querySelector('select[name="storeId"]');
           if (sel && !sel.value) sel.value = appData.defaultStoreId;
         }
-      } catch(e) {}
+      } catch (e) { }
       return row;
     }
 
@@ -713,7 +720,7 @@
       }
 
       const itemId = document.getElementById('itemId').value;
-      const promise = itemId 
+      const promise = itemId
         ? window.api.updateItem(itemId, formData)
         : window.api.createItem(formData);
 
@@ -725,8 +732,8 @@
         loadNextItemCode();
       }).catch(err => {
         if (typeof showNotification === 'function') {
-          const msg = (err && err.message && (err.message.includes('403') || err.message.toLowerCase().includes('access'))) 
-            ? 'Access denied. You do not have permission to save items.' 
+          const msg = (err && err.message && (err.message.includes('403') || err.message.toLowerCase().includes('access')))
+            ? 'Access denied. You do not have permission to save items.'
             : (err.message || 'Error saving item');
           showNotification(msg, 'error');
         }
@@ -812,22 +819,22 @@
       }).catch(err => {
         console.error('Error loading items:', err);
         if (typeof showNotification === 'function') {
-          const msg = (err && err.message && (err.message.includes('403') || err.message.toLowerCase().includes('access'))) 
-            ? 'Access denied. You do not have permission to view items list.' 
+          const msg = (err && err.message && (err.message.includes('403') || err.message.toLowerCase().includes('access')))
+            ? 'Access denied. You do not have permission to view items list.'
             : 'Error loading items';
           showNotification(msg, 'error');
         }
       });
     }
 
-    window.selectItem = function(id) {
+    window.selectItem = function (id) {
       if (!window.api) return;
       editItem(id);
       const modal = getBootstrapModal('itemListModal');
       if (modal) modal.hide();
     };
 
-    window.editItem = function(itemId) {
+    window.editItem = function (itemId) {
       if (!window.api) return;
       window.api.getItem(itemId).then(item => {
         loadItemData(item);
@@ -838,7 +845,7 @@
       });
     };
 
-    window.deleteItem = function(itemId) {
+    window.deleteItem = function (itemId) {
       if (!confirm('Are you sure you want to delete this item?')) return;
       if (!window.api) return;
       window.api.deleteItem(itemId).then(() => {
@@ -861,11 +868,11 @@
   }
 })();
 
-    window.editCompanyInModal = function(id){
-      if (!window.api) return;
-      window.api.getCompanies().then(list => { const c = list.find(x => String(x._id)===String(id)); if (!c) return; document.getElementById('companyModalId').value = c._id; document.getElementById('companyCodeDisplay').value = c.sequence || ''; document.getElementById('itemCompanyNameInput').value = c.name || ''; const chk=document.getElementById('companyActive'); if (chk) chk.checked = c.isActive !== false; });
-    };
-    window.editCategoryInModal = function(id){ if (!window.api) return; window.api.getCategories().then(list => { const c=list.find(x=>String(x._id)===String(id)); if (!c) return; document.getElementById('categoryModalId').value=c._id; document.getElementById('categoryCodeDisplay').value=c.sequence||''; document.getElementById('itemCategoryNameInput').value=c.name||''; const chk=document.getElementById('categoryActive'); if (chk) chk.checked=c.isActive!==false; }); };
-    window.editClassInModal = function(id){ if (!window.api) return; window.api.getClasses().then(list => { const c=list.find(x=>String(x._id)===String(id)); if (!c) return; document.getElementById('classModalId').value=c._id; document.getElementById('classCodeDisplay').value=c.sequence||''; document.getElementById('itemClassNameInput').value=c.name||''; const chk=document.getElementById('classActive'); if (chk) chk.checked=c.isActive!==false; }); };
-    window.editSubClassInModal = function(id){ if (!window.api) return; window.api.getSubClasses().then(list => { const s=list.find(x=>String(x._id)===String(id)); if (!s) return; document.getElementById('subclassModalId').value=s._id; document.getElementById('subclassCodeDisplay').value=s.sequence||''; document.getElementById('itemSubClassNameInput').value=s.name||''; const sel=document.getElementById('itemSubClassClassSelect'); if (sel) sel.value = s.classId?._id || s.classId || ''; const chk=document.getElementById('subclassActive'); if (chk) chk.checked=s.isActive!==false; }); };
-    window.editSupplierInModal = function(id){ if (!window.api) return; window.api.getSuppliers().then(list => { const s=list.find(x=>String(x._id)===String(id)); if (!s) return; document.getElementById('supplierModalId').value=s._id; document.getElementById('supplierCodeDisplay').value=s.sequence||''; document.getElementById('itemSupplierNameInput').value=s.name||''; document.getElementById('itemSupplierEmailInput').value=s.email||''; document.getElementById('itemSupplierPhoneInput').value=s.phone||''; document.getElementById('itemSupplierAddressInput').value=s.address||''; const chk=document.getElementById('supplierActive'); if (chk) chk.checked=s.isActive!==false; }); };
+window.editCompanyInModal = function (id) {
+  if (!window.api) return;
+  window.api.getCompanies().then(list => { const c = list.find(x => String(x._id) === String(id)); if (!c) return; document.getElementById('companyModalId').value = c._id; document.getElementById('companyCodeDisplay').value = c.sequence || ''; document.getElementById('itemCompanyNameInput').value = c.name || ''; const chk = document.getElementById('companyActive'); if (chk) chk.checked = c.isActive !== false; });
+};
+window.editCategoryInModal = function (id) { if (!window.api) return; window.api.getCategories().then(list => { const c = list.find(x => String(x._id) === String(id)); if (!c) return; document.getElementById('categoryModalId').value = c._id; document.getElementById('categoryCodeDisplay').value = c.sequence || ''; document.getElementById('itemCategoryNameInput').value = c.name || ''; const chk = document.getElementById('categoryActive'); if (chk) chk.checked = c.isActive !== false; }); };
+window.editClassInModal = function (id) { if (!window.api) return; window.api.getClasses().then(list => { const c = list.find(x => String(x._id) === String(id)); if (!c) return; document.getElementById('classModalId').value = c._id; document.getElementById('classCodeDisplay').value = c.sequence || ''; document.getElementById('itemClassNameInput').value = c.name || ''; const chk = document.getElementById('classActive'); if (chk) chk.checked = c.isActive !== false; }); };
+window.editSubClassInModal = function (id) { if (!window.api) return; window.api.getSubClasses().then(list => { const s = list.find(x => String(x._id) === String(id)); if (!s) return; document.getElementById('subclassModalId').value = s._id; document.getElementById('subclassCodeDisplay').value = s.sequence || ''; document.getElementById('itemSubClassNameInput').value = s.name || ''; const sel = document.getElementById('itemSubClassClassSelect'); if (sel) sel.value = s.classId?._id || s.classId || ''; const chk = document.getElementById('subclassActive'); if (chk) chk.checked = s.isActive !== false; }); };
+window.editSupplierInModal = function (id) { if (!window.api) return; window.api.getSuppliers().then(list => { const s = list.find(x => String(x._id) === String(id)); if (!s) return; document.getElementById('supplierModalId').value = s._id; document.getElementById('supplierCodeDisplay').value = s.sequence || ''; document.getElementById('itemSupplierNameInput').value = s.name || ''; document.getElementById('itemSupplierEmailInput').value = s.email || ''; document.getElementById('itemSupplierPhoneInput').value = s.phone || ''; document.getElementById('itemSupplierAddressInput').value = s.address || ''; const chk = document.getElementById('supplierActive'); if (chk) chk.checked = s.isActive !== false; }); };

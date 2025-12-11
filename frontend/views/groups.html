@@ -9,23 +9,41 @@
     <div class="groups-container">
         <div class="groups-left-panel">
             <div class="mb-3">
-                <button type="button" class="btn btn-success" id="addNewGroupBtn"><i class="fas fa-plus"></i> Add New Group</button>
+                <button type="button" class="btn btn-success" id="addNewGroupBtn"><i class="fas fa-plus"></i> Add New
+                    Group</button>
             </div>
             <div class="group-form-container">
                 <div class="group-form-row">
-                    <div class="form-group"><label for="groupNameInput">Name</label><input type="text" class="form-control" id="groupNameInput" placeholder="Enter group name"></div>
-                    <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="groupActiveCheckbox" checked><span>Active</span></label></div>
-                    <div class="form-group"><button type="button" class="btn btn-primary" id="saveGroupBtn"><i class="fas fa-check"></i> <span id="saveGroupBtnText">Save</span></button><button type="button" class="btn btn-secondary ms-2" id="cancelGroupBtn" onclick="resetGroupForm()" style="display: none;"><i class="fas fa-times"></i> Cancel</button></div>
+                    <div class="form-group"><label for="groupNameInput">Name</label><input type="text"
+                            class="form-control" id="groupNameInput" placeholder="Enter group name"></div>
+                    <div class="form-group"><label class="checkbox-label"><input type="checkbox"
+                                id="groupActiveCheckbox" checked><span>Active</span></label></div>
+                    <div class="form-group"><button type="button" class="btn btn-primary" id="saveGroupBtn"><i
+                                class="fas fa-check"></i> <span id="saveGroupBtnText">Save</span></button><button
+                            type="button" class="btn btn-secondary ms-2" id="cancelGroupBtn" onclick="resetGroupForm()"
+                            style="display: none;"><i class="fas fa-times"></i> Cancel</button></div>
                 </div>
             </div>
-            <div class="table-responsive"><table class="table table-hover groups-table" id="groupsTable"><thead><tr><th>Name</th><th>Active</th><th>Actions</th></tr></thead><tbody id="groupsTableBody"></tbody></table></div>
+            <div class="table-responsive">
+                <table class="table table-hover groups-table" id="groupsTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Active</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupsTableBody"></tbody>
+                </table>
+            </div>
         </div>
         <div class="groups-right-panel">
             <h3 class="group-access-title">Group Access</h3>
             <div class="permissions-checklist" id="permissionsChecklist">
                 <!-- ADMINISTRATION -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#adminPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#adminPermissions"
+                        aria-expanded="true">
                         <span>ADMINISTRATION</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -47,7 +65,8 @@
 
                 <!-- OVERVIEW -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#overviewPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#overviewPermissions" aria-expanded="true">
                         <span>OVERVIEW</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -63,7 +82,8 @@
 
                 <!-- INVENTORY -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#inventoryPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#inventoryPermissions" aria-expanded="true">
                         <span>INVENTORY</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -116,12 +136,19 @@
                                 <span>Stock Audit</span>
                             </label>
                         </div>
+                        <div class="permission-item">
+                            <label class="permission-label">
+                                <input type="checkbox" class="permission-checkbox" data-permission="customers">
+                                <span>Customer Management</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
                 <!-- SALES -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#salesPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#salesPermissions"
+                        aria-expanded="true">
                         <span>SALES</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -173,7 +200,8 @@
 
                 <!-- PURCHASE -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#purchasePermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#purchasePermissions" aria-expanded="true">
                         <span>PURCHASE</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -195,7 +223,8 @@
 
                 <!-- PAYMENTS -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#paymentsPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#paymentsPermissions" aria-expanded="true">
                         <span>PAYMENTS</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -214,7 +243,8 @@
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="payment-voucher-list">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="payment-voucher-list">
                                 <span>Supplier Voucher List</span>
                             </label>
                         </div>
@@ -238,19 +268,22 @@
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="category-voucher-list">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="category-voucher-list">
                                 <span>Category Voucher List</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="category-voucher-edit">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="category-voucher-edit">
                                 <span>Edit Category Voucher</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="category-voucher-delete">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="category-voucher-delete">
                                 <span>Delete Category Voucher</span>
                             </label>
                         </div>
@@ -277,7 +310,8 @@
 
                 <!-- ACCOUNTING -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#accountingPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#accountingPermissions" aria-expanded="true">
                         <span>ACCOUNTING</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -299,7 +333,8 @@
 
                 <!-- PAYROLL MODULE -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#payrollPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#payrollPermissions" aria-expanded="true">
                         <span>PAYROLL MODULE</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -321,7 +356,8 @@
 
                 <!-- SUPPORT -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#supportPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#supportPermissions" aria-expanded="true">
                         <span>SUPPORT</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -337,7 +373,8 @@
 
                 <!-- REPORTS -->
                 <div class="permission-category">
-                    <div class="permission-category-header" data-bs-toggle="collapse" data-bs-target="#reportsPermissions" aria-expanded="true">
+                    <div class="permission-category-header" data-bs-toggle="collapse"
+                        data-bs-target="#reportsPermissions" aria-expanded="true">
                         <span>REPORTS</span>
                         <i class="fas fa-chevron-down permission-chevron"></i>
                     </div>
@@ -350,43 +387,50 @@
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="sales-comparison-report">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="sales-comparison-report">
                                 <span>Sales Comparison</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="datewise-sales-report">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="datewise-sales-report">
                                 <span>Date-Wise Sales</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="department-wise-report">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="department-wise-report">
                                 <span>Department-Wise Report</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="sub-department-wise-report">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="sub-department-wise-report">
                                 <span>Sub-Department-Wise Report</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="department-wise-sale-comparison">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="department-wise-sale-comparison">
                                 <span>Department-Wise Sale Comparison</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="branch-wise-sale-comparison">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="branch-wise-sale-comparison">
                                 <span>Branch-Wise Sale Comparison</span>
                             </label>
                         </div>
                         <div class="permission-item">
                             <label class="permission-label">
-                                <input type="checkbox" class="permission-checkbox" data-permission="income-statement-report">
+                                <input type="checkbox" class="permission-checkbox"
+                                    data-permission="income-statement-report">
                                 <span>Income Statement Report</span>
                             </label>
                         </div>

@@ -1,265 +1,447 @@
 <div id="sale-return-entry-section" class="content-section">
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">Sale Return Entry</h1>
-        <p class="dashboard-subtitle">Process sales returns</p>
-    </div>
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Return Details</h5>
-                </div>
-                <div class="card-body">
-                    <form id="saleReturnForm">
-                        <input type="hidden" id="saleReturnId" value="">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="returnInvoiceNo" class="form-label">Inv.No</label>
-                                <input type="text" class="form-control" id="returnInvoiceNo">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="returnDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="returnDate" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="returnCustomerId" class="form-label">Customer <span class="text-danger">*</span></label>
-                                <select class="form-select" id="returnCustomerId" required>
-                                    <option value="">Select Customer</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-4">
-                                <label for="returnContactNo" class="form-label">ContactNo</label>
-                                <input type="text" class="form-control" id="returnContactNo" readonly>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="returnTransporter" class="form-label">Select Transporter</label>
-                                <select class="form-select" id="returnTransporter">
-                                    <option value="">Select Transporter</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnDcNo" class="form-label">DC No</label>
-                                <input type="text" class="form-control" id="returnDcNo">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnBiltyNo" class="form-label">Bilty No</label>
-                                <input type="text" class="form-control" id="returnBiltyNo">
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-12">
-                                <label for="returnRemarks" class="form-label">Remarks</label>
-                                <input type="text" class="form-control" id="returnRemarks">
-                            </div>
-                        </div>
-                        <hr class="my-4">
-                        <h6 class="mb-3">Item Details</h6>
-                        <div class="row g-3">
-                            <div class="col-md-2">
-                                <label for="returnItemCode" class="form-label">Code</label>
-                                <input type="text" class="form-control" id="returnItemCode">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="returnItemName" class="form-label">Name</label>
-                                <select class="form-select" id="returnItemName">
-                                    <option value="">Select Item</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemStore" class="form-label">Store</label>
-                                <select class="form-select" id="returnItemStore">
-                                    <option value="">Shop</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemStock" class="form-label">Stock</label>
-                                <input type="number" class="form-control" id="returnItemStock" readonly>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemPack" class="form-label">Pack</label>
-                                <input type="number" class="form-control" id="returnItemPack" step="0.01">
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-2">
-                                <label for="returnItemTotal" class="form-label">Total</label>
-                                <input type="number" class="form-control" id="returnItemTotal" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemTaxPercent" class="form-label">Tax %</label>
-                                <input type="number" class="form-control" id="returnItemTaxPercent" step="0.01">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemTaxRs" class="form-label">Rs</label>
-                                <input type="number" class="form-control" id="returnItemTaxRs" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemPrice" class="form-label">Price</label>
-                                <input type="number" class="form-control" id="returnItemPrice" step="0.01">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemDiscRs" class="form-label">Rs</label>
-                                <input type="number" class="form-control" id="returnItemDiscRs" step="0.01">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="returnItemNetTotal" class="form-label">NetTotal</label>
-                                <input type="number" class="form-control" id="returnItemNetTotal" step="0.01" readonly>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-2">
-                                <label for="returnItemDiscPercent" class="form-label">Disc%</label>
-                                <input type="number" class="form-control" id="returnItemDiscPercent" step="0.01">
-                            </div>
-                            <div class="col-md-10">
-                                <label for="returnItemRemarks" class="form-label">Remarks</label>
-                                <input type="text" class="form-control" id="returnItemRemarks">
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-3">
-                            <div class="col-12 text-end">
-                                <button type="button" class="btn btn-info me-2" id="listReturnItemsBtn">
-                                    <i class="fas fa-list me-1"></i>List
-                                </button>
-                                <button type="button" class="btn btn-primary" id="addReturnItemBtn">
-                                    <i class="fas fa-plus me-1"></i>Add
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-3">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Sr.No</th>
-                                                <th>Code</th>
-                                                <th>Name</th>
-                                                <th>Pack</th>
-                                                <th>Price</th>
-                                                <th>Sub_Total</th>
-                                                <th>Tax %</th>
-                                                <th>Tax Rs</th>
-                                                <th>Total</th>
-                                                <th>Dis %</th>
-                                                <th>Dis Rs</th>
-                                                <th>Net Total</th>
-                                                <th>Remarks</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="saleReturnItemsTableBody">
-                                            <tr>
-                                                <td colspan="14" class="text-center text-muted">No items added yet</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td colspan="5" class="text-end fw-bold">Total</td>
-                                                <td id="returnItemsTotal">0.00</td>
-                                                <td colspan="8"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+    <div id="saleReturnListSection" style="display: none;">
+        <div class="card bg-teal text-white mb-2">
+            <div class="card-body p-2 d-flex justify-content-between align-items-center"
+                style="background-color: #008080;">
+                <h5 class="mb-0">Sale Return List</h5>
+                <button class="btn btn-warning btn-sm" id="backToReturnEntryBtn">Back to Entry</button>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="returnTotal" class="form-label">Total</label>
-                        <input type="number" class="form-control" id="returnTotal" step="0.01" readonly>
+
+        <!-- Filter Section -->
+        <div class="card mb-3">
+            <div class="card-body p-2">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-2">
+                        <label class="small fw-bold">From Date</label>
+                        <input type="date" class="form-control form-control-sm" id="returnListFromDate">
                     </div>
-                    <div class="mb-3">
-                        <label for="returnDiscPercent" class="form-label">Discount %</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="returnDiscPercent" step="0.01">
-                            <span class="input-group-text">Rs</span>
-                            <input type="number" class="form-control" id="returnDiscRs" step="0.01">
+                    <div class="col-md-2">
+                        <label class="small fw-bold">To Date</label>
+                        <input type="date" class="form-control form-control-sm" id="returnListToDate">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <div class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" id="returnListTimeCheck">
+                            <label class="form-check-label small">Time</label>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="returnTaxPercent" class="form-label">Tax %</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="returnTaxPercent" step="0.01">
-                            <span class="input-group-text">Rs</span>
-                            <input type="number" class="form-control" id="returnTaxRs" step="0.01">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnMisc" class="form-label">Misc</label>
-                        <input type="number" class="form-control" id="returnMisc" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnFreight" class="form-label">Freight</label>
-                        <input type="number" class="form-control" id="returnFreight" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnNetTotal" class="form-label">Net Total</label>
-                        <input type="number" class="form-control" id="returnNetTotal" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnPaid" class="form-label">Paid</label>
-                        <input type="number" class="form-control" id="returnPaid" step="0.01">
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnInvBalance" class="form-label">Inv Balance</label>
-                        <input type="number" class="form-control" id="returnInvBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnPreBalance" class="form-label">Pre Balance</label>
-                        <input type="number" class="form-control" id="returnPreBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnNewBalance" class="form-label">New Balance</label>
-                        <input type="number" class="form-control" id="returnNewBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="returnPayMode" class="form-label">Pay Mode</label>
-                        <select class="form-select" id="returnPayMode">
-                            <option value="Credit">Credit</option>
-                            <option value="Cash">Cash</option>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">Shop</label>
+                        <select class="form-select form-select-sm" id="returnListShopSelect">
+                            <option value="">All Shops</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="returnPrintSize" class="form-label">Print Size</label>
-                        <select class="form-select" id="returnPrintSize">
+                    <div class="col-md-2">
+                        <label class="small fw-bold">User</label>
+                        <select class="form-select form-select-sm" id="returnListUserSelect">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button class="btn btn-success btn-sm w-100" id="returnListSearchBtn">Search</button>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">Print Size</label>
+                        <select class="form-select form-select-sm" id="returnListPageSize">
                             <option value="A-4">A-4</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <a href="#" class="text-danger" id="searchReturnInvoiceLink">Search Invoice (Alt+X)</a>
+                </div>
+                <div class="row g-2 mt-1 align-items-center">
+                    <div class="col-md-2">
+                        <label class="small fw-bold">Return Amount</label>
+                        <input type="text" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search..."
+                            id="returnListSearchInput">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-2 mb-3">
+            <div class="col-md-2">
+                <div class="card bg-info text-white p-2 text-center">
+                    <div class="small fw-bold">Cash Return</div>
+                    <div class="h6 mb-0" id="summaryCashReturn">0</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-warning text-dark p-2 text-center">
+                    <div class="small fw-bold">Credit Return</div>
+                    <div class="h6 mb-0" id="summaryCreditReturn">0</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-primary text-white p-2 text-center">
+                    <div class="small fw-bold">Total</div>
+                    <div class="h6 mb-0" id="summaryReturnTotal">0</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-secondary text-white p-2 text-center">
+                    <div class="small fw-bold">Inv Dis</div>
+                    <div class="h6 mb-0" id="summaryReturnInvDis">0</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-danger text-white p-2 text-center">
+                    <div class="small fw-bold">Inv Tax</div>
+                    <div class="h6 mb-0" id="summaryReturnInvTax">0</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-success text-white p-2 text-center">
+                    <div class="small fw-bold">Total Return</div>
+                    <div class="h6 mb-0" id="summaryTotalReturn">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm table-striped small" id="saleReturnListTable">
+                <thead class="bg-primary text-white">
+                    <tr>
+                        <th>Actions</th>
+                        <th>Inv.No</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Customer</th>
+                        <th>Contact No</th>
+                        <th>GrossTotal</th>
+                        <th>Discount</th>
+                        <th>Tax</th>
+                        <th>Misc</th>
+                        <th>Freight</th>
+                        <th>NetTotal</th>
+                        <th>Remarks</th>
+                        <th>Pay Mode</th>
+                        <th>User</th>
+                        <th>Branch</th>
+                    </tr>
+                </thead>
+                <tbody id="saleReturnListTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="saleReturnEntryFormContainer">
+        <div class="dashboard-header p-2 mb-3">
+            <h4 class="mb-0"><i class="fas fa-undo me-2"></i>Sale Return Entry</h4>
+        </div>
+
+        <div class="row">
+            <!-- Invoice Details Full Width -->
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0">Return Details</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <form id="saleReturnForm">
+                            <input type="hidden" id="saleReturnId" value="">
+                            <div class="row g-2">
+                                <div class="col-md-2">
+                                    <label for="returnInvoiceNo" class="form-label small fw-bold">Inv.No</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnInvoiceNo">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="returnDate" class="form-label small fw-bold">Date *</label>
+                                    <input type="date" class="form-control form-control-sm" id="returnDate" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="returnCustomerId" class="form-label small fw-bold">Customer *</label>
+                                    <div class="input-group input-group-sm">
+                                        <select class="form-select" id="returnCustomerId" required></select>
+                                        <button class="btn btn-outline-secondary" type="button"><i
+                                                class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="returnContactNo" class="form-label small fw-bold">ContactNo</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnContactNo"
+                                        readonly>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="returnTransporter" class="form-label small fw-bold">Transporter</label>
+                                    <select class="form-select form-select-sm" id="returnTransporter"></select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-2">
+                                    <label for="returnDcNo" class="form-label small fw-bold">DC No</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnDcNo">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="returnBiltyNo" class="form-label small fw-bold">Bilty No</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnBiltyNo">
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="returnRemarks" class="form-label small fw-bold">Remarks</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnRemarks">
+                                </div>
+                            </div>
+
+                            <hr class="my-2">
+
+                            <!-- Item Inputs -->
+                            <div class="row g-2">
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold">Code</label>
+                                    <input type="text" class="form-control form-control-sm" id="returnItemCode">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold">Name</label>
+                                    <select class="form-select form-select-sm" id="returnItemName"></select>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Store</label>
+                                    <select class="form-select form-select-sm" id="returnItemStore"></select>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Stock</label>
+                                    <input type="number" class="form-control form-control-sm" id="returnItemStock"
+                                        readonly>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Pack</label>
+                                    <input type="number" class="form-control form-control-sm" id="returnItemPack">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Price</label>
+                                    <input type="number" class="form-control form-control-sm" id="returnItemPrice">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Tax%</label>
+                                    <input type="number" class="form-control form-control-sm" id="returnItemTaxPercent">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold">Disc%</label>
+                                    <input type="number" class="form-control form-control-sm"
+                                        id="returnItemDiscPercent">
+                                </div>
+                                <div class="col-md-1 align-self-end">
+                                    <button type="button" class="btn btn-primary btn-sm w-100"
+                                        id="addReturnItemBtn">Add</button>
+                                </div>
+                            </div>
+
+                            <!-- Item List Table -->
+                            <div class="table-responsive mt-3" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-bordered table-sm table-striped small mb-0">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>Sr</th>
+                                            <th>Code</th>
+                                            <th style="min-width: 200px;">Name</th>
+                                            <th>Pack</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                            <th>Tax%</th>
+                                            <th>TaxRs</th>
+                                            <th>Total</th>
+                                            <th>Inc</th>
+                                            <th>Dis%</th>
+                                            <th>DisRs</th>
+                                            <th>NetTotal</th>
+                                            <th>Store</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="saleReturnItemsTableBody">
+                                        <tr>
+                                            <td colspan="15" class="text-center text-muted">No items added yet</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot class="table-light sticky-bottom">
+                                        <tr>
+                                            <td colspan="5" class="text-end fw-bold">Total</td>
+                                            <td id="returnItemsSubTotal">0.00</td>
+                                            <td colspan="9"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Section (Split horizontal) -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Left Summary Column -->
+                            <div class="col-md-6">
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Total</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnTotal" readonly></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Discount %</label>
+                                    <div class="col-sm-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="returnDiscPercent">
+                                            <span class="input-group-text">Rs</span>
+                                            <input type="number" class="form-control" id="returnDiscRs">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Tax %</label>
+                                    <div class="col-sm-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="returnTaxPercent">
+                                            <span class="input-group-text">Rs</span>
+                                            <input type="number" class="form-control" id="returnTaxRs" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Misc</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnMisc"></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Freight</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnFreight"></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm fw-bold">Net Total</label>
+                                    <div class="col-sm-8"><input type="number"
+                                            class="form-control form-control-sm fw-bold" id="returnNetTotal" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Summary Column -->
+                            <div class="col-md-6">
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Paid</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnPaid"></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Inv Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnInvBalance" readonly></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Pre Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnPreBalance" readonly></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">New Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="returnNewBalance" readonly></div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Pay Mode</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-select form-select-sm" id="returnPayMode">
+                                            <option value="Cash">Cash</option>
+                                            <option value="Credit">Credit</option>
+                                            <option value="Bank">Bank</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm">Print Size</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-select form-select-sm" id="returnPrintSize">
+                                            <option value="A-4">A-4</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <div class="text-end">
+                            <button type="button" class="btn btn-info me-2" id="listReturnBtn">
+                                <i class="fas fa-list me-1"></i>List
+                            </button>
+                            <button type="button" class="btn btn-success me-2" id="saveReturnBtn">
+                                <i class="fas fa-save me-1"></i>Save
+                            </button>
+                            <button type="button" class="btn btn-secondary me-2" id="savePrintReturnBtn">
+                                <i class="fas fa-print me-1"></i>Save & Print
+                            </button>
+                            <button type="button" class="btn btn-danger" id="deleteReturnBtn">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <button type="button" class="btn btn-success me-2" id="saveReturnBtn">
-                        <i class="fas fa-save me-1"></i>Save
-                    </button>
-                    <button type="button" class="btn btn-success me-2" id="savePrintReturnBtn">
-                        <i class="fas fa-print me-1"></i>Save & Print
-                    </button>
-                    <button type="button" class="btn btn-info" id="listReturnBtn">
-                        <i class="fas fa-list me-1"></i>List
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 </div>
 
+<style>
+    @media print {
+
+        #saleReturnListSection,
+        .no-print,
+        .dashboard-header,
+        #listReturnBtn,
+        #saveReturnBtn,
+        #savePrintReturnBtn {
+            display: none !important;
+        }
+
+        #saleReturnEntrySection {
+            display: block !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-header {
+            display: none !important;
+        }
+
+        input,
+        select {
+            border: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+    }
+
+    .nowrap-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    input[readonly],
+    textarea[readonly] {
+        background-color: #e9ecef !important;
+        cursor: not-allowed;
+    }
+</style>

@@ -1,0 +1,220 @@
+<div id="customers-section" class="content-section">
+    <div class="dashboard-header bg-primary text-white p-2 mb-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Customers</h4>
+        <div>
+            <span class="badge bg-danger rounded-circle">19</span>
+            <span class="ms-2">Bilal Shah</span>
+        </div>
+    </div>
+
+    <!-- Entry Form -->
+    <div class="card mb-3 bg-light">
+        <div class="card-body pt-2 pb-2">
+            <form id="customerForm">
+                <input type="hidden" id="customerId" value="">
+
+                <div class="row g-2 mb-2">
+                    <!-- Column 1 -->
+                    <div class="col-md-3">
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Code</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custCode"
+                                    readonly></div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">City</label></div>
+                            <div class="col-8">
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" id="custCity"></select>
+                                    <button class="btn btn-primary" type="button" id="addCityBtn"><i
+                                            class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">NTN</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custNTN">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center">
+                            <div class="col-4"><label class="fw-bold small">Category</label></div>
+                            <div class="col-8">
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" id="custCategory"></select>
+                                    <button class="btn btn-primary" type="button" id="addCategoryBtn"><i
+                                            class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div class="col-md-3">
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Branch</label></div>
+                            <div class="col-8">
+                                <select class="form-select form-select-sm" id="custBranch"></select>
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Phone No</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custPhone">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">STRN</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custSTRN">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center">
+                            <div class="col-4"><label class="fw-bold small">Type</label></div>
+                            <div class="col-8">
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" id="custType">
+                                        <option value="">Select Type</option>
+                                        <option value="Distributor">Distributor</option>
+                                        <option value="Retailer">Retailer</option>
+                                        <option value="Consumer">Consumer</option>
+                                    </select>
+                                    <button class="btn btn-primary" type="button"><i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3 -->
+                    <div class="col-md-3">
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Name</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custName"
+                                    required></div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Mobile No</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custMobile">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Opening</label></div>
+                            <div class="col-8"><input type="number" class="form-control form-control-sm"
+                                    id="custOpening" value="0"></div>
+                        </div>
+                        <div class="row g-1 align-items-center">
+                            <div class="col-4"><label class="fw-bold small">Active</label></div>
+                            <div class="col-3">
+                                <input class="form-check-input" type="checkbox" id="custActive" checked>
+                            </div>
+                            <div class="col-2"><label class="fw-bold small">Cash</label></div>
+                            <div class="col-3">
+                                <input class="form-check-input" type="checkbox" id="custCash">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 4 -->
+                    <div class="col-md-3">
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">Address</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custAddress">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">CNIC</label></div>
+                            <div class="col-8"><input type="text" class="form-control form-control-sm" id="custCNIC">
+                            </div>
+                        </div>
+                        <div class="row g-1 align-items-center mb-1">
+                            <div class="col-4"><label class="fw-bold small">C Limit</label></div>
+                            <div class="col-8"><input type="number" class="form-control form-control-sm"
+                                    id="custCreditLimit" value="0"></div>
+                        </div>
+                        <div class="row g-1 align-items-center">
+                            <div class="col-12 text-end mt-2">
+                                <button type="submit" class="btn btn-success btn-sm" id="custSaveBtn" style="min-width: 100px;">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm ms-2" id="custCancelBtn" style="min-width: 100px;">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row mb-2">
+        <div class="col-md-3 offset-md-9">
+            <input type="text" class="form-control form-control-sm" id="custSearch" placeholder="Search">
+        </div>
+    </div>
+
+    <!-- List Table -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm table-striped table-hover small">
+            <thead class="bg-primary text-white">
+                <tr>
+                    <th style="width: 50px;">Actions</th>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Phone No</th>
+                    <th>Mobile No</th>
+                    <th>Address</th>
+                    <th>CNIC</th>
+                    <th>NTN</th>
+                    <th>STRN</th>
+                    <th>City</th>
+                    <th>C.Limit</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody id="customersTableBody">
+                <!-- Rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- City Modal -->
+    <div class="modal fade" id="cityModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title">Add City</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small">City Name</label>
+                        <input type="text" class="form-control form-control-sm" id="newCityName">
+                    </div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-primary btn-sm" id="saveCityBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title">Add Category</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small">Category Name</label>
+                        <input type="text" class="form-control form-control-sm" id="newCategoryName">
+                    </div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-primary btn-sm" id="saveCategoryBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

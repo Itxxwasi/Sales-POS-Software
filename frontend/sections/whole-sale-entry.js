@@ -1,4 +1,4 @@
-;(function() {
+; (function () {
   if (!window.appData) {
     window.appData = {
       branches: [],
@@ -133,6 +133,100 @@
         listBtn.addEventListener('click', showWholeSalesList);
       }
 
+      const backToEntryBtn = document.getElementById('backToEntryBtn');
+      if (backToEntryBtn) {
+        backToEntryBtn.addEventListener('click', hideWholeSalesList);
+      }
+
+      const deleteBtn = document.getElementById('deleteWholeSaleBtn');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', deleteWholeSale);
+      }
+
+      // Customer buttons
+      const addCustomerBtn = document.getElementById('addCustomerBtn');
+      if (addCustomerBtn) {
+        addCustomerBtn.addEventListener('click', () => {
+          const link = document.querySelector('.nav-link[data-section="customers"]');
+          if (link) link.click();
+        });
+      }
+
+      const listCustomerBtn = document.getElementById('listCustomerBtn');
+      if (listCustomerBtn) {
+        listCustomerBtn.addEventListener('click', () => {
+          const link = document.querySelector('.nav-link[data-section="customers"]');
+          if (link) link.click();
+        });
+      }
+
+      const refreshCustomerBtn = document.getElementById('refreshCustomerBtn');
+      if (refreshCustomerBtn) {
+        refreshCustomerBtn.addEventListener('click', loadMasterData);
+      }
+
+      // Item Plus Button (Link to Item Registration)
+      const addItemRegBtn = document.getElementById('addItemBtn');
+      if (addItemRegBtn) {
+        addItemRegBtn.addEventListener('click', () => {
+          if (typeof showSection === 'function') {
+            showSection('item-registration');
+          } else if (window.showSection) {
+            window.showSection('item-registration');
+          }
+        });
+      }
+
+      // Barcode / Item Code Enter Logic
+      const itemCode = document.getElementById('itemCode');
+      if (itemCode) {
+        itemCode.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const code = itemCode.value.trim();
+            if (code) searchItemByCode(code);
+          }
+        });
+        itemCode.addEventListener('blur', () => {
+          const code = itemCode.value.trim();
+          if (code) searchItemByCode(code);
+        });
+      }
+
+      // Pack Enter Logic
+      const itemPack = document.getElementById('itemPack');
+      if (itemPack) {
+        itemPack.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (itemPack.value) {
+              addItemToTable();
+            }
+          }
+        });
+      }
+
+      // Setup Overlay for Item Search
+      setupOverlay();
+
+      // Style Calculated Fields
+      ['itemTotal', 'itemTaxRs', 'itemDiscRs', 'itemNetTotal', 'itemTotalFinal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.readOnly = true;
+          el.style.backgroundColor = '#e9ecef';
+        }
+      });
+
+      // Style Summary Readonly Fields
+      ['wholeSaleTotal', 'wholeSaleTaxRs', 'wholeSaleNetTotal', 'wholeSaleInvBalance', 'wholeSalePreBalance', 'wholeSaleNewBalance', 'invoiceNo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.readOnly = true;
+          el.style.backgroundColor = '#e9ecef';
+        }
+      });
+
       // Item calculation listeners
       ['itemPack', 'itemPrice', 'itemDiscPercent', 'itemDiscRs', 'itemTaxPercent', 'itemIncentive'].forEach(id => {
         const field = document.getElementById(id);
@@ -236,7 +330,7 @@
         row.innerHTML = `
           <td>${index + 1}</td>
           <td>${item.code}</td>
-          <td>${item.name}</td>
+          <td class="nowrap-text" title="${item.name}">${item.name}</td>
           <td>${item.pack}</td>
           <td>${item.price}</td>
           <td>${item.subtotal.toFixed(2)}</td>
@@ -260,7 +354,7 @@
       document.getElementById('itemsSubTotal').textContent = subTotal.toFixed(2);
     }
 
-    window.removeWholeSaleItem = function(index) {
+    window.removeWholeSaleItem = function (index) {
       wholeSaleItems.splice(index, 1);
       updateItemsTable();
       calculateSummary();
@@ -369,12 +463,294 @@
     }
 
     function showWholeSalesList() {
-      // Implementation for showing list
-      if (typeof showNotification === 'function') {
-        showNotification('List functionality coming soon', 'info');
+      const entrySection = document.getElementById('wholeSaleEntryFormSection');
+      const listSection = document.getElementById('wholeSaleListSection');
+      if (entrySection && listSection) {
+        entrySection.style.display = 'none';
+        listSection.style.display = 'block';
+
+        // Set default dates to current date
+        const today = new Date().toISOString().split('T')[0];
+        const fromDate = document.getElementById('listFromDate');
+        const toDate = document.getElementById('listToDate');
+        if (fromDate && !fromDate.value) fromDate.value = today;
+        if (toDate && !toDate.value) toDate.value = today;
+
+        // Auto-load data
+        loadWholeSalesList();
       }
     }
-  }
+
+    function hideWholeSalesList() {
+      const entrySection = document.getElementById('wholeSaleEntryFormSection');
+      const listSection = document.getElementById('wholeSaleListSection');
+      if (entrySection && listSection) {
+        entrySection.style.display = 'block';
+        listSection.style.display = 'none';
+      }
+    }
+
+    function deleteWholeSale() {
+      const wholeSaleId = document.getElementById('wholeSaleId')?.value;
+      if (!wholeSaleId) {
+        alert('No whole sale selected to delete');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete this whole sale?')) {
+        return;
+      }
+
+      if (window.api && window.api.deleteWholeSale) {
+        window.api.deleteWholeSale(wholeSaleId).then(() => {
+          if (typeof showNotification === 'function') {
+            showNotification('Whole sale deleted successfully', 'success');
+          }
+          clearForm();
+        }).catch(err => {
+          if (typeof showNotification === 'function') {
+            showNotification(err.message || 'Error deleting whole sale', 'error');
+          }
+        });
+      }
+    }
+
+    function loadWholeSalesList() {
+      const tbody = document.getElementById('wholeSaleListTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '<tr><td colspan="16" class="text-center">Loading...</td></tr>';
+
+      const fromDate = document.getElementById('listFromDate')?.value;
+      const toDate = document.getElementById('listToDate')?.value;
+
+      let query = '';
+      if (fromDate && toDate) {
+        query = `?from=${fromDate}&to=${toDate}`;
+      }
+
+      if (window.api && window.api.getWholeSales) {
+        window.api.getWholeSales(query).then(sales => {
+          tbody.innerHTML = '';
+          if (!sales || sales.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="16" class="text-center text-muted">No records found</td></tr>';
+            return;
+          }
+
+          sales.forEach(sale => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>
+                <button class="btn btn-sm btn-primary me-1" onclick="editWholeSale('${sale._id}')">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteWholeSaleFromList('${sale._id}')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+              <td>${sale.invoiceNo || ''}</td>
+              <td>${sale.date ? new Date(sale.date).toLocaleDateString() : ''}</td>
+              <td>${sale.date ? new Date(sale.date).toLocaleTimeString() : ''}</td>
+              <td>${sale.customerId?.name || ''}</td>
+              <td>${sale.customerId?.phoneNo || sale.customerId?.mobileNo || ''}</td>
+              <td>${(sale.total || 0).toFixed(2)}</td>
+              <td>${(sale.discountRs || 0).toFixed(2)}</td>
+              <td>${(sale.taxRs || 0).toFixed(2)}</td>
+              <td>${(sale.misc || 0).toFixed(2)}</td>
+              <td>${(sale.freight || 0).toFixed(2)}</td>
+              <td>${(sale.netTotal || 0).toFixed(2)}</td>
+              <td>${sale.remarks || ''}</td>
+              <td>${sale.paymentMode || ''}</td>
+              <td>${sale.userId?.username || ''}</td>
+              <td>${sale.branchId?.name || ''}</td>
+            `;
+            tbody.appendChild(row);
+          });
+        }).catch(err => {
+          tbody.innerHTML = `<tr><td colspan="16" class="text-center text-danger">Error: ${err.message}</td></tr>`;
+        });
+      }
+    }
+
+    window.editWholeSale = function (id) {
+      if (!window.api || !window.api.getWholeSale) return;
+
+      window.api.getWholeSale(id).then(sale => {
+        document.getElementById('wholeSaleId').value = sale._id;
+        document.getElementById('invoiceNo').value = sale.invoiceNo || '';
+        document.getElementById('wholeSaleDate').value = sale.date ? sale.date.split('T')[0] : '';
+        document.getElementById('customerId').value = sale.customerId?._id || sale.customerId || '';
+        document.getElementById('wholeSaleRemarks').value = sale.remarks || '';
+
+        // Load items
+        wholeSaleItems = sale.items || [];
+        updateItemsTable();
+        calculateSummary();
+
+        // Switch to entry view
+        hideWholeSalesList();
+      }).catch(err => {
+        alert('Error loading whole sale: ' + err.message);
+      });
+    };
+
+    window.deleteWholeSaleFromList = function (id) {
+      if (!confirm('Are you sure you want to delete this whole sale?')) return;
+
+      if (window.api && window.api.deleteWholeSale) {
+        window.api.deleteWholeSale(id).then(() => {
+          if (typeof showNotification === 'function') {
+            showNotification('Whole sale deleted successfully', 'success');
+          }
+          loadWholeSalesList();
+        }).catch(err => {
+          alert('Error deleting whole sale: ' + err.message);
+        });
+      }
+    };
+    function searchItemByCode(code) {
+      const fillFromItem = (item) => {
+        if (!item) {
+          // Optional: showNotification('Item not found', 'warning');
+          return;
+        }
+        const nameSel = document.getElementById('itemName');
+        if (nameSel) nameSel.value = item._id || '';
+
+        document.getElementById('itemCode').value = item.itemCode || code;
+        document.getElementById('itemPrice').value = item.salePrice || 0;
+        // Trigger calculations
+        updateItemCalculations();
+        // Focus Pack
+        const packEl = document.getElementById('itemPack');
+        if (packEl) {
+          packEl.value = ''; // Reset pack for new entry
+          packEl.focus();
+        }
+      };
+
+      // Local search
+      const localItem = (appData.items || []).find(i => String(i.itemCode) === String(code) || String(i.givenPcsBarCode) === String(code));
+      if (localItem) { fillFromItem(localItem); return; }
+
+      // API search
+      if (window.api && typeof window.api.searchItems === 'function') {
+        window.api.searchItems({ barcode: code }).then(items => {
+          const found = (items || []).find(i => String(i.itemCode) === String(code) || String(i.givenPcsBarCode) === String(code)) || (items || [])[0];
+          fillFromItem(found);
+        }).catch(() => fillFromItem(null));
+      }
+    }
+
+    function setupOverlay() {
+      const itemName = document.getElementById('itemName');
+      const overlay = document.getElementById('wholeSaleNameOverlay');
+      const search = document.getElementById('wholeSaleNameOverlaySearch');
+      const list = document.getElementById('wholeSaleNameOverlayList');
+
+      if (!itemName || !overlay || !search || !list) return;
+
+      const openOverlay = () => {
+        overlay.style.display = 'block';
+        // Position overlay under the select
+        const rect = itemName.getBoundingClientRect();
+        // Adjust for scrolling if needed, but absolute positioning relative to nearest positioned ancestor or body
+        // If overlay is at body level:
+        overlay.style.top = (window.scrollY + rect.bottom) + 'px';
+        overlay.style.left = (window.scrollX + rect.left) + 'px';
+        overlay.style.width = rect.width + 'px';
+
+        if (search) {
+          search.value = '';
+          renderList(appData.items || []);
+          search.focus();
+        }
+      };
+      const closeOverlay = () => { overlay.style.display = 'none'; };
+
+      const renderList = (items) => {
+        list.innerHTML = '';
+        (items || []).forEach(it => {
+          const row = document.createElement('div');
+          row.className = 'overlay-item';
+          row.style.padding = '6px 8px';
+          row.style.cursor = 'pointer';
+          row.style.borderBottom = '1px solid #eee';
+          row.innerHTML = `<div><strong>${it.itemName || ''}</strong></div><div class="text-muted" style="font-size:12px;">${it.itemCode || ''} | Stock: ${it.stock || 0}</div>`;
+          row.addEventListener('click', () => {
+            itemName.value = it._id || '';
+            document.getElementById('itemCode').value = it.itemCode || '';
+            document.getElementById('itemPrice').value = it.salePrice || 0;
+            updateItemCalculations();
+            closeOverlay();
+            const packEl = document.getElementById('itemPack');
+            if (packEl) packEl.focus();
+          });
+          row.addEventListener('mouseenter', () => row.style.backgroundColor = '#f0f0f0');
+          row.addEventListener('mouseleave', () => row.style.backgroundColor = 'transparent');
+          list.appendChild(row);
+        });
+      };
+
+      itemName.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent default select opening
+        openOverlay();
+      });
+      // Also handle focus via tab
+      itemName.addEventListener('focus', (e) => {
+        openOverlay();
+      });
+
+      let typeBuffer = '';
+      if (search) {
+        let to;
+        search.addEventListener('input', () => {
+          const q = (search.value || '').trim().toLowerCase();
+          clearTimeout(to);
+          to = setTimeout(() => {
+            if (!q) { renderList(appData.items || []); return; }
+            // Filter local first for speed
+            const local = (appData.items || []).filter(i => (i.itemName || '').toLowerCase().includes(q));
+            if (local.length > 0) {
+              renderList(local);
+            } else if (window.api && typeof window.api.searchItems === 'function') {
+              window.api.searchItems({ name: q }).then(items => { renderList(items || []); }).catch(() => { });
+            } else {
+              renderList([]);
+            }
+          }, 200);
+        });
+
+        search.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const first = list.firstElementChild;
+            if (first) first.click();
+          } else if (e.key === 'Escape') {
+            closeOverlay();
+            itemName.focus();
+          }
+        });
+      }
+
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        const isClickInside = overlay.contains(e.target) || itemName.contains(e.target);
+        if (!isClickInside) {
+          closeOverlay();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (overlay && overlay.style.display === 'block' &&
+          !overlay.contains(e.target) &&
+          e.target !== itemName &&
+          e.target !== search) {
+          closeOverlay();
+        }
+      });
+    }
+
+  } // End initWholeSaleEntrySection
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initWholeSaleEntrySection);

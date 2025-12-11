@@ -31,3 +31,5 @@ export { Account } from './Account.js';
 export { DamageStock } from './DamageStock.js';
 export { StockAudit } from './StockAudit.js';
 export { Transporter } from './Transporter.js';
+export { City } from './City.js';
+export { CustomerCategory } from './CustomerCategory.js';
