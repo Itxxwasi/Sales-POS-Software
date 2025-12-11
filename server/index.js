@@ -132,6 +132,31 @@ function canonicalizePermissions(perms) {
   }
 }
 
+// Helper: Parse JWT expiration string to milliseconds
+// Supports formats: '24h', '7d', '30m', '1h', etc.
+function parseExpirationToMs(expiration) {
+  if (!expiration || typeof expiration !== 'string') {
+    return 24 * 60 * 60 * 1000; // Default: 24 hours
+  }
+  
+  const match = expiration.match(/^(\d+)([smhd])$/i);
+  if (!match) {
+    return 24 * 60 * 60 * 1000; // Default: 24 hours
+  }
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  
+  const multipliers = {
+    's': 1000,           // seconds
+    'm': 60 * 1000,      // minutes
+    'h': 60 * 60 * 1000, // hours
+    'd': 24 * 60 * 60 * 1000 // days
+  };
+  
+  return value * (multipliers[unit] || multipliers['h']);
+}
+
 
 // ========================================
 // DATABASE CONNECTION
@@ -535,10 +560,24 @@ app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
     // Update last login
     user.lastLogin = new Date();
     await user.save();
+
+    // Generate JWT token with configurable expiration
+    const tokenExpiration = env.JWT_EXPIRES_IN || '24h';
+    const token = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: tokenExpiration });
+
+    // Calculate cookie expiration time in milliseconds
+    // Parse expiration string (e.g., '24h', '7d', '30m')
+    const expirationMs = parseExpirationToMs(tokenExpiration);
     
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: '7d' });
-    
+    // Set httpOnly cookie for security (prevents XSS attacks)
+    res.cookie('token', token, {
+      httpOnly: true, // Prevents JavaScript access (XSS protection)
+      secure: env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // CSRF protection
+      maxAge: expirationMs, // Cookie expiration matches token expiration
+      path: '/' // Available site-wide
+    });
+
     // Return user data and token in response body for Bearer token authentication
     res.json({
       ok: true,
@@ -561,8 +600,15 @@ app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
 
 // User Logout
 app.post('/api/auth/logout', authenticate, (req, res) => {
-  // Token is stored in localStorage on frontend, cleared by frontend
-  // Backend just confirms logout
+  // Clear httpOnly cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  });
+  
+  // Token is also stored in localStorage on frontend, cleared by frontend
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -647,10 +693,23 @@ app.post('/api/auth/signup', checkDatabaseConnection, async (req, res) => {
     
     // Populate group information for response
     await newUser.populate('groupId', 'name permissions');
+
+    // Generate JWT token with configurable expiration
+    const tokenExpiration = env.JWT_EXPIRES_IN || '24h';
+    const token = jwt.sign({ id: newUser._id }, env.JWT_SECRET, { expiresIn: tokenExpiration });
+
+    // Calculate cookie expiration time in milliseconds
+    const expirationMs = parseExpirationToMs(tokenExpiration);
     
-    // Generate JWT token
-    const token = jwt.sign({ id: newUser._id }, env.JWT_SECRET, { expiresIn: '7d' });
-    
+    // Set httpOnly cookie for security
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: expirationMs,
+      path: '/'
+    });
+
     res.status(201).json({
       message: 'User registered successfully',
       ok: true,
