@@ -3,294 +3,483 @@
         <h1 class="dashboard-title">Whole Sale Entry</h1>
         <p class="dashboard-subtitle">Record wholesale sales transactions</p>
     </div>
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Invoice Details</h5>
-                </div>
-                <div class="card-body">
-                    <form id="wholeSaleForm">
-                        <input type="hidden" id="wholeSaleId" value="">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="invoiceNo" class="form-label">Inv.No</label>
-                                <input type="text" class="form-control" id="invoiceNo" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="wholeSaleDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="wholeSaleDate" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="customerId" class="form-label">Customer <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <select class="form-select" id="customerId" required>
-                                        <option value="">Select Customer</option>
-                                    </select>
-                                    <button type="button" class="btn btn-outline-primary" id="addCustomerBtn">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning" id="refreshCustomerBtn">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-info" id="listCustomerBtn">
-                                        <i class="fas fa-list"></i>
-                                    </button>
-                                </div>
-                            </div>
+    <div id="wholeSaleListSection" style="display: none;">
+        <div class="card mb-3 bg-light">
+            <div class="card-body p-2">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="listTimeCheck">
+                            <label class="form-check-label">Time</label>
                         </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <label for="customerContactNo" class="form-label">Contact No</label>
-                                <input type="text" class="form-control" id="customerContactNo" readonly>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="wholeSaleRemarks" class="form-label">Remarks</label>
-                                <input type="text" class="form-control" id="wholeSaleRemarks">
-                            </div>
+                    </div>
+                    <div class="col-auto"><label class="fw-bold me-1">From</label> <input type="date"
+                            class="form-control form-control-sm d-inline-block w-auto" id="listFromDate"></div>
+                    <div class="col-auto"><label class="fw-bold me-1">To</label> <input type="date"
+                            class="form-control form-control-sm d-inline-block w-auto" id="listToDate"></div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="listShopSelect">
+                            <option value="">All Shops</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="listUserSelect">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <select class="form-select form-select-sm" id="listPageSize">
+                            <option>A-4</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-success btn-sm" id="listSearchBtn">Search</button>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">Return Amount</span>
+                            <input type="text" class="form-control" value="0.000" readonly>
                         </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-12">
-                                <label for="wholeSaleCategory" class="form-label">Select Category</label>
-                                <select class="form-select" id="wholeSaleCategory">
-                                    <option value="">All Categories</option>
-                                </select>
-                            </div>
-                        </div>
-                        <hr class="my-4">
-                        <h6 class="mb-3">Item Details</h6>
-                        <div class="row g-3">
-                            <div class="col-md-2">
-                                <label for="itemCode" class="form-label">Code</label>
-                                <input type="text" class="form-control" id="itemCode">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="itemName" class="form-label">Name</label>
-                                <div class="input-group">
-                                    <select class="form-select" id="itemName">
-                                        <option value="">Select Item</option>
-                                    </select>
-                                    <button type="button" class="btn btn-outline-primary" id="addItemBtn">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-warning" id="refreshItemBtn">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemPack" class="form-label">Pack</label>
-                                <input type="number" class="form-control" id="itemPack" step="0.01" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemStore" class="form-label">Store</label>
-                                <select class="form-select" id="itemStore">
-                                    <option value="">Shop</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemPrice" class="form-label">Price</label>
-                                <input type="number" class="form-control" id="itemPrice" step="0.01" min="0">
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-2">
-                                <label for="itemTotal" class="form-label">Total</label>
-                                <input type="number" class="form-control" id="itemTotal" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemIncentive" class="form-label">Incentive</label>
-                                <input type="number" class="form-control" id="itemIncentive" step="0.01" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemDiscPercent" class="form-label">Disc%</label>
-                                <input type="number" class="form-control" id="itemDiscPercent" step="0.01" min="0" max="100">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemTaxPercent" class="form-label">Tax %</label>
-                                <input type="number" class="form-control" id="itemTaxPercent" step="0.01" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemDiscRs" class="form-label">Rs</label>
-                                <input type="number" class="form-control" id="itemDiscRs" step="0.01" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="itemStock" class="form-label">Stock</label>
-                                <input type="number" class="form-control" id="itemStock" readonly>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-3">
-                                <label for="itemTaxRs" class="form-label">Rs (Tax)</label>
-                                <input type="number" class="form-control" id="itemTaxRs" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="itemNetTotal" class="form-label">NetTotal</label>
-                                <input type="number" class="form-control" id="itemNetTotal" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="itemTotalFinal" class="form-label">Total</label>
-                                <input type="number" class="form-control" id="itemTotalFinal" step="0.01" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-primary w-100" id="addItemToTableBtn">
-                                    <i class="fas fa-plus me-1"></i>Add
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-3">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Sr.No</th>
-                                                <th>Code</th>
-                                                <th>Name</th>
-                                                <th>Pack</th>
-                                                <th>Pcs Price</th>
-                                                <th>Sub Total</th>
-                                                <th>Tax %</th>
-                                                <th>Tax Rs</th>
-                                                <th>Total</th>
-                                                <th>Incentive</th>
-                                                <th>Dis %</th>
-                                                <th>Dis Rs</th>
-                                                <th>Net Total</th>
-                                                <th>Store</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="wholeSaleItemsTableBody">
-                                            <tr>
-                                                <td colspan="15" class="text-center text-muted">No items added yet</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td colspan="5" class="text-end fw-bold">Total</td>
-                                                <td id="itemsSubTotal">0.00</td>
-                                                <td colspan="9"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search..">
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="wholeSaleTotal" class="form-label">Total</label>
-                        <input type="number" class="form-control" id="wholeSaleTotal" step="0.01" readonly>
+
+        <div class="row mb-3">
+            <div class="col-md-5 offset-md-7">
+                <div class="row g-0 text-center" style="font-size: 0.85rem; font-weight: bold;">
+                    <div class="col-6 bg-danger bg-opacity-10 text-danger border p-1 d-flex justify-content-between">
+                        <span>Cash Sale</span> <span id="summaryCashSale">0.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleDiscPercent" class="form-label">Discount %</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="wholeSaleDiscPercent" step="0.01" min="0" max="100">
-                            <span class="input-group-text">Rs</span>
-                            <input type="number" class="form-control" id="wholeSaleDiscRs" step="0.01" min="0">
-                        </div>
+                    <div class="col-6 bg-danger bg-opacity-10 text-danger border p-1 d-flex justify-content-between">
+                        <span>Total</span> <span id="summaryTotal">1892194.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleTaxPercent" class="form-label">Tax %</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" id="wholeSaleTaxPercent" step="0.01" min="0">
-                            <span class="input-group-text">Rs</span>
-                            <input type="number" class="form-control" id="wholeSaleTaxRs" step="0.01" readonly>
-                        </div>
+                    <div class="col-6 bg-warning bg-opacity-10 text-dark border p-1 d-flex justify-content-between">
+                        <span>Credit Sale</span> <span id="summaryCreditSale">1892194.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleMisc" class="form-label">Misc</label>
-                        <input type="number" class="form-control" id="wholeSaleMisc" step="0.01" min="0">
+                    <div class="col-6 bg-warning bg-opacity-10 text-dark border p-1 d-flex justify-content-between">
+                        <span>Inv Dis</span> <span id="summaryInvDis">0.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleFreight" class="form-label">Freight</label>
-                        <input type="number" class="form-control" id="wholeSaleFreight" step="0.01" min="0">
+                    <div class="col-6 bg-primary bg-opacity-10 text-primary border p-1 d-flex justify-content-between">
+                        <span>Credit Card Sale</span> <span id="summaryCreditCardSale">0.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleNetTotal" class="form-label">Net Total</label>
-                        <input type="number" class="form-control" id="wholeSaleNetTotal" step="0.01" readonly>
+                    <div class="col-6 bg-primary bg-opacity-10 text-primary border p-1 d-flex justify-content-between">
+                        <span>Inv Tax</span> <span id="summaryInvTax">0.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSalePaid" class="form-label">Paid</label>
-                        <input type="number" class="form-control" id="wholeSalePaid" step="0.01" min="0">
+                    <div class="col-6 bg-info bg-opacity-25 text-primary border p-1 d-flex justify-content-between">
+                        <span>Total Sale</span> <span id="summaryTotalSale1">1892194.000</span>
                     </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleInvBalance" class="form-label">Inv Balance</label>
-                        <input type="number" class="form-control" id="wholeSaleInvBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="wholeSalePreBalance" class="form-label">Pre Balance</label>
-                        <input type="number" class="form-control" id="wholeSalePreBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="wholeSaleNewBalance" class="form-label">New Balance</label>
-                        <input type="number" class="form-control" id="wholeSaleNewBalance" step="0.01" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="wholeSalePrintSize" class="form-label">Print Size</label>
-                        <select class="form-select" id="wholeSalePrintSize">
-                            <option value="A-4">A-4</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="wholeSalePayMode" class="form-label">Pay Mode</label>
-                        <select class="form-select" id="wholeSalePayMode">
-                            <option value="Cash">Cash</option>
-                            <option value="Credit">Credit</option>
-                            <option value="Bank">Bank</option>
-                        </select>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="showPreBalance">
-                        <label class="form-check-label" for="showPreBalance">Show Pre Balance</label>
-                    </div>
-                    <div class="mb-3">
-                        <a href="#" class="text-danger" id="searchInvoiceLink">Search Invoice (Alt+X)</a>
+                    <div class="col-6 bg-info bg-opacity-25 text-primary border p-1 d-flex justify-content-between">
+                        <span>Total Sale</span> <span id="summaryTotalSale2">1892194.000</span>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm table-hover text-center" style="font-size: 0.9rem;">
+                <thead class="text-white" style="background-color: #008b8b;">
+                    <tr>
+                        <th style="width: 100px;">Actions</th>
+                        <th>Sale ID</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Customer</th>
+                        <th>Contact No</th>
+                        <th>GrossTotal</th>
+                        <th>Discount</th>
+                        <th>Tax</th>
+                        <th>Misc</th>
+                        <th>Freight</th>
+                        <th>NetTotal</th>
+                        <th>Remarks</th>
+                        <th>Payment Mode</th>
+                        <th>User</th>
+                        <th>Branch</th>
+                    </tr>
+                </thead>
+                <tbody id="wholeSaleListTableBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-secondary" id="backToEntryBtn"><i class="fas fa-arrow-left me-1"></i>Back to
+                Entry</button>
         </div>
     </div>
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <button type="button" class="btn btn-success me-2" id="saveWholeSaleBtn">
-                                <i class="fas fa-save me-1"></i>Save
-                            </button>
-                            <button type="button" class="btn btn-primary me-2" id="savePrintWholeSaleBtn">
-                                <i class="fas fa-print me-1"></i>Save & Print
-                            </button>
-                            <button type="button" class="btn btn-info me-2" id="listWholeSaleBtn">
-                                <i class="fas fa-list me-1"></i>List
-                            </button>
-                            <button type="button" class="btn btn-secondary me-2" id="orderWholeSaleBtn">
-                                <i class="fas fa-shopping-bag me-1"></i>Order
-                            </button>
-                            <button type="button" class="btn btn-danger" id="deleteWholeSaleBtn">
-                                <i class="fas fa-trash me-1"></i>Delete
-                            </button>
+
+    <style>
+        .nowrap-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .card-header {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+            }
+
+            #wholeSaleListSection {
+                display: none !important;
+            }
+
+            #wholeSaleEntryFormSection {
+                display: block !important;
+            }
+        }
+
+        .bg-teal {
+            background-color: #008b8b;
+        }
+    </style>
+    <div id="wholeSaleEntryFormSection">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Invoice Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="wholeSaleForm">
+                            <input type="hidden" id="wholeSaleId" value="">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="invoiceNo" class="form-label">Inv.No</label>
+                                    <input type="text" class="form-control" id="invoiceNo" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="wholeSaleDate" class="form-label">Date <span
+                                            class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="wholeSaleDate" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="customerId" class="form-label">Customer <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="customerId" required>
+                                            <option value="">Select Customer</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary" id="addCustomerBtn">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning" id="refreshCustomerBtn">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" id="listCustomerBtn">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label for="customerContactNo" class="form-label">Contact No</label>
+                                    <input type="text" class="form-control" id="customerContactNo" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="wholeSaleRemarks" class="form-label">Remarks</label>
+                                    <input type="text" class="form-control" id="wholeSaleRemarks">
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-12">
+                                    <label for="wholeSaleCategory" class="form-label">Select Category</label>
+                                    <select class="form-select" id="wholeSaleCategory">
+                                        <option value="">All Categories</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <hr class="my-4">
+                            <h6 class="mb-3">Item Details</h6>
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label for="itemCode" class="form-label">Code</label>
+                                    <input type="text" class="form-control" id="itemCode">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="itemName" class="form-label">Name</label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="itemName">
+                                            <option value="">Select Item</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary" id="addItemBtn">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning" id="refreshItemBtn">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemPack" class="form-label">Pack</label>
+                                    <input type="number" class="form-control" id="itemPack" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemStore" class="form-label">Store</label>
+                                    <select class="form-select" id="itemStore">
+                                        <option value="">Select Store</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemStock" class="form-label">Stock</label>
+                                    <input type="number" class="form-control" id="itemStock" step="0.01" readonly style="background-color: #e9ecef;">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemPrice" class="form-label">Price</label>
+                                    <input type="number" class="form-control" id="itemPrice" step="0.01" min="0">
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-2">
+                                    <label for="itemTotal" class="form-label">Total</label>
+                                    <input type="number" class="form-control" id="itemTotal" step="0.01" readonly>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemIncentive" class="form-label">Incentive</label>
+                                    <input type="number" class="form-control" id="itemIncentive" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemDiscPercent" class="form-label">Disc%</label>
+                                    <input type="number" class="form-control" id="itemDiscPercent" step="0.01" min="0"
+                                        max="100">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemTaxPercent" class="form-label">Tax %</label>
+                                    <input type="number" class="form-control" id="itemTaxPercent" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemDiscRs" class="form-label">Rs</label>
+                                    <input type="number" class="form-control" id="itemDiscRs" step="0.01" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="itemStock" class="form-label">Stock</label>
+                                    <input type="number" class="form-control" id="itemStock" readonly>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-3">
+                                    <label for="itemTaxRs" class="form-label">Rs (Tax)</label>
+                                    <input type="number" class="form-control" id="itemTaxRs" step="0.01" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="itemNetTotal" class="form-label">NetTotal</label>
+                                    <input type="number" class="form-control" id="itemNetTotal" step="0.01" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="itemTotalFinal" class="form-label">Total</label>
+                                    <input type="number" class="form-control" id="itemTotalFinal" step="0.01" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-primary w-100" id="addItemToTableBtn">
+                                        <i class="fas fa-plus me-1"></i>Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-3">
+                                <div class="col-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sr.No</th>
+                                                    <th>Code</th>
+                                                    <th class="nowrap-text" style="min-width: 200px;">Name</th>
+                                                    <th>Pack</th>
+                                                    <th>Pcs Price</th>
+                                                    <th>Sub Total</th>
+                                                    <th>Tax %</th>
+                                                    <th>Tax Rs</th>
+                                                    <th>Total</th>
+                                                    <th>Incentive</th>
+                                                    <th>Dis %</th>
+                                                    <th>Dis Rs</th>
+                                                    <th>Net Total</th>
+                                                    <th>Store</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="wholeSaleItemsTableBody">
+                                                <tr>
+                                                    <td colspan="15" class="text-center text-muted">No items added yet
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5" class="text-end fw-bold">Total</td>
+                                                    <td id="itemsSubTotal">0.00</td>
+                                                    <td colspan="9"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleTotal" class="col-sm-4 col-form-label">Total</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleTotal" step="0.01" readonly></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleDiscPercent" class="col-sm-4 col-form-label">Discount %</label>
+                                    <div class="col-sm-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="wholeSaleDiscPercent"
+                                                step="0.01" min="0" max="100">
+                                            <span class="input-group-text">Rs</span>
+                                            <input type="number" class="form-control" id="wholeSaleDiscRs" step="0.01"
+                                                min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleTaxPercent" class="col-sm-4 col-form-label">Tax %</label>
+                                    <div class="col-sm-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="wholeSaleTaxPercent"
+                                                step="0.01" min="0">
+                                            <span class="input-group-text">Rs</span>
+                                            <input type="number" class="form-control" id="wholeSaleTaxRs" step="0.01"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleMisc" class="col-sm-4 col-form-label">Misc</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleMisc" step="0.01" min="0"></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleFreight" class="col-sm-4 col-form-label">Freight</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleFreight" step="0.01" min="0"></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleNetTotal" class="col-sm-4 col-form-label">Net Total</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleNetTotal" step="0.01" readonly></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3 row">
+                                    <label for="wholeSalePaid" class="col-sm-4 col-form-label">Paid</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSalePaid" step="0.01" min="0"></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleInvBalance" class="col-sm-4 col-form-label">Inv Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleInvBalance" step="0.01" readonly></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSalePreBalance" class="col-sm-4 col-form-label">Pre Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSalePreBalance" step="0.01" readonly></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSaleNewBalance" class="col-sm-4 col-form-label">New Balance</label>
+                                    <div class="col-sm-8"><input type="number" class="form-control form-control-sm"
+                                            id="wholeSaleNewBalance" step="0.01" readonly></div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSalePrintSize" class="col-sm-4 col-form-label">Print Size</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-select form-select-sm" id="wholeSalePrintSize">
+                                            <option value="A-4">A-4</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="wholeSalePayMode" class="col-sm-4 col-form-label">Pay Mode</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-select form-select-sm" id="wholeSalePayMode">
+                                            <option value="Cash">Cash</option>
+                                            <option value="Credit">Credit</option>
+                                            <option value="Bank">Bank</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="showPreBalance">
+                                    <label class="form-check-label" for="showPreBalance">Show Pre Balance</label>
+                                </div>
+                                <div class="mb-3">
+                                    <a href="#" class="text-danger" id="searchInvoiceLink">Search Invoice (Alt+X)</a>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="me-2">0 Price</label>
-                            <input type="number" class="form-control d-inline-block" style="width: 100px;" id="zeroPrice" value="0">
-                            <label class="ms-2 me-2">Apply Discount</label>
-                            <input type="number" class="form-control d-inline-block" style="width: 100px;" id="applyDiscount">
-                            <select class="form-select d-inline-block" style="width: 80px;">
-                                <option value="%">%</option>
-                            </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="button" class="btn btn-success me-2" id="saveWholeSaleBtn">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-primary me-2" id="savePrintWholeSaleBtn">
+                                    <i class="fas fa-print me-1"></i>Save & Print
+                                </button>
+                                <button type="button" class="btn btn-info me-2" id="listWholeSaleBtn">
+                                    <i class="fas fa-list me-1"></i>List
+                                </button>
+                                <button type="button" class="btn btn-secondary me-2" id="orderWholeSaleBtn">
+                                    <i class="fas fa-shopping-bag me-1"></i>Order
+                                </button>
+                                <button type="button" class="btn btn-danger" id="deleteWholeSaleBtn">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                            <div>
+                                <label class="me-2">0 Price</label>
+                                <input type="number" class="form-control d-inline-block" style="width: 100px;"
+                                    id="zeroPrice" value="0">
+                                <label class="ms-2 me-2">Apply Discount</label>
+                                <input type="number" class="form-control d-inline-block" style="width: 100px;"
+                                    id="applyDiscount">
+                                <select class="form-select d-inline-block" style="width: 80px;">
+                                    <option value="%">%</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -298,4 +487,54 @@
         </div>
     </div>
 </div>
-
+<div id="wholeSaleNameOverlay"
+    style="display: none; position: absolute; background: white; border: 1px solid #ccc; z-index: 1000; width: 400px; max-height: 300px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div class="p-2 border-bottom"><input type="text" id="wholeSaleNameOverlaySearch"
+            class="form-control form-control-sm" placeholder="Search item..."></div>
+    <div id="wholeSaleNameOverlayList"></div>
+</div>
+<!-- Customer Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New Customer</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCustomerForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="quickCustName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile No</label>
+                            <input type="text" class="form-control" id="quickCustMobile">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone No</label>
+                            <input type="text" class="form-control" id="quickCustPhone">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control" id="quickCustAddress">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CNIC</label>
+                            <input type="text" class="form-control" id="quickCustCNIC">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Opening Balance</label>
+                            <input type="number" class="form-control" id="quickCustOpening" value="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveQuickCustomerBtn">Save Customer</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -28,8 +28,6 @@ const ItemSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ItemSchema.index({ itemCode: 1 });
-ItemSchema.index({ itemName: 1 });
 ItemSchema.index({ givenPcsBarCode: 1 });
 
 export const Item = mongoose.model('Item', ItemSchema);

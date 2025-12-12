@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whole Sale Invoice Print</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: Arial, sans-serif; }
+        .print-container {
+            background-color: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        @media print {
+            body { background-color: white; margin: 0; }
+            .print-container { width: 100%; margin: 0; padding: 0; box-shadow: none; }
+            .no-print { display: none !important; }
+        }
+        .invoice-header { border-bottom: 2px solid #000; margin-bottom: 16px; padding-bottom: 10px; }
+        .items-table th { background-color: #f0f0f0 !important; border-bottom: 1px solid #000; }
+        .items-table td { border-bottom: 1px solid #ddd; }
+        .invoice-details-table td { padding: 2px 0; vertical-align: top; }
+        .signature-box { margin-top: 50px; border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-3 mb-3 no-print text-center">
+        <button onclick="window.print()" class="btn btn-primary">Print Invoice</button>
+        <button onclick="window.close()" class="btn btn-secondary">Close</button>
+    </div>
+
+    <div class="print-container" id="invoiceContent">
+        <div class="invoice-header">
+            <div class="row">
+                <div class="col-8">
+                    <h2 class="mb-0" id="companyName">D.Watson Group of Pharmacy</h2>
+                    <p class="mb-0" id="branchName">Branch</p>
+                    <p class="mb-0" id="branchAddress">Address</p>
+                    <p class="mb-0">Phone: <span id="branchPhone">-</span></p>
+                </div>
+                <div class="col-4 text-end">
+                    <h3 class="text-uppercase text-muted">Whole Sale Invoice</h3>
+                    <h5 class="mb-0" id="invoiceNo">WS-0000</h5>
+                    <p class="mb-0">Date: <span id="invoiceDate">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-6">
+                <h6 class="text-uppercase border-bottom pb-1">Customer Details</h6>
+                <table class="w-100 invoice-details-table">
+                    <tr><td class="fw-bold" style="width:95px;">Name:</td><td id="customerName">-</td></tr>
+                    <tr><td class="fw-bold">Contact:</td><td id="customerContact">-</td></tr>
+                    <tr><td class="fw-bold">NTN:</td><td id="customerNTN">-</td></tr>
+                    <tr><td class="fw-bold">STRN:</td><td id="customerSTRN">-</td></tr>
+                    <tr><td class="fw-bold">City:</td><td id="customerCity">-</td></tr>
+                    <tr><td class="fw-bold">Address:</td><td id="customerAddress">-</td></tr>
+                </table>
+            </div>
+            <div class="col-6">
+                <h6 class="text-uppercase border-bottom pb-1">Invoice Info</h6>
+                <table class="w-100 invoice-details-table">
+                    <tr><td class="fw-bold" style="width:110px;">Created By:</td><td id="userName">-</td></tr>
+                    <tr><td class="fw-bold">Pay Mode:</td><td id="payMode">-</td></tr>
+                    <tr><td class="fw-bold">Remarks:</td><td id="remarks">-</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <table class="table table-sm items-table mb-4">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">Sr.</th>
+                    <th>Item Name</th>
+                    <th class="text-center" style="width: 70px;">Pack</th>
+                    <th class="text-end" style="width: 90px;">Price</th>
+                    <th class="text-end" style="width: 110px;">Sub Total</th>
+                    <th class="text-end" style="width: 90px;">Tax</th>
+                    <th class="text-end" style="width: 90px;">Disc</th>
+                    <th class="text-end" style="width: 110px;">Net</th>
+                </tr>
+            </thead>
+            <tbody id="itemsTableBody"></tbody>
+            <tfoot style="border-top: 2px solid #000;">
+                <tr>
+                    <td colspan="7" class="text-end fw-bold">Total:</td>
+                    <td class="text-end fw-bold" id="total">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="text-end">Invoice Discount:</td>
+                    <td class="text-end" id="discount">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="text-end">Tax + Misc + Freight:</td>
+                    <td class="text-end" id="charges">0.00</td>
+                </tr>
+                <tr style="font-size: 1.05em; background-color: #f8f9fa;">
+                    <td colspan="7" class="text-end fw-bold">Net Total:</td>
+                    <td class="text-end fw-bold" id="netTotal">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="row mt-5">
+            <div class="col-6"><div class="signature-box">Prepared By</div></div>
+            <div class="col-6 text-end"><div class="signature-box ms-auto">Authorized Signature</div></div>
+        </div>
+
+        <div class="text-center mt-4 text-muted small">
+            <p>Printed on: <span id="printTime"></span></p>
+        </div>
+    </div>
+
+    <script>
+        const fmt = (num) => Number(num || 0).toFixed(2);
+
+        async function loadInvoiceData() {
+            const pathParts = window.location.pathname.split('/');
+            const invoiceId = pathParts[pathParts.length - 1];
+            if (!invoiceId) {
+                alert('Invoice ID not found');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/whole-sales/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to load invoice');
+
+                const invoice = await response.json();
+                renderInvoice(invoice);
+            } catch (error) {
+                console.error(error);
+                document.body.innerHTML = `<div class="container mt-5 alert alert-danger">Error loading invoice: ${error.message}</div>`;
+            }
+        }
+
+        function renderInvoice(data) {
+            document.getElementById('invoiceNo').textContent = data.invoiceNo || '';
+            document.getElementById('invoiceDate').textContent = data.date ? new Date(data.date).toLocaleDateString() : '';
+
+            const br = data.branchId || {};
+            document.getElementById('branchName').textContent = br.name || '';
+            document.getElementById('branchAddress').textContent = br.address || '';
+            document.getElementById('branchPhone').textContent = br.phone || '';
+
+            const cust = data.customerId || {};
+            document.getElementById('customerName').textContent = cust.name || '';
+            document.getElementById('customerContact').textContent = cust.phoneNo || cust.mobileNo || cust.contactNo || '';
+            document.getElementById('customerNTN').textContent = cust.ntn || '';
+            document.getElementById('customerSTRN').textContent = cust.strn || '';
+            document.getElementById('customerCity').textContent = (cust.cityId && cust.cityId.name) ? cust.cityId.name : '';
+            document.getElementById('customerAddress').textContent = cust.address || '';
+
+            const usr = data.userId || {};
+            document.getElementById('userName').textContent = usr.fullName || usr.username || '';
+            document.getElementById('payMode').textContent = data.paymentMode || '';
+            document.getElementById('remarks').textContent = data.remarks || '';
+
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+            const items = Array.isArray(data.items) ? data.items : [];
+            items.forEach((it, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${it.name || ''}</td>
+                    <td class="text-center">${fmt(it.pack)}</td>
+                    <td class="text-end">${fmt(it.price || it.unitPrice)}</td>
+                    <td class="text-end">${fmt(it.subtotal)}</td>
+                    <td class="text-end">${fmt(it.taxRs)}</td>
+                    <td class="text-end">${fmt(it.discountRs)}</td>
+                    <td class="text-end">${fmt(it.netTotal)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('total').textContent = fmt(data.total);
+            document.getElementById('discount').textContent = fmt(data.discountRs);
+            const charges = Number(data.taxRs || 0) + Number(data.misc || 0) + Number(data.freight || 0);
+            document.getElementById('charges').textContent = fmt(charges);
+            document.getElementById('netTotal').textContent = fmt(data.netTotal);
+
+            document.getElementById('printTime').textContent = new Date().toLocaleString();
+        }
+
+        loadInvoiceData();
+    </script>
+</body>
+</html>

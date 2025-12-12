@@ -6,6 +6,7 @@ const WholeSaleSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     items: [
       {
         code: String,
