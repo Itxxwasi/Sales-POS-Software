@@ -19,6 +19,8 @@ export const env = {
   JWT_SECRET: process.env.JWT_SECRET,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   NODE_ENV: process.env.NODE_ENV || 'production',
+  // JWT token expiration time (default: 24 hours, format: '24h', '7d', etc.)
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
 };
 
 export const paths = {

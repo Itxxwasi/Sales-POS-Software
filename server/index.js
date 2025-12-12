@@ -132,6 +132,31 @@ function canonicalizePermissions(perms) {
   }
 }
 
+// Helper: Parse JWT expiration string to milliseconds
+// Supports formats: '24h', '7d', '30m', '1h', etc.
+function parseExpirationToMs(expiration) {
+  if (!expiration || typeof expiration !== 'string') {
+    return 24 * 60 * 60 * 1000; // Default: 24 hours
+  }
+  
+  const match = expiration.match(/^(\d+)([smhd])$/i);
+  if (!match) {
+    return 24 * 60 * 60 * 1000; // Default: 24 hours
+  }
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  
+  const multipliers = {
+    's': 1000,           // seconds
+    'm': 60 * 1000,      // minutes
+    'h': 60 * 60 * 1000, // hours
+    'd': 24 * 60 * 60 * 1000 // days
+  };
+  
+  return value * (multipliers[unit] || multipliers['h']);
+}
+
 
 // ========================================
 // DATABASE CONNECTION
@@ -561,8 +586,15 @@ app.post('/api/auth/login', checkDatabaseConnection, async (req, res) => {
 
 // User Logout
 app.post('/api/auth/logout', authenticate, (req, res) => {
-  // Token is stored in localStorage on frontend, cleared by frontend
-  // Backend just confirms logout
+  // Clear httpOnly cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  });
+  
+  // Token is also stored in localStorage on frontend, cleared by frontend
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -4878,16 +4910,28 @@ app.delete('/api/sub-classes/:id', authenticate, isAdmin, checkDatabaseConnectio
 });
 
 // Customers
-app.get('/api/customers', authenticate, async (req, res) => {
+app.get('/api/customers', authenticate, hasPermission('customers'), async (req, res) => {
   try {
     const filter = { isActive: true };
     if (req.query.search) {
       filter.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
-        { contactNo: { $regex: req.query.search, $options: 'i' } }
+        { phoneNo: { $regex: req.query.search, $options: 'i' } },
+        { mobileNo: { $regex: req.query.search, $options: 'i' } }
       ];
     }
-    const customers = await Customer.find(filter).sort({ name: 1 });
+    
+    // Filter by user's assigned branches if not admin
+    const isSuperAdmin = req.user.groupId.permissions.includes('admin');
+    if (!isSuperAdmin && req.user.branches && req.user.branches.length > 0) {
+      filter.branchId = { $in: req.user.branches };
+    }
+    
+    const customers = await Customer.find(filter)
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name')
+      .sort({ name: 1 });
     res.json(customers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4896,8 +4940,17 @@ app.get('/api/customers', authenticate, async (req, res) => {
 
 app.post('/api/customers', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
+    // Generate code if not provided
+    if (!req.body.code) {
+      const count = await Customer.countDocuments();
+      req.body.code = (120100000 + count + 1).toString();
+    }
     const customer = await Customer.create(req.body);
-    res.status(201).json(customer);
+    const populated = await Customer.findById(customer._id)
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name');
+    res.status(201).json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -4905,7 +4958,10 @@ app.post('/api/customers', authenticate, hasPermission('customers'), checkDataba
 
 app.put('/api/customers/:id', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
-    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updated = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('cityId', 'name')
+      .populate('categoryId', 'name')
+      .populate('branchId', 'name');
     if (!updated) return res.status(404).json({ error: 'Customer not found' });
     res.json(updated);
   } catch (error) {
@@ -4913,12 +4969,22 @@ app.put('/api/customers/:id', authenticate, hasPermission('customers'), checkDat
   }
 });
 
-app.delete('/api/customers/:id', authenticate, isAdmin, checkDatabaseConnection, async (req, res) => {
+app.delete('/api/customers/:id', authenticate, hasPermission('customers'), checkDatabaseConnection, async (req, res) => {
   try {
     await Customer.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/customers/next-code', authenticate, hasPermission('customers'), async (req, res) => {
+  try {
+    const count = await Customer.countDocuments();
+    const nextCode = (120100000 + count + 1).toString();
+    res.json({ code: nextCode });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -6444,13 +6510,13 @@ async function seedDefaultData() {
         {
           name: 'Sales',
           description: 'Sales staff with access to sales entry and reports',
-          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'purchase-return', 'customer-payment'],
+          permissions: ['dashboard', 'sales', 'reports', 'suppliers', 'whole-sale', 'sale-return', 'purchase-return', 'customer-payment', 'customers'],
           isDefault: true
         },
         {
           name: 'Manager',
           description: 'Branch managers with access to dashboard and reports only',
-          permissions: ['dashboard', 'reports'],
+          permissions: ['dashboard', 'reports', 'customers'],
           isDefault: true
         }
       ];
@@ -6478,13 +6544,14 @@ async function seedDefaultData() {
 
       const managerGroup = await Group.findOne({ name: 'Manager' });
       if (managerGroup) {
-        const correctManagerPermissions = ['dashboard', 'reports'];
+        const correctManagerPermissions = ['dashboard', 'reports', 'customers'];
         const needsUpdate = JSON.stringify(managerGroup.permissions.sort()) !== JSON.stringify(correctManagerPermissions.sort());
 
         if (needsUpdate) {
           managerGroup.permissions = correctManagerPermissions;
-          managerGroup.description = 'Branch managers with access to dashboard and reports only';
+          managerGroup.description = 'Branch managers with access to dashboard, reports, and customer management';
           await managerGroup.save();
+          console.log('✅ Updated Manager group with customers permission');
         }
       }
 

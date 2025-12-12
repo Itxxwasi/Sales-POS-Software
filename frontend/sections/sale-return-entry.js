@@ -459,7 +459,6 @@
         code: item.itemCode,
         name: item.itemName,
         pack: pack,
-        quantity: pack,
         price: price,
         discountPercent: discPercent,
         discountRs: discount,
